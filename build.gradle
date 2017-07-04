@@ -1,0 +1,70 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.xtext:xtext-gradle-plugin:1.0.18'
+    }
+}
+
+plugins {
+    id 'net.researchgate.release' version '2.6.0'
+    id 'com.jfrog.bintray' version '1.7.3'
+}
+
+subprojects {
+    repositories {
+        jcenter()
+        maven {
+            url  "http://dl.bintray.com/franzbecker/maven" 
+        }
+        maven {
+            url  "http://dl.bintray.com/test-editor/maven" 
+        }
+    }
+    
+    apply plugin: 'java'
+    apply plugin: 'org.xtext.xtend'
+    apply plugin: 'eclipse'
+    apply plugin: 'idea'
+    apply plugin: 'maven'
+    
+    group = 'org.testeditor.web'
+
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+    
+    apply from: "$rootDir/gradle/publishing.gradle"
+
+	sourceSets {
+  		main.xtendOutputDir = 'src/main/xtend-gen'
+  		test.xtendOutputDir = 'src/test/xtend-gen'
+	}
+
+    dependencies {
+        compile 'org.eclipse.xtend:org.eclipse.xtend.lib:$versions.xtext'
+    	testCompile 'junit:junit:4.12'
+        testCompile 'org.mockito:mockito-core:2.7.22'
+        testCompile 'de.xtendutils:junit:0.0.4'
+    }
+   
+}
+
+/*
+ * Configure release plugin.
+ * Remove tasks "updateVersion" and "commitNewVersion" as we don't want the new SNAPSHOT
+ * version commit on the master branch.
+ */
+tasks.release.tasks -= [":updateVersion", ":commitNewVersion"]
+release {
+    preTagCommitMessage = '[release]'
+    tagCommitMessage = '[release]'
+    newVersionCommitMessage = '[release] new version'
+    tagTemplate = 'v${version}'
+}
+
+afterReleaseBuild.dependsOn bintrayUpload
+
+task build {
+    dependsOn = subprojects.collect{it.tasks['build']}
+}

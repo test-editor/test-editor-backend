@@ -1,0 +1,38 @@
+apply plugin: 'com.jfrog.bintray'
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': "${project.group}.${project.name}",
+                'Implementation-Version': project.version
+    }
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives sourcesJar
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    configurations = ['archives']
+    publish = true 
+    pkg {
+        repo = 'maven'
+        name = rootProject.name
+        userOrg = 'test-editor'
+        websiteUrl = 'http://testeditor.org'
+        vcsUrl = "https://github.com/test-editor/${project.name}.git"
+        licenses = ['EPL-1.0']
+    }
+}
+
+bintrayUpload.doFirst {
+    // Version is changed during release, we need to set the proper version right before uploading
+    versionName = "$project.version"
+    versionVcsTag = "v$project.version"
+}

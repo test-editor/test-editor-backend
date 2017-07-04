@@ -1,0 +1,3 @@
+dependencies {
+    compile 'org.testeditor.web:org.testeditor.web.dropwizard:0+'
+}
