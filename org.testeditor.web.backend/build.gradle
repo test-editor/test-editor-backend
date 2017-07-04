@@ -1,3 +1,5 @@
 dependencies {
     compile 'org.testeditor.web:org.testeditor.web.dropwizard:0+'
+    compile 'org.testeditor:org.testeditor.tsl.dsl.web:1.7.0'
+    compile 'org.testeditor:org.testeditor.dsl.common.model:1.7.0'
 }
