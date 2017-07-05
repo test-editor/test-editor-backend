@@ -1,0 +1,3 @@
+rootProject.name = 'test-editor-backend'
+
+include ':org.testeditor.web.backend'
