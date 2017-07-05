@@ -6,7 +6,7 @@ import org.testeditor.web.dropwizard.XtextApplication
 class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 	
 	override protected getLanguageSetups() {
-		return #[new TslWebSetup]
+		return #[new ModifiedTslWebSetup]
 	}
 	
 }
