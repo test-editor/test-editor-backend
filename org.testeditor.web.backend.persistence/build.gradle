@@ -3,12 +3,8 @@ plugins {
 }
 
 dependencies {
-    compile 'org.testeditor.web:org.testeditor.web.dropwizard:0+'
-}
-
-ext {
-   configPath = "./"
-   dropwizardVersion = "1.1.1"
+	compile "org.eclipse.jgit:org.eclipse.jgit:4.7.0.201704051617-r"
+	testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.7.0.201704051617-r"
 }
 
 mainClassName = 'org.testeditor.web.backend.persistence.ServerLauncher'
