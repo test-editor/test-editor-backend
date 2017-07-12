@@ -13,7 +13,7 @@ import org.testeditor.tsl.dsl.ide.TslIdeModule
 /**
  * Initialization support for running Xtext languages in web applications.
  */
-class ModifiedTslWebSetup extends TslStandaloneSetup {
+class ModifiedTslStandaloneSetup extends TslStandaloneSetup {
 
 	override Injector createInjector() {
 		return Guice.createInjector(Modules2.mixin(new TslRuntimeModule, new TslIdeModule, new TslEditorWebModule))

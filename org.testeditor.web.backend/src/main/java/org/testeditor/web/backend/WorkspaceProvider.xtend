@@ -10,7 +10,7 @@ class WorkspaceProvider {
 	String rootFS
 
 	@Inject
-	new(WebEditorConfiguration configuration) {
+	new(TestEditorConfiguration configuration) {
 		rootFS = configuration.gitFSRoot
 	}
 
