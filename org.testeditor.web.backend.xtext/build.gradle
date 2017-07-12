@@ -1,0 +1,20 @@
+plugins {
+  id "application"
+}
+
+dependencies {
+    compile 'org.testeditor.web:org.testeditor.web.dropwizard:0+'
+    compile 'org.testeditor:org.testeditor.tsl.dsl.web:1.7.0'
+    compile 'org.testeditor:org.testeditor.dsl.common.model:1.7.0'
+}
+
+ext {
+   configPath = "./"
+   dropwizardVersion = "1.1.1"
+}
+
+mainClassName = 'org.testeditor.web.backend.xtext.ServerLauncher'
+
+run {
+	args 'server', configPath + 'config.yml'
+}

@@ -1,3 +1,4 @@
 rootProject.name = 'test-editor-backend'
 
-include ':org.testeditor.web.backend'
+include ':org.testeditor.web.backend.xtext'
+include ':org.testeditor.web.backend.persistence'

@@ -1,4 +1,4 @@
-package org.testeditor.web.backend
+package org.testeditor.web.backend.persistence
 
 import io.dropwizard.Configuration
 import javax.inject.Singleton
@@ -6,7 +6,7 @@ import org.eclipse.xtend.lib.annotations.Accessors
 import org.hibernate.validator.constraints.NotEmpty
 
 @Singleton
-class TestEditorConfiguration extends Configuration {
+class PersistenceConfiguration extends Configuration {
 
 	@Accessors
 	private String projectRepoUrl
