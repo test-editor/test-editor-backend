@@ -31,6 +31,13 @@ subprojects {
     
     group = 'org.testeditor.web'
 
+    ext.versions = [
+        dropwizard: '1.1.1',
+        xtext: '2.12.0'
+    ]
+    ext.configPath = "./"
+    
+    
     sourceCompatibility = '1.8'
     targetCompatibility = '1.8'
     
@@ -43,7 +50,8 @@ subprojects {
 
     dependencies {
         compile 'org.eclipse.xtend:org.eclipse.xtend.lib:$versions.xtext'
-    	testCompile 'junit:junit:4.12'
+        compile 'org.testeditor.web:org.testeditor.web.dropwizard:0+'
+        testCompile 'junit:junit:4.12'
         testCompile 'org.mockito:mockito-core:2.7.22'
         testCompile 'de.xtendutils:junit:0.0.4'
     }
