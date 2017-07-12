@@ -4,8 +4,6 @@ plugins {
 
 dependencies {
     compile 'org.testeditor.web:org.testeditor.web.dropwizard:0+'
-    compile 'org.testeditor:org.testeditor.tsl.dsl.web:1.7.0'
-    compile 'org.testeditor:org.testeditor.dsl.common.model:1.7.0'
 }
 
 ext {
@@ -13,7 +11,7 @@ ext {
    dropwizardVersion = "1.1.1"
 }
 
-mainClassName = 'org.testeditor.web.backend.ServerLauncher'
+mainClassName = 'org.testeditor.web.backend.persistence.ServerLauncher'
 
 run {
 	args 'server', configPath + 'config.yml'

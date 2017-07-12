@@ -1,16 +1,15 @@
-package org.testeditor.web.backend
+package org.testeditor.web.backend.persistence
 
 import java.io.File
 import javax.inject.Inject
 import javax.ws.rs.core.SecurityContext
-import org.eclipse.xtext.web.server.ISession
 
 class WorkspaceProvider {
 
 	String rootFS
 
 	@Inject
-	new(TestEditorConfiguration configuration) {
+	new(PersistenceConfiguration configuration) {
 		rootFS = configuration.gitFSRoot
 	}
 
@@ -19,12 +18,7 @@ class WorkspaceProvider {
 		return getWorkspace(user.name)
 	}
 
-	def File getWorkspace(ISession session) {
-		// use dummy authorized user 
-		return getWorkspace("admin")
-	}
-
-	private def File getWorkspace(String userId) {
+	def File getWorkspace(String userId) {
 		return new File(rootFS, userId)
 	}
 

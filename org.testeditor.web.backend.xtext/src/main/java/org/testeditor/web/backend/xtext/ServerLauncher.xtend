@@ -1,4 +1,4 @@
-package org.testeditor.web.backend
+package org.testeditor.web.backend.xtext
 
 class ServerLauncher {
 
