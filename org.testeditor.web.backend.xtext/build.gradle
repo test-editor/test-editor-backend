@@ -3,7 +3,9 @@ dependencies {
     compile 'org.testeditor:org.testeditor.dsl.common.model:1.7.0'
 }
 
+mainClassName = 'org.testeditor.web.backend.xtext.TestEditorApplication'
+
 run {
-	main 'org.testeditor.web.backend.xtext.TestEditorApplication'
+	main mainClassName
 	args 'server', configPath + 'config.yml'
 }
