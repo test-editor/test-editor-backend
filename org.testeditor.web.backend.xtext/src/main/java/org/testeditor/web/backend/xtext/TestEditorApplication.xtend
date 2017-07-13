@@ -9,4 +9,8 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 		return #[new TslStandaloneSetup]
 	}
 
+	def static void main(String[] args) {
+		new TestEditorApplication().run(args)
+	}
+
 }

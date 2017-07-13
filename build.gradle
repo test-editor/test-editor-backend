@@ -28,7 +28,8 @@ subprojects {
     apply plugin: 'eclipse'
     apply plugin: 'idea'
     apply plugin: 'maven'
-    
+    apply plugin: 'application'
+
     group = 'org.testeditor.web'
 
     ext.versions = [
