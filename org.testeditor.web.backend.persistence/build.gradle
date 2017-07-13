@@ -1,0 +1,9 @@
+dependencies {
+	compile "org.eclipse.jgit:org.eclipse.jgit:4.7.0.201704051617-r"
+	testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.7.0.201704051617-r"
+}
+
+run {
+	main 'org.testeditor.web.backend.persistence.PersistenceApplication'
+	args 'server', configPath + 'config.yml'
+}

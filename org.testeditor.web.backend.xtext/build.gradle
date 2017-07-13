@@ -1,0 +1,9 @@
+dependencies {
+    compile 'org.testeditor:org.testeditor.tsl.dsl.web:1.7.0'
+    compile 'org.testeditor:org.testeditor.dsl.common.model:1.7.0'
+}
+
+run {
+	main 'org.testeditor.web.backend.xtext.TestEditorApplication'
+	args 'server', configPath + 'config.yml'
+}
