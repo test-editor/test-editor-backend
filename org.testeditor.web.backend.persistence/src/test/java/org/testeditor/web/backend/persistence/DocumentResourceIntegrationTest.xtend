@@ -1,7 +1,10 @@
 package org.testeditor.web.backend.persistence
 
+import io.dropwizard.testing.ConfigOverride
+import io.dropwizard.testing.ResourceHelpers
 import io.dropwizard.testing.junit.DropwizardAppRule
 import java.io.File
+import java.net.ServerSocket
 import java.nio.charset.StandardCharsets
 import javax.ws.rs.client.Client
 import javax.ws.rs.client.Entity
@@ -35,7 +38,8 @@ class DocumentResourceIntegrationTest {
 
 	@ClassRule
 	public static val dropwizardAppRule = new DropwizardAppRule(PersistenceApplication,
-		new File('config.yml').absoluteFile.toString)
+		ResourceHelpers.resourceFilePath('test-config.yml'),
+		ConfigOverride.config('server.applicationConnectors[0].port', new ServerSocket(0).localPort.toString))
 
 	@Test
 	def void documentUpdateFileTest() {
@@ -105,7 +109,7 @@ class DocumentResourceIntegrationTest {
 		response.status.assertThat(equalTo(ACCEPTED.statusCode))
 		fileToDelete.exists.assertFalse
 	}
-	
+
 	@Test
 	def void documentDeleteMissingFileFailureTest() {
 		// given
@@ -139,13 +143,13 @@ class DocumentResourceIntegrationTest {
 			assertThat(containsString('# Create-Example'))
 		]
 	}
-	
+
 	@Test
 	def void documentGetMissingFileFailureTest() {
 		// given
 		val client = dropwizardAppRule.client
-		new File(folder.root, 'example.tsl') => [ exists.assertFalse ]
-		
+		new File(folder.root, 'example.tsl') => [exists.assertFalse]
+
 		// when
 		val response = client.invocationBuilder('''/documents/«folder.root.name»/example.tsl''').get
 
