@@ -12,7 +12,7 @@ import org.apache.commons.lang3.NotImplementedException
 @Path("/document")
 @Produces(MediaType.TEXT_PLAIN)
 class DocumentResource {
-	
+
 	@Inject FileProvider fileProvider
 
 	@GET
