@@ -59,6 +59,9 @@ subprojects {
         testCompile 'commons-io:commons-io:2.5'
     }
    
+	test {
+		testLogging.showStandardStreams = true
+	}
 }
 
 /*
