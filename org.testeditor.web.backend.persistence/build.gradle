@@ -3,7 +3,9 @@ dependencies {
 	testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.7.0.201704051617-r"
 }
 
+mainClassName = 'org.testeditor.web.backend.persistence.PersistenceApplication'
+
 run {
-	main 'org.testeditor.web.backend.persistence.PersistenceApplication'
+	main mainClassName
 	args 'server', configPath + 'config.yml'
 }
