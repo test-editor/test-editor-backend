@@ -34,6 +34,7 @@ subprojects {
 
     ext.versions = [
         dropwizard: '1.1.1',
+        testEditorDropwizard: '0.3.0',
         xtext: '2.12.0'
     ]
     ext.configPath = "./"
@@ -50,13 +51,18 @@ subprojects {
 	}
 
     dependencies {
-        compile 'org.eclipse.xtend:org.eclipse.xtend.lib:$versions.xtext'
-        compile 'org.testeditor.web:org.testeditor.web.dropwizard:0+'
+        compile "org.eclipse.xtend:org.eclipse.xtend.lib:$versions.xtext"
+        compile "org.testeditor.web:org.testeditor.web.dropwizard:$versions.testEditorDropwizard"
         testCompile 'junit:junit:4.12'
         testCompile 'org.mockito:mockito-core:2.7.22'
         testCompile 'de.xtendutils:junit:0.0.4'
+        testCompile "io.dropwizard:dropwizard-testing:$versions.dropwizard"
+        testCompile 'commons-io:commons-io:2.5'
     }
    
+	test {
+		testLogging.showStandardStreams = true
+	}
 }
 
 /*

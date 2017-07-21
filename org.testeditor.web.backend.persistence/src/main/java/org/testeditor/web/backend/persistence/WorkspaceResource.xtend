@@ -16,9 +16,9 @@ import javax.inject.Inject
 import javax.ws.rs.GET
 import javax.ws.rs.Produces
 import javax.ws.rs.core.Context
+import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
-import javax.ws.rs.core.SecurityContext
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.errors.InvalidRemoteException
 import org.eclipse.jgit.api.errors.TransportException
@@ -41,13 +41,13 @@ class WorkspaceResource {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("list-files")
-	def Element listFiles(@Context SecurityContext securityContext) {
-		val workspaceRoot = workspaceProvider.getWorkspace(securityContext).toPath
+	def Element listFiles(@Context HttpHeaders headers) {
+		val workspaceRoot = workspaceProvider.getWorkspace(headers.userName).toPath
 
 		val Map<Path, Element> pathToElement = newHashMap
 		Files.walkFileTree(workspaceRoot, new SimpleFileVisitor<Path>() {
 			override FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-				val element = createElement(file, workspaceRoot, pathToElement)
+				val element = createElement(file, workspaceRoot, pathToElement, "file")
 				val parentElement = pathToElement.get(file.parent)
 				parentElement.children += element
 				return FileVisitResult.CONTINUE
@@ -57,7 +57,7 @@ class WorkspaceResource {
 				if (dir.parent == workspaceRoot && Files.isDirectory(dir) && dir.fileName.toString == ".git") {
 					return FileVisitResult.SKIP_SUBTREE
 				}
-				val element = createElement(dir, workspaceRoot, pathToElement)
+				val element = createElement(dir, workspaceRoot, pathToElement, "folder")
 				if (dir != workspaceRoot) {
 					val parentElement = pathToElement.get(dir.parent)
 					parentElement.children += element
@@ -73,10 +73,13 @@ class WorkspaceResource {
 		]
 	}
 
-	private def Element createElement(Path file, Path workspaceRoot, Map<Path, Element> pathToElement) {
+	private def Element createElement(Path file, Path workspaceRoot, Map<Path, Element> pathToElement,
+		String fileType) {
 		return new Element => [
 			name = file.fileName.toString
 			path = workspaceRoot.relativize(file).toString
+			expanded = false
+			type = fileType
 			children = newLinkedList
 			pathToElement.put(file, it)
 		]
@@ -86,26 +89,23 @@ class WorkspaceResource {
 	static class Element {
 		String name
 		String path
+		boolean expanded
+		String type
 		List<Element> children
 	}
 
 	@GET
 	@Timed
 	@javax.ws.rs.Path("initialize")
-	def Response createWorkspace(@Context SecurityContext securityContext) {
-		val isInUserRole = securityContext.isUserInRole("user")
-		if (!isInUserRole) {
-			return Response.status(Response.Status.UNAUTHORIZED).build
-		}
-		val user = securityContext.userPrincipal
-		val userName = user.name // TODO: derive, get from where?
-		val userEmail = '''«user.name»@signal-iduna.de''' // same as above
+	def Response createWorkspace(@Context HttpHeaders headers) {
+		val userName = headers.userName // TODO: derive, get from where?
+		val userEmail = '''«userName»@signal-iduna.de''' // same as above
 		if (projectUrl.isNullOrEmpty) {
 			return Response.status(Response.Status.NOT_FOUND).build
 		}
 		var status = Response.Status.FOUND
 		try {
-			val workspace = workspaceProvider.getWorkspace(securityContext)
+			val workspace = workspaceProvider.getWorkspace(userName)
 			val cloned = prepareWorkspaceIfNecessaryFor(workspace, userName, userEmail)
 			if (cloned) {
 				status = Response.Status.CREATED
@@ -172,6 +172,11 @@ class WorkspaceResource {
 	protected def boolean isGitInitialized(File workspace) {
 		val gitFolder = new File(workspace, ".git")
 		return gitFolder.exists
+	}
+
+	// currently dummy implementation to get user from header authorization
+	private def String getUserName(HttpHeaders headers) {
+		headers.getHeaderString('Authorization').split(':').head
 	}
 
 }
