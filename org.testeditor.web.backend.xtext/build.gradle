@@ -1,7 +1,7 @@
 dependencies {
     compile 'org.testeditor:org.testeditor.tsl.dsl.web:1.7.0'
     compile 'org.testeditor:org.testeditor.dsl.common.model:1.7.0'
-    compile 'org.testeditor.web:org.testeditor.web.dropwizard.xtext:0.2.0'
+    compile "org.testeditor.web:org.testeditor.web.dropwizard.xtext:$versions.testEditorDropwizard"
 }
 
 mainClassName = 'org.testeditor.web.backend.xtext.TestEditorApplication'
