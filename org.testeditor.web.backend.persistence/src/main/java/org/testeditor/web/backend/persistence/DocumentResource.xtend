@@ -1,6 +1,6 @@
 package org.testeditor.web.backend.persistence
 
-import java.io.IOException
+import java.io.FileNotFoundException
 import javax.inject.Inject
 import javax.ws.rs.DELETE
 import javax.ws.rs.GET
@@ -14,65 +14,60 @@ import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
-@Path("/documents/{resourceId:.*}")
+import static javax.ws.rs.core.Response.Status.*
+import static javax.ws.rs.core.Response.status
+
+@Path("/documents/{resourcePath:.*}")
 @Produces(MediaType.TEXT_PLAIN)
 class DocumentResource {
 
-	@Inject DocumentProvider fileProvider
+	@Inject DocumentProvider documentProvider
 
 	@POST
-	def Response create(@PathParam("resourceId") String resourceId, String content, @Context HttpHeaders headers) {
-		try {
-			fileProvider.create(resourceId, content, headers.userName)
-			return Response.status(Response.Status.CREATED).build
-		} catch (IOException e) {
-			return Response.serverError.build
-		}
-	}
-
-	@DELETE
-	def Response delete(@PathParam("resourceId") String resourceId, @Context HttpHeaders headers) {
-		try {
-			val actuallyDeleted = fileProvider.delete(resourceId, headers.userName)
-			if (actuallyDeleted) {
-				return Response.status(Response.Status.ACCEPTED).build
-			} else {
-				return Response.status(Response.Status.NOT_FOUND).build
-			}
-		} catch (IOException e) {
-			return Response.serverError.build
+	def Response create(@PathParam("resourcePath") String resourcePath, String content, @Context HttpHeaders headers) {
+		val created = documentProvider.create(resourcePath, headers.userName, content)
+		if (created) {
+			return status(CREATED).build
+		} else {
+			return status(BAD_REQUEST).build
 		}
 	}
 
 	@PUT
-	def Response save(@PathParam("resourceId") String resourceId, String content, @Context HttpHeaders headers) {
-		try {
-			val fileExisted = fileProvider.exists(resourceId, headers.userName)
-			fileProvider.save(resourceId, content, headers.userName)
-			if (fileExisted) {
-				return Response.status(Response.Status.NO_CONTENT).build
-			} else {
-				return Response.status(Response.Status.CREATED).build
-			}
-		} catch (IOException e) {
-			return Response.serverError.build
+	def Response createOrUpdate(@PathParam("resourcePath") String resourcePath, String content,
+		@Context HttpHeaders headers) {
+		val created = documentProvider.createOrUpdate(resourcePath, headers.userName, content)
+		if (created) {
+			return status(CREATED).build
+		} else {
+			return status(NO_CONTENT).build
 		}
 	}
 
 	@GET
 	@Produces(MediaType.TEXT_PLAIN)
-	def Response load(@PathParam("resourceId") String resourceId, @Context HttpHeaders headers) {
+	def Response load(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
 		try {
-			val content = fileProvider.load(resourceId, headers.userName)
-			return Response.ok.entity(content).build
-		} catch (IOException e) {
-			return Response.status(Response.Status.NOT_FOUND).build
+			val content = documentProvider.load(resourcePath, headers.userName)
+			return status(OK).entity(content).build
+		} catch (FileNotFoundException e) {
+			return status(NOT_FOUND).build
 		}
 	}
 
-// currently dummy implementation to get user from header authorization
+	@DELETE
+	def Response delete(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
+		val actuallyDeleted = documentProvider.delete(resourcePath, headers.userName)
+		if (actuallyDeleted) {
+			return status(OK).build
+		} else {
+			return status(NOT_FOUND).build
+		}
+	}
+
+	// currently dummy implementation to get user from header authorization
 	private def String getUserName(HttpHeaders headers) {
-		headers.getHeaderString('Authorization').split(':').head
+		return headers.getHeaderString('Authorization').split(':').head
 	}
 
 }

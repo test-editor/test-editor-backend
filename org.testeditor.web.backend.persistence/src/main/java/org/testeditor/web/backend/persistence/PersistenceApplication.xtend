@@ -4,6 +4,7 @@ import com.google.inject.util.Modules
 import com.hubspot.dropwizard.guice.GuiceBundle
 import io.dropwizard.setup.Bootstrap
 import io.dropwizard.setup.Environment
+import org.testeditor.web.backend.persistence.exception.PersistenceExceptionMapper
 import org.testeditor.web.dropwizard.DropwizardApplication
 
 class PersistenceApplication extends DropwizardApplication<PersistenceConfiguration> {
@@ -13,6 +14,7 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 		environment.jersey => [
 			register(DocumentResource)
 			register(WorkspaceResource)
+			register(PersistenceExceptionMapper)
 		]
 	}
 
