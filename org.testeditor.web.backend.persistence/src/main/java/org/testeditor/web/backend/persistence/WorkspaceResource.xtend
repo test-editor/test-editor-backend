@@ -83,7 +83,6 @@ class WorkspaceResource {
 		return new Element => [
 			name = file.fileName.toString
 			path = workspaceRoot.relativize(file).toString
-			expanded = false
 			type = fileType
 			children = newLinkedList
 			pathToElement.put(file, it)
@@ -94,7 +93,6 @@ class WorkspaceResource {
 	static class Element {
 		String name
 		String path
-		boolean expanded
 		String type
 		List<Element> children
 	}
