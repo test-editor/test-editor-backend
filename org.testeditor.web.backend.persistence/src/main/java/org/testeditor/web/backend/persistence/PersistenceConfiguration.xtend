@@ -10,6 +10,9 @@ class PersistenceConfiguration extends Configuration {
 
 	@Accessors
 	private String projectRepoUrl
+	
+	@Accessors
+	private Boolean separateUserWorkspaces = true
 
 	@NotEmpty
 	@Accessors

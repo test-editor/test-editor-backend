@@ -32,10 +32,12 @@ class WorkspaceResource {
 
 	@Inject WorkspaceProvider workspaceProvider
 	val String projectUrl
+	val Boolean separateUserWorkspaces
 
 	@Inject
 	new(PersistenceConfiguration configuration) {
 		projectUrl = configuration.projectRepoUrl
+		separateUserWorkspaces = configuration.separateUserWorkspaces
 	}
 
 	@GET
@@ -44,7 +46,7 @@ class WorkspaceResource {
 	def Element listFiles(@Context HttpHeaders headers) {
 		val userName = headers.userName
 		val userEMail = headers.userEMail
-		val workspace = workspaceProvider.getWorkspace(userName, separateUserWorkspaces)
+		val workspace = workspaceProvider.getWorkspace(userName)
 		val workspaceRoot = workspace.toPath
 
 		prepareWorkspaceIfNecessaryFor(workspace, userName, userEMail)
@@ -141,7 +143,9 @@ class WorkspaceResource {
 		if (!workspace.isGitInitialized) {
 			workspace.cloneProjectInto
 			val repository = new FileRepositoryBuilder().findGitDir(workspace).build
-			repository.setDefaultConfiguration(userName, userEmail)
+			if (separateUserWorkspaces) {
+				repository.setDefaultConfiguration(userName, userEmail)
+			}
 			return true
 		} else {
 			return false

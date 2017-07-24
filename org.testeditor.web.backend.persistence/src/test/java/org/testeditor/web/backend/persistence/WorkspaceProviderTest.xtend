@@ -7,25 +7,40 @@ import org.junit.Test
 import static extension org.junit.Assert.assertEquals
 
 class WorkspaceProviderTest {
+	
+	private val USE_SEPARATE_USER_WORKSPACES = true
+	private val USE_SINGLE_WORKSPACES = false
 
-	WorkspaceProvider workspaceProvider
-
-	@Before
-	def void setup() {
+	def WorkspaceProvider setupWorkspaceProvider(boolean separateUserWorkspaces) {
 		val persistenceConfig = new PersistenceConfiguration => [
-			gitFSRoot = "theRoot"
+			it.gitFSRoot = "theRoot"
+			it.separateUserWorkspaces = separateUserWorkspaces
 		]
-		workspaceProvider = new WorkspaceProvider(persistenceConfig)
+		return new WorkspaceProvider(persistenceConfig)
 	}
 
 	@Test
-	def void getWorkspaceRoot() {
+	def void getUserSpecificWorkspaceRoot() {
 		// given
+		val workspaceProvider = setupWorkspaceProvider(USE_SEPARATE_USER_WORKSPACES)
+
 		// when
 		val workspace = workspaceProvider.getWorkspace("theUser")
 
 		// then
 		workspace.assertEquals(new File("theRoot", "theUser"))
+	}
+
+	@Test
+	def void getWorkspaceRoot() {
+		// given
+		val workspaceProvider = setupWorkspaceProvider(USE_SINGLE_WORKSPACES)
+		
+		// when
+		val workspace = workspaceProvider.getWorkspace("theUser")
+
+		// then
+		workspace.assertEquals(new File("theRoot"))
 	}
 
 }
