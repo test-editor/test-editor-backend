@@ -32,20 +32,27 @@ class WorkspaceResource {
 
 	@Inject WorkspaceProvider workspaceProvider
 	val String projectUrl
+	val Boolean separateUserWorkspaces
 
 	@Inject
 	new(PersistenceConfiguration configuration) {
 		projectUrl = configuration.projectRepoUrl
+		separateUserWorkspaces = configuration.separateUserWorkspaces
 	}
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("list-files")
 	def Element listFiles(@Context HttpHeaders headers) {
-		val workspaceRoot = workspaceProvider.getWorkspace(headers.userName).toPath
+		val userName = headers.userName
+		val userEMail = headers.userEMail
+		val workspace = workspaceProvider.getWorkspace(userName)
+		val workspaceRoot = workspace.toPath
+
+		prepareWorkspaceIfNecessaryFor(workspace, userName, userEMail)
 
 		val Map<Path, Element> pathToElement = newHashMap
-		Files.walkFileTree(workspaceRoot, new SimpleFileVisitor<Path>() {
+		Files.walkFileTree(workspaceRoot, new SimpleFileVisitor<Path> {
 			override FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 				val element = createElement(file, workspaceRoot, pathToElement, "file")
 				val parentElement = pathToElement.get(file.parent)
@@ -78,7 +85,6 @@ class WorkspaceResource {
 		return new Element => [
 			name = file.fileName.toString
 			path = workspaceRoot.relativize(file).toString
-			expanded = false
 			type = fileType
 			children = newLinkedList
 			pathToElement.put(file, it)
@@ -89,7 +95,6 @@ class WorkspaceResource {
 	static class Element {
 		String name
 		String path
-		boolean expanded
 		String type
 		List<Element> children
 	}
@@ -98,8 +103,8 @@ class WorkspaceResource {
 	@Timed
 	@javax.ws.rs.Path("initialize")
 	def Response createWorkspace(@Context HttpHeaders headers) {
-		val userName = headers.userName // TODO: derive, get from where?
-		val userEmail = '''«userName»@signal-iduna.de''' // same as above
+		val userName = headers.userName
+		val userEmail = headers.userEMail
 		if (projectUrl.isNullOrEmpty) {
 			return Response.status(Response.Status.NOT_FOUND).build
 		}
@@ -124,7 +129,7 @@ class WorkspaceResource {
 	 * clone repository as defined by the environment variable GIT_PROJECT_URL
 	 * into a the file system located at ${GIT_FS_ROOT}/<userId>
 	 * don't clone if the filesystem already contains a git repo (see isGitInitialized)
-	 * 
+	 *
 	 * @return true = clone took place
 	 *         false = no clone took place (nor any other git/filesystem relevant action)
 	 */
@@ -138,7 +143,9 @@ class WorkspaceResource {
 		if (!workspace.isGitInitialized) {
 			workspace.cloneProjectInto
 			val repository = new FileRepositoryBuilder().findGitDir(workspace).build
-			repository.setDefaultConfiguration(userName, userEmail)
+			if (separateUserWorkspaces) {
+				repository.setDefaultConfiguration(userName, userEmail)
+			}
 			return true
 		} else {
 			return false
@@ -177,6 +184,11 @@ class WorkspaceResource {
 	// currently dummy implementation to get user from header authorization
 	private def String getUserName(HttpHeaders headers) {
 		headers.getHeaderString('Authorization').split(':').head
+	}
+
+	// currently dummy implementation to get user from header authorization
+	private def String getUserEMail(HttpHeaders headers) {
+		return '''«headers.userName»@example.com'''
 	}
 
 }
