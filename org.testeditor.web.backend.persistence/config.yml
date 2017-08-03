@@ -1,3 +1,5 @@
+projectRepoUrl: https://github.com/test-editor/test-editor-examples.git
+
 server:
   applicationConnectors:
   - type: http 
