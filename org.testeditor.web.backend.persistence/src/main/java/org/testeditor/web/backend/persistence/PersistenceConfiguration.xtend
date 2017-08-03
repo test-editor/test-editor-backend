@@ -8,6 +8,7 @@ import org.hibernate.validator.constraints.NotEmpty
 @Singleton
 class PersistenceConfiguration extends Configuration {
 
+	@NotEmpty
 	@Accessors
 	private String projectRepoUrl
 	
