@@ -131,6 +131,21 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		response.status.assertEquals(OK.statusCode)
 		getFile(resourcePath).exists.assertFalse
 	}
+	
+	@Test
+	def void canDeleteNonEmptyDirectory() {
+		// given
+		write(resourcePath, simpleTsl)
+		val rootFolder = "some/"
+		val request = createDocumentRequest(rootFolder)
+
+		// when
+		val response = request.delete
+
+		// then
+		response.status.assertEquals(OK.statusCode)
+		getFile(rootFolder).exists.assertFalse
+	}
 
 	@Test
 	def void notFoundIsReturnedWhenDeletingUnknownDocument() {

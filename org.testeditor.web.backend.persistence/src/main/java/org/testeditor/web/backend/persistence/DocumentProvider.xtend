@@ -5,6 +5,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.nio.charset.StandardCharsets
 import javax.inject.Inject
+import org.apache.commons.io.FileUtils
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
 
 /**
@@ -46,7 +47,7 @@ class DocumentProvider {
 		if (!file.exists) {
 			throw new FileNotFoundException(resourcePath)
 		}
-		return file.delete
+		return FileUtils.deleteQuietly(file)
 	}
 
 	private def File getWorkspaceFile(String resourcePath, String userName) {
