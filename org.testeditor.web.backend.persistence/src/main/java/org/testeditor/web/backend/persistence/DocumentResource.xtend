@@ -57,10 +57,14 @@ class DocumentResource {
 
 	@DELETE
 	def Response delete(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
-		val actuallyDeleted = documentProvider.delete(resourcePath, headers.userName)
-		if (actuallyDeleted) {
-			return status(OK).build
-		} else {
+		try {
+			val actuallyDeleted = documentProvider.delete(resourcePath, headers.userName)
+			if (actuallyDeleted) {
+				return status(OK).build
+			} else {
+				return status(INTERNAL_SERVER_ERROR).build
+			}
+		} catch (FileNotFoundException e) {
 			return status(NOT_FOUND).build
 		}
 	}

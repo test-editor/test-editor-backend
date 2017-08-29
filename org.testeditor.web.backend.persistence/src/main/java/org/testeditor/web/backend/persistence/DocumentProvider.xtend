@@ -2,6 +2,7 @@ package org.testeditor.web.backend.persistence
 
 import com.google.common.io.Files
 import java.io.File
+import java.io.FileNotFoundException
 import java.nio.charset.StandardCharsets
 import javax.inject.Inject
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
@@ -42,6 +43,9 @@ class DocumentProvider {
 
 	def boolean delete(String resourcePath, String userName) {
 		val file = getWorkspaceFile(resourcePath, userName)
+		if (!file.exists) {
+			throw new FileNotFoundException(resourcePath)
+		}
 		return file.delete
 	}
 
