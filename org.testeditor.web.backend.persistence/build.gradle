@@ -1,5 +1,6 @@
 dependencies {
 	compile "org.eclipse.jgit:org.eclipse.jgit:4.7.0.201704051617-r"
+	compile "commons-io:commons-io:2.5"
 	testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.7.0.201704051617-r"
 }
 

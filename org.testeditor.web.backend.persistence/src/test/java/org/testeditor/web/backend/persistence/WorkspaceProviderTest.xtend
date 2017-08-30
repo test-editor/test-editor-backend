@@ -1,7 +1,6 @@
 package org.testeditor.web.backend.persistence
 
 import java.io.File
-import org.junit.Before
 import org.junit.Test
 
 import static extension org.junit.Assert.assertEquals
