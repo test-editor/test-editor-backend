@@ -1,4 +1,4 @@
-package org.testeditor.web.backend.persistence
+package org.testeditor.web.backend.persistence.workspace
 
 import com.codahale.metrics.annotation.Timed
 import com.google.common.annotations.VisibleForTesting
@@ -10,7 +10,6 @@ import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.attribute.BasicFileAttributes
-import java.util.List
 import java.util.Map
 import javax.inject.Inject
 import javax.ws.rs.GET
@@ -24,7 +23,7 @@ import org.eclipse.jgit.api.errors.InvalidRemoteException
 import org.eclipse.jgit.api.errors.TransportException
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.eclipse.xtend.lib.annotations.Accessors
+import org.testeditor.web.backend.persistence.PersistenceConfiguration
 
 @javax.ws.rs.Path("/workspace")
 @Produces(MediaType.TEXT_PLAIN)
@@ -43,7 +42,7 @@ class WorkspaceResource {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("list-files")
-	def Element listFiles(@Context HttpHeaders headers) {
+	def WorkspaceElement listFiles(@Context HttpHeaders headers) {
 		val userName = headers.userName
 		val userEMail = headers.userEMail
 		val workspace = workspaceProvider.getWorkspace(userName)
@@ -51,10 +50,10 @@ class WorkspaceResource {
 
 		prepareWorkspaceIfNecessaryFor(workspace, userName, userEMail)
 
-		val Map<Path, Element> pathToElement = newHashMap
+		val Map<Path, WorkspaceElement> pathToElement = newHashMap
 		Files.walkFileTree(workspaceRoot, new SimpleFileVisitor<Path> {
 			override FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-				val element = createElement(file, workspaceRoot, pathToElement, "file")
+				val element = createElement(file, workspaceRoot, pathToElement, WorkspaceElement.Type.file)
 				val parentElement = pathToElement.get(file.parent)
 				parentElement.children += element
 				return FileVisitResult.CONTINUE
@@ -64,7 +63,7 @@ class WorkspaceResource {
 				if (dir.parent == workspaceRoot && Files.isDirectory(dir) && dir.fileName.toString == ".git") {
 					return FileVisitResult.SKIP_SUBTREE
 				}
-				val element = createElement(dir, workspaceRoot, pathToElement, "folder")
+				val element = createElement(dir, workspaceRoot, pathToElement, WorkspaceElement.Type.folder)
 				if (dir != workspaceRoot) {
 					val parentElement = pathToElement.get(dir.parent)
 					parentElement.children += element
@@ -80,23 +79,14 @@ class WorkspaceResource {
 		]
 	}
 
-	private def Element createElement(Path file, Path workspaceRoot, Map<Path, Element> pathToElement,
-		String fileType) {
-		return new Element => [
+	private def WorkspaceElement createElement(Path file, Path workspaceRoot, Map<Path, WorkspaceElement> pathToElement,
+		WorkspaceElement.Type fileType) {
+		return new WorkspaceElement => [
 			name = file.fileName.toString
 			path = workspaceRoot.relativize(file).toString
 			type = fileType
-			children = newLinkedList
 			pathToElement.put(file, it)
 		]
-	}
-
-	@Accessors
-	static class Element {
-		String name
-		String path
-		String type
-		List<Element> children
 	}
 
 	@GET
