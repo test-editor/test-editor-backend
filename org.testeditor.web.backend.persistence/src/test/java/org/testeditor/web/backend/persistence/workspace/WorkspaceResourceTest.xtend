@@ -1,4 +1,4 @@
-package org.testeditor.web.backend.persistence
+package org.testeditor.web.backend.persistence.workspace
 
 import java.io.File
 import org.eclipse.jgit.api.Git
@@ -8,6 +8,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.testeditor.web.backend.persistence.PersistenceConfiguration
 
 import static extension org.junit.Assert.*
 

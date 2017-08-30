@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets
 import javax.inject.Inject
 import org.apache.commons.io.FileUtils
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
+import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to

@@ -1,7 +1,8 @@
-package org.testeditor.web.backend.persistence
+package org.testeditor.web.backend.persistence.workspace
 
 import java.io.File
 import org.junit.Test
+import org.testeditor.web.backend.persistence.PersistenceConfiguration
 
 import static extension org.junit.Assert.assertEquals
 
