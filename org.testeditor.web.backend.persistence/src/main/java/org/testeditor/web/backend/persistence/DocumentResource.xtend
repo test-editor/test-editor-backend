@@ -9,6 +9,7 @@ import javax.ws.rs.PUT
 import javax.ws.rs.Path
 import javax.ws.rs.PathParam
 import javax.ws.rs.Produces
+import javax.ws.rs.QueryParam
 import javax.ws.rs.core.Context
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MediaType
@@ -24,8 +25,18 @@ class DocumentResource {
 	@Inject DocumentProvider documentProvider
 
 	@POST
-	def Response create(@PathParam("resourcePath") String resourcePath, String content, @Context HttpHeaders headers) {
-		val created = documentProvider.create(resourcePath, headers.userName, content)
+	def Response create(@PathParam("resourcePath") String resourcePath, @QueryParam("type") String type, String content,
+		@Context HttpHeaders headers) {
+		if (type == "folder") {
+			val created = documentProvider.createFolder(resourcePath, headers.userName)
+			return createdOrBadRequest(created)
+		} else {
+			val created = documentProvider.create(resourcePath, headers.userName, content)
+			return createdOrBadRequest(created)
+		}
+	}
+
+	private def Response createdOrBadRequest(boolean created) {
 		if (created) {
 			return status(CREATED).build
 		} else {
