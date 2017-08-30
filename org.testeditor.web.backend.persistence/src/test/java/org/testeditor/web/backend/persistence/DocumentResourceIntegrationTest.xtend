@@ -65,6 +65,22 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	}
 
 	@Test
+	def void canCreateFolderUsingPostWithTypeParameter() {
+		// given
+		val folderPath = "some/path"
+		val request = createDocumentRequest('''«folderPath»?type=folder''').buildPost(stringEntity(""))
+		
+		// when
+		val response = request.submit.get
+		
+		// then
+		response.status.assertEquals(CREATED.statusCode)
+		val folder = getFile(folderPath)
+		folder.exists.assertTrue
+		folder.isDirectory.assertTrue
+	}
+
+	@Test
 	def void canCreateDocumentUsingPut() {
 		// given
 		val request = createDocumentRequest(resourcePath).buildPut(stringEntity(simpleTsl))

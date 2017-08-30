@@ -22,6 +22,11 @@ class DocumentProvider {
 		}
 		return created
 	}
+	
+	def boolean createFolder(String folderPath, String userName) {
+		val folder = getWorkspaceFile(folderPath, userName)
+		return folder.mkdirs
+	}
 
 	def boolean createOrUpdate(String resourcePath, String userName, String content) {
 		val file = getWorkspaceFile(resourcePath, userName)
