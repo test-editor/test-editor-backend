@@ -23,7 +23,11 @@ import org.eclipse.jgit.api.errors.InvalidRemoteException
 import org.eclipse.jgit.api.errors.TransportException
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.testeditor.web.backend.persistence.JwtPayload
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
+
+import static javax.ws.rs.core.Response.Status.*
+import static javax.ws.rs.core.Response.status
 
 @javax.ws.rs.Path("/workspace")
 @Produces(MediaType.TEXT_PLAIN)
@@ -32,6 +36,7 @@ class WorkspaceResource {
 	@Inject WorkspaceProvider workspaceProvider
 	val String projectUrl
 	val Boolean separateUserWorkspaces
+	JwtPayload jwt
 
 	@Inject
 	new(PersistenceConfiguration configuration) {
@@ -42,9 +47,13 @@ class WorkspaceResource {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("list-files")
-	def WorkspaceElement listFiles(@Context HttpHeaders headers) {
-		val userName = headers.userName
-		val userEMail = headers.userEMail
+	def Response listFiles(@Context HttpHeaders headers) {
+		jwt = JwtPayload.Builder.build(headers)
+		if (jwt === null) {
+			return Response.status(Response.Status.UNAUTHORIZED).build
+		}
+		val userName = jwt.userName
+		val userEMail = jwt.userEMail
 		val workspace = workspaceProvider.getWorkspace(userName)
 		val workspaceRoot = workspace.toPath
 
@@ -74,9 +83,9 @@ class WorkspaceResource {
 
 		})
 
-		return pathToElement.get(workspaceRoot) => [
+		return status(OK).entity(pathToElement.get(workspaceRoot) => [
 			name = '''workspace («name»)'''
-		]
+		]).build
 	}
 
 	private def WorkspaceElement createElement(Path file, Path workspaceRoot, Map<Path, WorkspaceElement> pathToElement,
@@ -93,8 +102,9 @@ class WorkspaceResource {
 	@Timed
 	@javax.ws.rs.Path("initialize")
 	def Response createWorkspace(@Context HttpHeaders headers) {
-		val userName = headers.userName
-		val userEmail = headers.userEMail
+		jwt = JwtPayload.Builder.build(headers)
+		val userName = jwt.userName
+		val userEmail = jwt.userEMail
 		if (projectUrl.isNullOrEmpty) {
 			return Response.status(Response.Status.NOT_FOUND).build
 		}
@@ -169,16 +179,6 @@ class WorkspaceResource {
 	protected def boolean isGitInitialized(File workspace) {
 		val gitFolder = new File(workspace, ".git")
 		return gitFolder.exists
-	}
-
-	// currently dummy implementation to get user from header authorization
-	private def String getUserName(HttpHeaders headers) {
-		headers.getHeaderString('Authorization').split(':').head
-	}
-
-	// currently dummy implementation to get user from header authorization
-	private def String getUserEMail(HttpHeaders headers) {
-		return '''«headers.userName»@example.com'''
 	}
 
 }
