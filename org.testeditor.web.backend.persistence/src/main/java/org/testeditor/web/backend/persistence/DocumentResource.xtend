@@ -17,6 +17,8 @@ import javax.ws.rs.core.Response
 
 import static javax.ws.rs.core.Response.Status.*
 import static javax.ws.rs.core.Response.status
+import java.util.Base64
+import java.nio.charset.Charset
 
 @Path("/documents/{resourcePath:.*}")
 @Produces(MediaType.TEXT_PLAIN)
@@ -82,7 +84,15 @@ class DocumentResource {
 
 	// currently dummy implementation to get user from header authorization
 	private def String getUserName(HttpHeaders headers) {
-		return headers.getHeaderString('Authorization').split(':').head
+		val authorization = headers.getHeaderString('Authorization')
+		var credential = ""
+		if (authorization.startsWith("Basic")) {
+			val base64Credential = authorization.replaceFirst("^Basic ", "")
+			credential = new String(Base64.decoder.decode(base64Credential), Charset.forName("UTF-8"))
+		} else {
+			credential = authorization
+		}
+		return (credential).split(':').head
 	}
 
 }
