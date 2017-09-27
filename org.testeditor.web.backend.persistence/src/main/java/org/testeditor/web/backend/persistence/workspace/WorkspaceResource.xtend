@@ -23,6 +23,7 @@ import org.eclipse.jgit.api.errors.InvalidRemoteException
 import org.eclipse.jgit.api.errors.TransportException
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.JwtPayload
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
 
@@ -32,6 +33,7 @@ import static javax.ws.rs.core.Response.status
 @javax.ws.rs.Path("/workspace")
 @Produces(MediaType.TEXT_PLAIN)
 class WorkspaceResource {
+	static val logger = LoggerFactory.getLogger(WorkspaceResource)
 
 	@Inject WorkspaceProvider workspaceProvider
 	val String projectUrl
@@ -48,44 +50,51 @@ class WorkspaceResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("list-files")
 	def Response listFiles(@Context HttpHeaders headers) {
-		jwt = JwtPayload.Builder.build(headers)
-		if (jwt === null) {
-			return Response.status(Response.Status.UNAUTHORIZED).build
-		}
-		val userName = jwt.userName
-		val userEMail = jwt.userEMail
-		val workspace = workspaceProvider.getWorkspace(userName)
-		val workspaceRoot = workspace.toPath
-
-		prepareWorkspaceIfNecessaryFor(workspace, userName, userEMail)
-
-		val Map<Path, WorkspaceElement> pathToElement = newHashMap
-		Files.walkFileTree(workspaceRoot, new SimpleFileVisitor<Path> {
-			override FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-				val element = createElement(file, workspaceRoot, pathToElement, WorkspaceElement.Type.file)
-				val parentElement = pathToElement.get(file.parent)
-				parentElement.children += element
-				return FileVisitResult.CONTINUE
+		try {
+			jwt = JwtPayload.Builder.build(headers)
+			if (jwt === null) {
+				logger.warn('no jwt available for listFiles, return ing {}({}).', UNAUTHORIZED.name, UNAUTHORIZED.statusCode)
+				return Response.status(UNAUTHORIZED).build
 			}
+			val userName = jwt.userName
+			val userEMail = jwt.userEMail
+			val workspace = workspaceProvider.getWorkspace(userName)
+			val workspaceRoot = workspace.toPath
 
-			override preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-				if (dir.parent == workspaceRoot && Files.isDirectory(dir) && dir.fileName.toString == ".git") {
-					return FileVisitResult.SKIP_SUBTREE
-				}
-				val element = createElement(dir, workspaceRoot, pathToElement, WorkspaceElement.Type.folder)
-				if (dir != workspaceRoot) {
-					val parentElement = pathToElement.get(dir.parent)
+			prepareWorkspaceIfNecessaryFor(workspace, userName, userEMail)
+
+			val Map<Path, WorkspaceElement> pathToElement = newHashMap
+			Files.walkFileTree(workspaceRoot, new SimpleFileVisitor<Path> {
+				override FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+					val element = createElement(file, workspaceRoot, pathToElement, WorkspaceElement.Type.file)
+					val parentElement = pathToElement.get(file.parent)
 					parentElement.children += element
+					return FileVisitResult.CONTINUE
 				}
 
-				return FileVisitResult.CONTINUE
-			}
+				override preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+					if (dir.parent == workspaceRoot && Files.isDirectory(dir) && dir.fileName.toString == ".git") {
+						return FileVisitResult.SKIP_SUBTREE
+					}
+					val element = createElement(dir, workspaceRoot, pathToElement, WorkspaceElement.Type.folder)
+					if (dir != workspaceRoot) {
+						val parentElement = pathToElement.get(dir.parent)
+						parentElement.children += element
+					}
 
-		})
+					return FileVisitResult.CONTINUE
+				}
 
-		return status(OK).entity(pathToElement.get(workspaceRoot) => [
-			name = '''workspace («name»)'''
-		]).build
+			})
+
+			return status(OK).entity(pathToElement.get(workspaceRoot) => [
+				name = '''workspace («name»)'''
+			]).build
+		} catch (Exception e) { // whatever happens
+			logger.error('failing to list workspace, returning {}({})', INTERNAL_SERVER_ERROR.name, INTERNAL_SERVER_ERROR.statusCode)
+			return status(INTERNAL_SERVER_ERROR).build
+		}
+
 	}
 
 	private def WorkspaceElement createElement(Path file, Path workspaceRoot, Map<Path, WorkspaceElement> pathToElement,
