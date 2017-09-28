@@ -12,7 +12,16 @@ import static io.dropwizard.testing.ConfigOverride.config
 
 abstract class AbstractPersistenceIntegrationTest {
 
-	protected val username = 'admin'
+	/*
+		{
+		  "sub": "1234567890",
+		  "name": "John Doe",
+		  "email": "john.doe@example.com",
+		  "admin": true
+		}
+	 */
+	protected val token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsImFkbWluIjp0cnVlfQ.oecuo_cUb-mEqiT4eebt7VGCt8vOKOWXZq987EEHukQ'
+	protected val username = 'john.doe'
 
 	// cannot use @Rule as we need to use it within another rule		
 	public val workspaceRoot = new TemporaryFolder => [
@@ -43,7 +52,7 @@ abstract class AbstractPersistenceIntegrationTest {
 	protected def Builder createRequest(String relativePath) {
 		val uri = '''http://localhost:«dropwizardAppRule.localPort»/«relativePath»'''
 		val builder = client.target(uri).request
-		builder.header('Authorization', '''«username»:«username»@example.org''')
+		builder.header('Authorization', '''Bearer «token»''')
 		return builder
 	}
 
