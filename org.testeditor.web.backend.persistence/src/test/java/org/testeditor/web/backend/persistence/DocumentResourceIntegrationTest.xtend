@@ -31,6 +31,19 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		response.status.assertEquals(CREATED.statusCode)
 		read(resourcePath).assertEquals(simpleTsl)
 	}
+	
+	@Test
+	def void returnsResourcePathWhenCreatingDocumentUsingPost() {
+		// given
+		val request = createDocumentRequest(resourcePath).buildPost(stringEntity(simpleTsl))
+
+		// when
+		val response = request.submit.get
+
+		// then
+		val returnedPath = response.readEntity(String)
+		returnedPath.assertEquals(resourcePath)
+	}
 
 	@Test
 	def void createDocumentUsingPostTwiceFails() {
