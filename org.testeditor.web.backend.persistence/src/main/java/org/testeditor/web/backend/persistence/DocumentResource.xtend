@@ -31,16 +31,16 @@ class DocumentResource {
 		jwt = JwtPayload.Builder.build(headers)
 		if (type == "folder") {
 			val created = documentProvider.createFolder(resourcePath, jwt.userName)
-			return createdOrBadRequest(created)
+			return createdOrBadRequest(created, resourcePath)
 		} else {
 			val created = documentProvider.create(resourcePath, jwt.userName, content)
-			return createdOrBadRequest(created)
+			return createdOrBadRequest(created, resourcePath)
 		}
 	}
 
-	private def Response createdOrBadRequest(boolean created) {
+	private def Response createdOrBadRequest(boolean created, String resourcePath) {
 		if (created) {
-			return status(CREATED).build
+			return status(CREATED).entity(resourcePath).build
 		} else {
 			return status(BAD_REQUEST).build
 		}
