@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.persistence
 
+import com.google.common.base.Strings
 import java.io.File
 import java.nio.charset.StandardCharsets
 import javax.ws.rs.client.Entity
@@ -75,6 +76,20 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		responseMessage.startsWith("You are not allowed to access this resource. Your attempt has been logged").
 			assertTrue
 		getFile(maliciousResourcePath).exists.assertFalse
+	}
+
+	@Test
+	def void tooLongFileNameFails() {
+		// given
+		val tooLongFileName = Strings.repeat("x", 256)
+		val request = createDocumentRequest(tooLongFileName).buildPost(stringEntity(simpleTsl))
+
+		// when
+		val response = request.submit.get
+
+		// then
+		response.status.assertEquals(INTERNAL_SERVER_ERROR.statusCode)
+		getFile(tooLongFileName).exists.assertFalse
 	}
 
 	@Test
