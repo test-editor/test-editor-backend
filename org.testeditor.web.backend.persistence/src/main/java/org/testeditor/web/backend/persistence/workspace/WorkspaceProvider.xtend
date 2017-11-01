@@ -2,24 +2,21 @@ package org.testeditor.web.backend.persistence.workspace
 
 import java.io.File
 import javax.inject.Inject
+import javax.inject.Provider
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
+import org.testeditor.web.dropwizard.auth.User
 
 class WorkspaceProvider {
 
-	String rootFS
-	boolean separateUserWorkspaces
+	@Inject Provider<User> userProvider
+	@Inject PersistenceConfiguration config
 
-	@Inject
-	new(PersistenceConfiguration configuration) {
-		rootFS = configuration.gitFSRoot
-		separateUserWorkspaces = configuration.separateUserWorkspaces
-	}
-
-	def File getWorkspace(String userId) {
-		if (separateUserWorkspaces) {
-			return new File(rootFS, userId)
+	def File getWorkspace() {
+		if (config.separateUserWorkspaces) {
+			val userId = userProvider.get.id
+			return new File(config.gitFSRoot, userId)
 		} else {
-			return new File(rootFS)
+			return new File(config.gitFSRoot)
 		}
 	}
 

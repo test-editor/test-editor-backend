@@ -32,7 +32,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		response.status.assertEquals(CREATED.statusCode)
 		read(resourcePath).assertEquals(simpleTsl)
 	}
-	
+
 	@Test
 	def void returnsResourcePathWhenCreatingDocumentUsingPost() {
 		// given
@@ -97,10 +97,10 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// given
 		val folderPath = "some/path"
 		val request = createDocumentRequest('''«folderPath»?type=folder''').buildPost(stringEntity(""))
-		
+
 		// when
 		val response = request.submit.get
-		
+
 		// then
 		response.status.assertEquals(CREATED.statusCode)
 		val folder = getFile(folderPath)
@@ -175,7 +175,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		response.status.assertEquals(OK.statusCode)
 		getFile(resourcePath).exists.assertFalse
 	}
-	
+
 	@Test
 	def void canDeleteNonEmptyDirectory() {
 		// given
@@ -220,7 +220,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	}
 
 	private def File getFile(String resourcePath) {
-		val userRoot = new File(workspaceRoot.root.path, username)
+		val userRoot = new File(workspaceRoot.root.path, userId)
 		return new File(userRoot, resourcePath)
 	}
 

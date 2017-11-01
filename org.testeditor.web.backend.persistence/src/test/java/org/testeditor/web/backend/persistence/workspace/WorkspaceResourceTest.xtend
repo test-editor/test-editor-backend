@@ -1,39 +1,37 @@
 package org.testeditor.web.backend.persistence.workspace
 
 import java.io.File
+import javax.inject.Inject
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.junit.JGitTestUtil
-import org.eclipse.jgit.junit.RepositoryTestCase
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
 
-import static extension org.junit.Assert.*
+class WorkspaceResourceTest extends AbstractPersistenceTest {
 
-class WorkspaceResourceTest extends RepositoryTestCase {
+	@Rule public val remoteGitFolder = new TemporaryFolder
+	@Rule public val tempFolder = new TemporaryFolder
 
-	@Rule public var tempFolder = new TemporaryFolder
-
-	WorkspaceResource createWorkspace // class under test
+	@Inject WorkspaceResource createWorkspace // class under test
+	@Inject PersistenceConfiguration config
 
 	@Before
-	def void setupTest() {
-		super.setUp
-		val git = new Git(db)
-
-		// commit readme
-		writeTrashFile('README.md', '# Readme')
+	def void setupRemoteGitRepository() {
+		// setup remote Git repository
+		val git = Git.init.setDirectory(remoteGitFolder.root).call
+		JGitTestUtil.writeTrashFile(git.repository, 'README.md', '# Readme')
 		git.add.addFilepattern("README.md").call
 		git.commit.setMessage("Initial commit").call
+		config.projectRepoUrl = "file://" + remoteGitFolder.root.absolutePath
+	}
 
-		// setup class under test
-		val configuration = new PersistenceConfiguration => [
-			projectRepoUrl = "file://" + db.workTree.absolutePath
-			gitFSRoot = tempFolder.root.absolutePath
-		]
-		createWorkspace = new WorkspaceResource(configuration)
+	@Before
+	def void setupConfiguration() {
+		config.gitFSRoot = tempFolder.root.absolutePath
 	}
 
 	private def File setupDirtyWorkspace(String userId) {
@@ -48,8 +46,7 @@ class WorkspaceResourceTest extends RepositoryTestCase {
 		val workspace = new File(tempFolder.root, 'u123456')
 
 		// when
-		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace, 'Chuck Norris',
-			'chuck.norris@neverloose.com')
+		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace)
 
 		// then 
 		new File(workspace, "README.md").exists.assertTrue
@@ -57,8 +54,8 @@ class WorkspaceResourceTest extends RepositoryTestCase {
 		cloned.assertTrue
 
 		JGitTestUtil.read(new File(workspace, ".git/config")) => [
-			contains("name = Chuck Norris").assertTrue
-			contains("email = chuck.norris@neverloose.com").assertTrue
+			contains("name = The User").assertTrue
+			contains("email = theuser@example.org").assertTrue
 		]
 	}
 
@@ -68,8 +65,7 @@ class WorkspaceResourceTest extends RepositoryTestCase {
 		val workspace = setupDirtyWorkspace('u123456')
 
 		// when
-		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace, 'Chuck Norris',
-			'chuck.norris@neverloose.com')
+		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace)
 
 		// then
 		cloned.assertFalse
@@ -83,8 +79,7 @@ class WorkspaceResourceTest extends RepositoryTestCase {
 		val workspace = new File(tempFolder.root, 'u123456')
 
 		// when
-		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace, 'Chuck Norris',
-			'chuck.norris@neverloose.com')
+		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace)
 
 		// then
 		cloned.assertTrue

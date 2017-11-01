@@ -23,17 +23,15 @@ import static javax.ws.rs.core.Response.status
 class DocumentResource {
 
 	@Inject DocumentProvider documentProvider
-	JwtPayload jwt
 
 	@POST
 	def Response create(@PathParam("resourcePath") String resourcePath, @QueryParam("type") String type, String content,
 		@Context HttpHeaders headers) {
-		jwt = JwtPayload.Builder.build(headers)
 		if (type == "folder") {
-			val created = documentProvider.createFolder(resourcePath, jwt.userName)
+			val created = documentProvider.createFolder(resourcePath)
 			return createdOrBadRequest(created, resourcePath)
 		} else {
-			val created = documentProvider.create(resourcePath, jwt.userName, content)
+			val created = documentProvider.create(resourcePath, content)
 			return createdOrBadRequest(created, resourcePath)
 		}
 	}
@@ -49,8 +47,7 @@ class DocumentResource {
 	@PUT
 	def Response createOrUpdate(@PathParam("resourcePath") String resourcePath, String content,
 		@Context HttpHeaders headers) {
-		jwt = JwtPayload.Builder.build(headers)
-		val created = documentProvider.createOrUpdate(resourcePath, jwt.userName, content)
+		val created = documentProvider.createOrUpdate(resourcePath, content)
 		if (created) {
 			return status(CREATED).build
 		} else {
@@ -61,9 +58,8 @@ class DocumentResource {
 	@GET
 	@Produces(MediaType.TEXT_PLAIN)
 	def Response load(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
-		jwt = JwtPayload.Builder.build(headers)
 		try {
-			val content = documentProvider.load(resourcePath, jwt.userName)
+			val content = documentProvider.load(resourcePath)
 			return status(OK).entity(content).build
 		} catch (FileNotFoundException e) {
 			return status(NOT_FOUND).build
@@ -72,9 +68,8 @@ class DocumentResource {
 
 	@DELETE
 	def Response delete(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
-		jwt = JwtPayload.Builder.build(headers)
 		try {
-			val actuallyDeleted = documentProvider.delete(resourcePath, jwt.userName)
+			val actuallyDeleted = documentProvider.delete(resourcePath)
 			if (actuallyDeleted) {
 				return status(OK).build
 			} else {
