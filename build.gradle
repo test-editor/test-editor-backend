@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'org.xtext:xtext-gradle-plugin:1.0.18'
+        classpath 'org.xtext:xtext-gradle-plugin:1.0.19'
     }
 }
 
@@ -33,9 +33,9 @@ subprojects {
     group = 'org.testeditor.web'
 
     ext.versions = [
-        dropwizard: '1.1.1',
-        testEditorDropwizard: '0.3.0',
-        xtext: '2.12.0'
+        dropwizard: '1.2.0',
+        testEditorDropwizard: '0.4.0',
+        xtext: '2.13.0'
     ]
     ext.configPath = "./"
     
