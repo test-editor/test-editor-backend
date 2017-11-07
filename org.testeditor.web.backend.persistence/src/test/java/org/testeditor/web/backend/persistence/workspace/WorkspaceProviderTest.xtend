@@ -1,46 +1,40 @@
 package org.testeditor.web.backend.persistence.workspace
 
 import java.io.File
+import javax.inject.Inject
 import org.junit.Test
+import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
+import org.testeditor.web.dropwizard.auth.User
 
-import static extension org.junit.Assert.assertEquals
+class WorkspaceProviderTest extends AbstractPersistenceTest {
 
-class WorkspaceProviderTest {
-	
-	private val USE_SEPARATE_USER_WORKSPACES = true
-	private val USE_SINGLE_WORKSPACES = false
-
-	def WorkspaceProvider setupWorkspaceProvider(boolean separateUserWorkspaces) {
-		val persistenceConfig = new PersistenceConfiguration => [
-			it.gitFSRoot = "theRoot"
-			it.separateUserWorkspaces = separateUserWorkspaces
-		]
-		return new WorkspaceProvider(persistenceConfig)
-	}
+	@Inject WorkspaceProvider workspaceProvider
+	@Inject PersistenceConfiguration config
+	@Inject User user
 
 	@Test
 	def void getUserSpecificWorkspaceRoot() {
 		// given
-		val workspaceProvider = setupWorkspaceProvider(USE_SEPARATE_USER_WORKSPACES)
+		config.separateUserWorkspaces = true
 
 		// when
-		val workspace = workspaceProvider.getWorkspace("theUser")
+		val workspace = workspaceProvider.workspace
 
 		// then
-		workspace.assertEquals(new File("theRoot", "theUser"))
+		workspace.assertEquals(new File(config.gitFSRoot, user.id))
 	}
 
 	@Test
 	def void getWorkspaceRoot() {
 		// given
-		val workspaceProvider = setupWorkspaceProvider(USE_SINGLE_WORKSPACES)
-		
+		config.separateUserWorkspaces = false
+
 		// when
-		val workspace = workspaceProvider.getWorkspace("theUser")
+		val workspace = workspaceProvider.workspace
 
 		// then
-		workspace.assertEquals(new File("theRoot"))
+		workspace.assertEquals(new File(config.gitFSRoot))
 	}
 
 }

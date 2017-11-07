@@ -1,5 +1,7 @@
 package org.testeditor.web.backend.persistence
 
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 import de.xtendutils.junit.AssertionHelper
 import io.dropwizard.testing.ResourceHelpers
 import io.dropwizard.testing.junit.DropwizardAppRule
@@ -12,16 +14,8 @@ import static io.dropwizard.testing.ConfigOverride.config
 
 abstract class AbstractPersistenceIntegrationTest {
 
-	/*
-		{
-		  "sub": "1234567890",
-		  "name": "John Doe",
-		  "email": "john.doe@example.com",
-		  "admin": true
-		}
-	 */
-	protected val token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsImFkbWluIjp0cnVlfQ.oecuo_cUb-mEqiT4eebt7VGCt8vOKOWXZq987EEHukQ'
-	protected val username = 'john.doe'
+	protected static val userId = 'john.doe'
+	protected val token = createToken
 
 	// cannot use @Rule as we need to use it within another rule		
 	public val workspaceRoot = new TemporaryFolder => [
@@ -33,6 +27,15 @@ abstract class AbstractPersistenceIntegrationTest {
 		config('gitFSRoot', workspaceRoot.root.path),
 		config('projectRepoUrl', 'dummy')
 	]
+
+	static def String createToken() {
+		val builder = JWT.create => [
+			withClaim('id', userId)
+			withClaim('name', 'John Doe')
+			withClaim('email', 'john@example.org')
+		]
+		return builder.sign(Algorithm.HMAC256("secret"))
+	}
 
 	@Rule
 	public val dropwizardAppRule = new DropwizardAppRule(
