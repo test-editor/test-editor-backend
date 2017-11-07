@@ -19,7 +19,7 @@ class WorkspaceProviderTest extends AbstractPersistenceTest {
 		config.separateUserWorkspaces = true
 
 		// when
-		val workspace = workspaceProvider.getWorkspace()
+		val workspace = workspaceProvider.workspace
 
 		// then
 		workspace.assertEquals(new File(config.gitFSRoot, user.id))
@@ -31,7 +31,7 @@ class WorkspaceProviderTest extends AbstractPersistenceTest {
 		config.separateUserWorkspaces = false
 
 		// when
-		val workspace = workspaceProvider.getWorkspace()
+		val workspace = workspaceProvider.workspace
 
 		// then
 		workspace.assertEquals(new File(config.gitFSRoot))

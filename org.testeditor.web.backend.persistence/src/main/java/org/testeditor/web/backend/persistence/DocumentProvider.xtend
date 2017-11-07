@@ -38,9 +38,15 @@ class DocumentProvider {
 		return folder.mkdirs
 	}
 
+	/**
+	 * @return true when the file has been created
+	 */
 	def boolean createOrUpdate(String resourcePath, String content) {
 		val file = getWorkspaceFile(resourcePath)
-		val created = create(file) // has no effect is it already exists
+		var created = false
+		if (!file.exists) {
+			created = create(file)
+		}
 		file.write(content)
 		return created
 	}

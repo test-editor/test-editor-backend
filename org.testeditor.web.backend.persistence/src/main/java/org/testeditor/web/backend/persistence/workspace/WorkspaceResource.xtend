@@ -15,8 +15,6 @@ import javax.inject.Inject
 import javax.inject.Provider
 import javax.ws.rs.GET
 import javax.ws.rs.Produces
-import javax.ws.rs.core.Context
-import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import org.eclipse.jgit.api.Git
@@ -41,7 +39,7 @@ class WorkspaceResource {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("list-files")
-	def Response listFiles(@Context HttpHeaders headers) {
+	def Response listFiles() {
 		val workspace = workspaceProvider.getWorkspace()
 		val workspaceRoot = workspace.toPath
 
@@ -89,7 +87,7 @@ class WorkspaceResource {
 	@GET
 	@Timed
 	@javax.ws.rs.Path("initialize")
-	def Response createWorkspace(@Context HttpHeaders headers) {
+	def Response createWorkspace() {
 		if (config.projectRepoUrl.isNullOrEmpty) {
 			return Response.status(Response.Status.NOT_FOUND).build
 		}

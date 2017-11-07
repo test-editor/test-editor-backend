@@ -11,6 +11,9 @@ import org.junit.Before
 import org.mockito.MockitoAnnotations
 import org.testeditor.web.dropwizard.auth.User
 
+/**
+ * Injection-ready base class for all unit tests.
+ */
 abstract class AbstractPersistenceTest {
 
 	@Inject Injector injector
