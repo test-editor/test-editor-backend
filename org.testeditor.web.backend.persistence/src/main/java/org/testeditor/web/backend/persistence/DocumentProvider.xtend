@@ -8,6 +8,7 @@ import javax.inject.Provider
 import org.apache.commons.io.FileUtils
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
+import org.testeditor.web.backend.persistence.git.GitProvider
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.auth.User
 
@@ -22,6 +23,7 @@ class DocumentProvider {
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
 
 	@Inject Provider<User> userProvider
+	@Inject GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
 
 	def boolean create(String resourcePath, String content) {
@@ -71,6 +73,22 @@ class DocumentProvider {
 
 	private def void write(File file, String content) {
 		Files.asCharSink(file, UTF_8).write(content)
+		commit(file)
+	}
+
+	private def void commit(File file) {
+		val workspace = workspaceProvider.workspace
+		val git = gitProvider.git
+		val filePattern = workspace.toPath.relativize(file.toPath).toString
+		git.add.addFilepattern(filePattern).call
+		git.commit.setMessage("bla").call
+		updateGit
+	}
+
+	private def void updateGit() {
+		val git = gitProvider.git
+		git.pull.call
+		git.push.call
 	}
 
 	private def String read(File file) {
