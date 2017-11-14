@@ -1,7 +1,18 @@
 dependencies {
-    compile 'org.testeditor:org.testeditor.tsl.dsl.web:1.7.0'
-    compile 'org.testeditor:org.testeditor.dsl.common.model:1.7.0'
+	
+	compile "io.dropwizard:dropwizard-client:$versions.dropwizard"
+    compile "org.testeditor:org.testeditor.tsl.dsl.web:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.dsl.common.model:$versions.testEditorLanguage"
     compile "org.testeditor.web:org.testeditor.web.dropwizard.xtext:$versions.testEditorDropwizard"
+    
+    testCompile "org.testeditor:org.testeditor.tcl.dsl:$versions.testEditorLanguage"
+    testCompile "org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage"
+    testCompile "org.testeditor:org.testeditor.aml.dsl:$versions.testEditorLanguage"
+    testCompile "org.testeditor:org.testeditor.aml.model:$versions.testEditorLanguage"
+    testCompile "org.testeditor:org.testeditor.dsl.common:$versions.testEditorLanguage"
+
+    testCompile "org.eclipse.xtend:org.eclipse.xtend.core:$versions.xtext"
+    testCompile 'org.gradle:gradle-tooling-api:2.14.1'
 }
 
 mainClassName = 'org.testeditor.web.backend.xtext.TestEditorApplication'

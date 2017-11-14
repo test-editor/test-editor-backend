@@ -1,0 +1,10 @@
+package pack
+
+# MacroLib
+
+## FirstMacro
+
+	template = "code"
+
+	Component: SomeComponent
+	- Some fixture call
