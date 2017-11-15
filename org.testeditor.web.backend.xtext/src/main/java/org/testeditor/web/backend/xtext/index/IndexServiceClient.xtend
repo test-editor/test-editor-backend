@@ -1,6 +1,8 @@
 package org.testeditor.web.backend.xtext.index
 
 import com.google.common.base.Predicate
+import com.google.inject.Inject
+import com.google.inject.name.Named
 import java.net.URI
 import java.util.List
 import java.util.Map
@@ -14,36 +16,36 @@ import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.xtext.resource.IEObjectDescription
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.scoping.IGlobalScopeProvider
-import org.eclipse.xtext.scoping.impl.SimpleScope
-import static extension java.util.Objects.requireNonNull
 import org.eclipse.xtext.scoping.IScope
+import org.eclipse.xtext.scoping.impl.SimpleScope
+
+import static extension java.util.Objects.requireNonNull
 
 class IndexServiceClient implements IGlobalScopeProvider {
 
 	val Client client
 	val URI baseURI
 
-	new(Client client, URI target) {
+	@Inject
+	new(@Named("index-service-client") Client client, @Named("index-service-base-URI") URI target) {
 		client.requireNonNull("client must not be null")
 		target.requireNonNull("URI must not be null")
 
 		this.client = client
 		this.baseURI = target
 	}
-
+	
 	override getScope(Resource context, EReference reference, Predicate<IEObjectDescription> filter) {
 		var result = IScope.NULLSCOPE
 		if(context !== null && context.resourceSet !== null) {
 			reference.requireNonNull("reference must not be null")
-			
+
 			val queryParams = newHashMap
 			val body = requestDataFromContext(context, queryParams)
 			queryParams.put("reference", EcoreUtil.getURI(reference).toString)
 
-			var target = client.target(baseURI)
-			for (entry : queryParams.entrySet) {
-				target = target.queryParam(entry.key, entry.value)
-			}
+			val target = queryParams.entrySet.fold(client.target(baseURI))
+					[target, entry|target.queryParam(entry.key, entry.value)]
 
 			val eObjectDescriptions = target.request(MediaType.APPLICATION_JSON).post(body,
 				new GenericType<List<IEObjectDescription>>() {
@@ -67,3 +69,6 @@ class IndexServiceClient implements IGlobalScopeProvider {
 		}
 	}
 }
+
+
+
