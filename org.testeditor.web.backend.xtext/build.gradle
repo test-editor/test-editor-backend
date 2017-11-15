@@ -5,7 +5,10 @@ dependencies {
     compile "org.testeditor:org.testeditor.dsl.common.model:$versions.testEditorLanguage"
     compile "org.testeditor.web:org.testeditor.web.dropwizard.xtext:$versions.testEditorDropwizard"
     
-    testCompile "org.testeditor:org.testeditor.tcl.dsl:$versions.testEditorLanguage"
+    testCompile ("org.testeditor:org.testeditor.tcl.dsl:$versions.testEditorLanguage") {
+        // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
+        exclude group: "org.apache.logging.log4j"
+    }
     testCompile "org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage"
     testCompile "org.testeditor:org.testeditor.aml.dsl:$versions.testEditorLanguage"
     testCompile "org.testeditor:org.testeditor.aml.model:$versions.testEditorLanguage"
