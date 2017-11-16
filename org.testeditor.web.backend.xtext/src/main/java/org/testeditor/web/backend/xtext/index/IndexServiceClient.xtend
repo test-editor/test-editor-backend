@@ -18,10 +18,13 @@ import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.scoping.IGlobalScopeProvider
 import org.eclipse.xtext.scoping.IScope
 import org.eclipse.xtext.scoping.impl.SimpleScope
+import org.slf4j.LoggerFactory
 
 import static extension java.util.Objects.requireNonNull
 
 class IndexServiceClient implements IGlobalScopeProvider {
+
+	static val logger = LoggerFactory.getLogger(IndexServiceClient)
 
 	val Client client
 	val URI baseURI
@@ -50,11 +53,20 @@ class IndexServiceClient implements IGlobalScopeProvider {
 			val eObjectDescriptions = target.request(MediaType.APPLICATION_JSON).post(body,
 				new GenericType<List<IEObjectDescription>>() {
 				})
-
-			result = new SimpleScope(eObjectDescriptions)
+				
+			val validEObjectDescriptions = eObjectDescriptions.filterIncompatible(reference)
+			
+			result = new SimpleScope(validEObjectDescriptions)
 		}
-
 		return result
+	}
+	
+	private def filterIncompatible(List<IEObjectDescription> eObjectDescriptions, EReference reference) {
+		val compatibilityMap = eObjectDescriptions.groupBy[it.EClass === reference.EReferenceType]
+		compatibilityMap.get(false)?.forEach[logger.warn(
+		"dropping type-incompatible element (expected eReference type: {}; index service provided element of type: {}).",
+		reference.EReferenceType.name, it.EClass.name)]
+		return compatibilityMap.get(true) ?: emptyList
 	}
 
 	private def requestDataFromContext(Resource context, Map<String, String> queryParams) {

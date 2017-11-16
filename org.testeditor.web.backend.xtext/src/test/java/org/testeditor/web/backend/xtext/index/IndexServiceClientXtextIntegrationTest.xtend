@@ -46,7 +46,6 @@ import static org.mockito.ArgumentMatchers.*
 import static org.mockito.Mockito.*
 
 @RunWith(XtextRunner)
-//@InjectWith(IntegrationTestInjectorProvider)
 class IndexServiceClientXtextIntegrationTest {
 
 	@ClassRule
@@ -76,17 +75,20 @@ class IndexServiceClientXtextIntegrationTest {
 				Component: SomeComponent
 				- Some fixture call
 		'''.parse.macroCollection.macros.head.contexts.head as ComponentTestStepContext
-		val reference = TclPackage.eINSTANCE.componentTestStepContext_Component
+		val reference = TclPackage.eINSTANCE.macroTestStepContext_MacroCollection
 
 		// when
 		val actualScope = context.getScope(reference)
 
 		// then
 		assertThat(actualScope).isNotNull
-		assertThat(actualScope.allElements).size.isEqualTo(1)
-		assertThat(actualScope.allElements.get(0).name.toString).isEqualTo("TestName")
-		assertThat(actualScope.allElements.get(0).EClass).isEqualTo(TclPackage.eINSTANCE.macroCollection)
-		assertThat(actualScope.allElements.get(0).EObjectOrProxy).isNotNull
+		actualScope.allElements.forEach[println(it)]
+		assertThat(actualScope.allElements.map[name].join(", ")).isEqualTo("MacroLib, pack.MacroLib, TestName")
+		actualScope.allElements.last => [
+			assertThat(name.toString).isEqualTo("TestName")
+			assertThat(EClass).isEqualTo(TclPackage.eINSTANCE.macroCollection)
+			assertThat(EObjectOrProxy).isNotNull
+		]
 	}
 }
 
