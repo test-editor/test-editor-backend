@@ -1,10 +1,9 @@
 dependencies {
-	
-	compile "io.dropwizard:dropwizard-client:$versions.dropwizard"
+    compile "io.dropwizard:dropwizard-client:$versions.dropwizard"
     compile "org.testeditor:org.testeditor.tsl.dsl.web:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.dsl.common.model:$versions.testEditorLanguage"
     compile "org.testeditor.web:org.testeditor.web.dropwizard.xtext:$versions.testEditorDropwizard"
-    
+
     compile ("org.testeditor:org.testeditor.tcl.dsl:$versions.testEditorLanguage") {
         // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
         exclude group: "org.apache.logging.log4j"
@@ -22,6 +21,6 @@ dependencies {
 mainClassName = 'org.testeditor.web.backend.xtext.TestEditorApplication'
 
 run {
-	main mainClassName
-	args 'server', configPath + 'config.yml'
+    main mainClassName
+    args 'server', configPath + 'config.yml'
 }

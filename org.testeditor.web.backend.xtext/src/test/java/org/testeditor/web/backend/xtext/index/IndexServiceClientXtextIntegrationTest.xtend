@@ -82,7 +82,6 @@ class IndexServiceClientXtextIntegrationTest {
 
 		// then
 		assertThat(actualScope).isNotNull
-		actualScope.allElements.forEach[println(it)]
 		assertThat(actualScope.allElements.map[name].join(", ")).isEqualTo("MacroLib, pack.MacroLib, TestName")
 		actualScope.allElements.last => [
 			assertThat(name.toString).isEqualTo("TestName")

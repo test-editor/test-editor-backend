@@ -46,7 +46,7 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 	def configureXtextIndex(TestEditorConfiguration configuration, Environment environment) {
 		val Client client = new JerseyClientBuilder(environment).build("index-service-client")
 		val baseURI = URI.create(configuration.indexServiceURL)
-		// TODO target URL must be configurable!
+
 		val Module overridingModule = [
 			bind(IGlobalScopeProvider).to(IndexServiceClient)
 			bind(Client).annotatedWith(Names.named("index-service-client")).toInstance(client)
