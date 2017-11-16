@@ -10,17 +10,31 @@ import io.dropwizard.client.JerseyClientConfiguration
 @Singleton
 class TestEditorConfiguration extends Configuration {
 
-    @Valid
-    @NotNull
-    var JerseyClientConfiguration jerseyClient = new JerseyClientConfiguration();
+	@Valid
+	@NotNull
+	var JerseyClientConfiguration jerseyClient = new JerseyClientConfiguration
+	
+	@Valid
+	@NotNull
+	var String indexServiceURL
 
-    @JsonProperty("jerseyClient")
-    def getJerseyClientConfiguration() {
-        return jerseyClient;
-    }
+	@JsonProperty("jerseyClient")
+	def getJerseyClientConfiguration() {
+		return jerseyClient;
+	}
 
-    @JsonProperty("jerseyClient")
-    def setJerseyClientConfiguration(JerseyClientConfiguration jerseyClient) {
-        this.jerseyClient = jerseyClient;
-    }
+	@JsonProperty("jerseyClient")
+	def setJerseyClientConfiguration(JerseyClientConfiguration jerseyClient) {
+		this.jerseyClient = jerseyClient;
+	}
+
+	@JsonProperty("indexServiceURL")
+	def getIndexServiceURL() {
+		return indexServiceURL
+	}
+
+	@JsonProperty("indexServiceURL")
+	def setIndexServiceURL(String indexServiceURL) {
+		this.indexServiceURL = indexServiceURL
+	}
 }
