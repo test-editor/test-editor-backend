@@ -1,9 +1,11 @@
 buildscript {
     repositories {
         jcenter()
+        mavenCentral()
     }
     dependencies {
         classpath 'org.xtext:xtext-gradle-plugin:1.0.19'
+        classpath 'org.owasp:dependency-check-gradle:3.0.2'
     }
 }
 
@@ -23,6 +25,7 @@ subprojects {
         }
     }
     
+    apply plugin: 'org.owasp.dependencycheck'
     apply plugin: 'java'
     apply plugin: 'org.xtext.xtend'
     apply plugin: 'eclipse'
@@ -45,6 +48,15 @@ subprojects {
     targetCompatibility = '1.8'
     
     apply from: "$rootDir/gradle/publishing.gradle"
+
+    check.dependsOn dependencyCheckAnalyze
+
+    dependencyCheck {
+        autoUpdate=false
+        cveValidForHours=1
+        failBuildOnCVSS=1
+        format='ALL'
+    }
 
 	sourceSets {
   		main.xtendOutputDir = 'src/main/xtend-gen'

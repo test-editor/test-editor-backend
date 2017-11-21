@@ -5,3 +5,5 @@ jdk:
 cache:
   directories:
   - $HOME/.gradle
+after_failure:
+    - find build/reports/. -type f -exec cat {} +
