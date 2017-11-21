@@ -185,11 +185,12 @@ class IndexServiceClientTest {
 	@Test
 	def void shouldFilterResults() {
 		// given
-		val filter = [IEObjectDescription description|description.name !== null && !description.name.empty]
+
+		val filter = [IEObjectDescription description | description.name !== null && !description.name.empty]
 		val validResultItem = mock(IEObjectDescription)
 		when(validResultItem.name).thenReturn(QualifiedName.create("VALID"))
 		when(validResultItem.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
-
+		
 		val invalidResultItem = mock(IEObjectDescription)
 		when(invalidResultItem.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
 
