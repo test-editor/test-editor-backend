@@ -9,6 +9,7 @@ import io.dropwizard.setup.Environment
 import io.dropwizard.testing.ResourceHelpers
 import io.dropwizard.testing.junit.DropwizardAppRule
 import io.dropwizard.testing.junit.DropwizardClientRule
+import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.Consumes
 import javax.ws.rs.POST
 import javax.ws.rs.Path
@@ -37,6 +38,9 @@ import org.testeditor.web.xtext.index.serialization.EObjectDescriptionDeserializ
 import org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerializer
 
 import static org.assertj.core.api.Assertions.assertThat
+import static org.mockito.Mockito.*
+import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
+import javax.ws.rs.core.Context
 
 class IndexServiceClientIntegrationTest {
 
@@ -54,7 +58,7 @@ class IndexServiceClientIntegrationTest {
 
 	@Rule
 	public val dropwizardClient = new DropwizardAppRule(TestEditorApplicationDummy,
-		ResourceHelpers.resourceFilePath("config.yml"), #[ // config('logging.level', 'TRACE')
+		ResourceHelpers.resourceFilePath("test-config.yml"), #[ // config('logging.level', 'TRACE')
 		])
 
 	val dummyResource = new DummyGlobalScopeResource
@@ -75,10 +79,14 @@ class IndexServiceClientIntegrationTest {
 	def void shouldReturnDummyScope() {
 		// given
 		stripLingeringMetrics(dropwizardClient.getEnvironment());
+		val AUTH_HEADER = "Bearer DUMMYTOKEN"
+		val request = mock(HttpServletRequest)
+		when(request.getHeader(eq(AUTHORIZATION))).thenReturn(AUTH_HEADER)
 
 		val client = new IndexServiceClient(
 			new JerseyClientBuilder(dropwizardClient.environment).build(TEST_CLIENT_NAME),
-			java.net.URI.create('''«dropwizardServer.baseUri»/xtext/index/global-scope'''))
+			java.net.URI.create('''«dropwizardServer.baseUri»/xtext/index/global-scope'''),
+			[request])
 
 		val resource = new XtextResourceSet().getResource(
 			URI.createURI(ResourceHelpers.resourceFilePath("pack/MacroLib.tml")), true) as XtextResource
@@ -95,11 +103,12 @@ class IndexServiceClientIntegrationTest {
 			assertThat(head.getEClass.name).isEqualTo("MacroCollection")
 			assertThat(head.qualifiedName.toString).isEqualTo("de.testeditor.SampleMacroCollection")
 		]
-		assertThat(dummyResource).satisfies [ actuallyReceived |
-			assertThat(actuallyReceived.context).isEqualTo(resource.serializer.serialize(resource.contents.head))
-			assertThat(actuallyReceived.eReferenceURIString).isEqualTo(EcoreUtil.getURI(reference).toString)
-			assertThat(actuallyReceived.contentType).isEqualTo(resource.languageName)
-			assertThat(actuallyReceived.contextURI).isEqualTo(resource.URI.toString)
+		assertThat(dummyResource).satisfies [
+			assertThat(context).isEqualTo(resource.serializer.serialize(resource.contents.head))
+			assertThat(eReferenceURIString).isEqualTo(EcoreUtil.getURI(reference).toString)
+			assertThat(contentType).isEqualTo(resource.languageName)
+			assertThat(contextURI).isEqualTo(resource.URI.toString)
+			assertThat(authHeader).isEqualTo(AUTH_HEADER)
 		]
 	}
 
@@ -117,16 +126,19 @@ class DummyGlobalScopeResource {
 	public String eReferenceURIString = null
 	public String contentType = null
 	public String contextURI = null
-
-	@POST
+	public String authHeader = null
+	
+		@POST
 	@Consumes("text/plain")
 	@Produces("application/json")
 	def Response getScope(String context, @QueryParam("contentType") String contentType,
-		@QueryParam("contextURI") String contextURI, @QueryParam("reference") String eReferenceURIString) {
+		@QueryParam("contextURI") String contextURI, @QueryParam("reference") String eReferenceURIString,
+		@Context HttpServletRequest request) {
 		this.context = context
 		this.contentType = contentType
 		this.contextURI = contextURI
 		this.eReferenceURIString = eReferenceURIString
+		this.authHeader = request.getHeader(AUTHORIZATION)
 
 		val description = EObjectDescription.create(QualifiedName.create("de", "testeditor", "SampleMacroCollection"),
 			TclFactory.eINSTANCE.createMacroCollection)

@@ -8,14 +8,21 @@ import com.google.inject.util.Modules
 import io.dropwizard.client.JerseyClientBuilder
 import io.dropwizard.setup.Environment
 import java.net.URI
+import javax.inject.Inject
+import javax.inject.Provider
+import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
 import org.eclipse.jetty.server.session.SessionHandler
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtext.scoping.IGlobalScopeProvider
+import org.eclipse.xtext.util.Modules2
+import org.eclipse.xtext.web.server.generator.DefaultContentTypeProvider
+import org.eclipse.xtext.web.server.generator.IContentTypeProvider
 import org.testeditor.aml.dsl.AmlRuntimeModule
 import org.testeditor.aml.dsl.AmlStandaloneSetup
 import org.testeditor.tcl.dsl.TclRuntimeModule
 import org.testeditor.tcl.dsl.TclStandaloneSetup
+import org.testeditor.tcl.dsl.ide.TclIdeModule
 import org.testeditor.tsl.dsl.TslRuntimeModule
 import org.testeditor.tsl.dsl.web.TslWebSetup
 import org.testeditor.web.backend.xtext.index.IndexServiceClient
@@ -24,12 +31,16 @@ import org.testeditor.web.dropwizard.xtext.XtextServiceResource
 
 class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 
+	@Inject Provider<HttpServletRequest> requestProvider
+
 	@Accessors(PUBLIC_GETTER)
-	var Injector tslInjector = null
+	Injector tslInjector = null
 	@Accessors(PUBLIC_GETTER)
-	var Injector tclInjector = null
+	Injector tclInjector = null
 	@Accessors(PUBLIC_GETTER)
-	var Injector amlInjector = null
+	Injector amlInjector = null
+	
+	
 
 	def static void main(String[] args) {
 		new TestEditorApplication().run(args)
@@ -40,7 +51,6 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 
 		environment.jersey.register(XtextServiceResource)
 		environment.servlets.sessionHandler = new SessionHandler
-	// ... register index service somehow?
 	}
 
 	def configureXtextIndex(TestEditorConfiguration configuration, Environment environment) {
@@ -51,26 +61,30 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 			bind(IGlobalScopeProvider).to(IndexServiceClient)
 			bind(Client).annotatedWith(Names.named("index-service-client")).toInstance(client)
 			bind(URI).annotatedWith(Names.named("index-service-base-URI")).toInstance(baseURI)
+			bind(IContentTypeProvider).to(DefaultContentTypeProvider)
+			bind(HttpServletRequest).toProvider(requestProvider)
 		]
 
 		setupLanguagesWithXtextIndex(overridingModule)
 	}
 
-	def setupLanguagesWithXtextIndex(Module overridingModule) {
+	def setupLanguagesWithXtextIndex(Module ... overridingModules) {
 		val injectors = #[
 			new TslWebSetup {
 				override createInjector() {
-					return Guice.createInjector(Modules.override(new TslRuntimeModule).with(overridingModule))
+					return Guice.createInjector(Modules.override(new TslRuntimeModule).with(overridingModules))
 				}
 			},
 			new TclStandaloneSetup {
 				override createInjector() {
-					return Guice.createInjector(Modules.override(new TclRuntimeModule).with(overridingModule))
+					return Guice.createInjector(
+						Modules.override(Modules2.mixin(new TclRuntimeModule, new TclIdeModule)).with(
+							overridingModules))
 				}
 			},
 			new AmlStandaloneSetup {
 				override createInjector() {
-					return Guice.createInjector(Modules.override(new AmlRuntimeModule).with(overridingModule))
+					return Guice.createInjector(Modules.override(new AmlRuntimeModule).with(overridingModules))
 				}
 			}
 		].map[createInjectorAndDoEMFRegistration]
