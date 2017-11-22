@@ -31,23 +31,16 @@ class IndexServiceClient implements IGlobalScopeProvider {
 
 	static val logger = LoggerFactory.getLogger(IndexServiceClient)
 	
-
-	val Client client
-	val URI baseURI
-	
-	var Provider<HttpServletRequest> requestProvider
-
 	@Inject
-	new(@Named("index-service-client") Client client, @Named("index-service-base-URI") URI target,
-		Provider<HttpServletRequest> request) {
-		client.requireNonNull("client must not be null")
-		target.requireNonNull("URI must not be null")
-		request.requireNonNull("Context request must not be null")
+	@Named("index-service-client") 
+	Client client
+	
+	@Inject
+	@Named("index-service-base-URI") URI baseURI
+	
+	@Inject
+	Provider<HttpServletRequest> requestProvider
 
-		this.client = client
-		this.baseURI = target
-		this.requestProvider = request
-	}
 	
 	override getScope(Resource context, EReference reference, Predicate<IEObjectDescription> filter) {
 		
