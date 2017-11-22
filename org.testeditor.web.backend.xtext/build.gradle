@@ -9,7 +9,7 @@ dependencies {
         exclude group: "org.apache.logging.log4j"
     }
     compile "org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage"
-    compile "org.testeditor:org.testeditor.tcl.dsl.ide:1.8.0-SNAPSHOT"
+    compile "org.testeditor:org.testeditor.tcl.dsl.ide:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.aml.dsl:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.aml.model:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.dsl.common:$versions.testEditorLanguage"
@@ -18,10 +18,6 @@ dependencies {
     testCompile "org.eclipse.xtext:org.eclipse.xtext.testing:$versions.xtext"
     compile 'org.gradle:gradle-tooling-api:2.14.1'
    
-}
-
-repositories {
-    mavenLocal()
 }
 
 mainClassName = 'org.testeditor.web.backend.xtext.TestEditorApplication'
