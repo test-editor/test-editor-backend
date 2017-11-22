@@ -4,7 +4,6 @@ import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.Appender
-import java.net.URI
 import java.util.List
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
@@ -14,6 +13,7 @@ import javax.ws.rs.client.WebTarget
 import javax.ws.rs.core.GenericType
 import org.eclipse.emf.common.util.BasicEList
 import org.eclipse.emf.common.util.EList
+import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.XtextPackage
 import org.eclipse.xtext.naming.QualifiedName
@@ -25,23 +25,43 @@ import org.eclipse.xtext.serializer.ISerializer
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
+import org.mockito.InjectMocks
+import org.mockito.Mock
+import org.mockito.Spy
+import org.mockito.junit.MockitoJUnitRunner
 import org.slf4j.LoggerFactory
 
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
 import static org.assertj.core.api.Assertions.*
 import static org.mockito.ArgumentMatchers.*
 import static org.mockito.Mockito.*
+import com.google.inject.Provider
 
+@RunWith(MockitoJUnitRunner)
 class IndexServiceClientTest {
 
+	static val AUTH_HEADER = "Bearer DUMMYTOKEN"
+
+	@Mock
 	var Appender logAppender
 	var ArgumentCaptor<LoggingEvent> logCaptor
-	static val AUTH_HEADER = "Bearer DUMMYTOKEN"
+
+	@Mock
+	var Client client
+	@Spy
+	var java.net.URI uri = java.net.URI.create("http://www.example.org")
+	@Mock
+	var Provider<HttpServletRequest> requestProvider
+	@Mock
+	var HttpServletRequest contextRequest
+
+	@InjectMocks
+	IndexServiceClient unitUnderTest
 
 	@Before
 	def void setupTestLogAppender() {
-		logAppender = mock(Appender)
 		logCaptor = ArgumentCaptor.forClass(LoggingEvent)
 		val logBackRootLogger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
 		logBackRootLogger.addAppender(logAppender)
@@ -50,50 +70,6 @@ class IndexServiceClientTest {
 	@After
 	def void tearDownTestLogAppender() {
 		(LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger).detachAppender(logAppender)
-	}
-
-	@Test
-	def void shouldRaiseExceptionOnNullClient() {
-		// given
-		val client = null
-		val uri = null
-		val request = null
-
-		// when
-		val actualException = catchThrowable[new IndexServiceClient(client, uri, [request])]
-
-		// then
-		assertThat(actualException).isInstanceOf(NullPointerException).hasMessage("client must not be null")
-		verifyZeroInteractions(logAppender)
-	}
-
-	@Test
-	def void shouldRaiseExceptionOnNullURL() {
-		// given
-		val client = mock(Client)
-		val uri = null
-		val request = null
-
-		// when
-		val actualException = catchThrowable[new IndexServiceClient(client, uri, [request])]
-
-		// then
-		assertThat(actualException).isInstanceOf(NullPointerException).hasMessage("URI must not be null")
-		verifyZeroInteractions(logAppender)
-	}
-
-	@Test
-	def void shouldRaiseExceptionOnNullRequest() {
-		// given
-		val client = mock(Client)
-		val uri = URI.create("http://example.org")
-
-		// when
-		val actualException = catchThrowable[new IndexServiceClient(client, uri, null)]
-
-		// then
-		assertThat(actualException).isInstanceOf(NullPointerException).hasMessage("Context request must not be null")
-		verifyZeroInteractions(logAppender)
 	}
 
 	/**
@@ -105,10 +81,6 @@ class IndexServiceClientTest {
 	@Test
 	def void shouldReturnNullScopeOnNullContext() {
 		// given
-		val client = mock(Client)
-		val uri = URI.create("http://example.org")
-		val unitUnderTest = new IndexServiceClient(client, uri, [mock(HttpServletRequest)])
-
 		// when
 		val actual = unitUnderTest.getScope(null, null, null)
 
@@ -121,9 +93,6 @@ class IndexServiceClientTest {
 	@Test
 	def void shouldReturnNullScopeOnNullResourceSet() {
 		// given
-		val client = mock(Client)
-		val uri = URI.create("http://example.org")
-		val unitUnderTest = new IndexServiceClient(client, uri, [mock(HttpServletRequest)])
 		val resource = mock(XtextResource)
 		when(resource.resourceSet).thenReturn(null)
 
@@ -147,11 +116,10 @@ class IndexServiceClientTest {
 		val expected = mock(IEObjectDescription)
 		when(expected.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
 
-		val unitUnderTest = mockedIndexService(null, #[expected])
+		setupMocksWithAuthHeader(null, #[expected])
 		val resource = mock(XtextResource)
 		when(resource.resourceSet).thenReturn(mock(XtextResourceSet))
-		when(resource.URI).thenReturn(mock(org.eclipse.emf.common.util.URI))
-		when(resource.serializer).thenReturn(null)
+		when(resource.URI).thenReturn(mock(URI))
 
 		val reference = XtextPackage.eINSTANCE.grammar_UsedGrammars
 
@@ -169,7 +137,7 @@ class IndexServiceClientTest {
 		val expected = mock(IEObjectDescription)
 		when(expected.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
 
-		val unitUnderTest = mockedIndexService("Sample content", #[expected])
+		setupMocksWithAuthHeader("Sample content", #[expected])
 		val resource = mockedResource("Sample content", new BasicEList(#[mock(EObject)]))
 
 		val reference = XtextPackage.eINSTANCE.grammar_UsedGrammars
@@ -185,16 +153,15 @@ class IndexServiceClientTest {
 	@Test
 	def void shouldFilterResults() {
 		// given
-
-		val filter = [IEObjectDescription description | description.name !== null && !description.name.empty]
+		val filter = [IEObjectDescription description|description.name !== null && !description.name.empty]
 		val validResultItem = mock(IEObjectDescription)
 		when(validResultItem.name).thenReturn(QualifiedName.create("VALID"))
 		when(validResultItem.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
-		
+
 		val invalidResultItem = mock(IEObjectDescription)
 		when(invalidResultItem.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
 
-		val unitUnderTest = mockedIndexService("Sample content", #[validResultItem, invalidResultItem])
+		setupMocksWithAuthHeader("Sample content", #[validResultItem, invalidResultItem])
 		val resource = mockedResource("Sample content", new BasicEList(#[mock(EObject)]))
 
 		val reference = XtextPackage.eINSTANCE.grammar_UsedGrammars
@@ -219,7 +186,7 @@ class IndexServiceClientTest {
 		when(expected.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
 		val messageBody = null
 		val resourceContent = null
-		val unitUnderTest = mockedIndexService(messageBody, #[expected])
+		setupMocksWithAuthHeader(messageBody, #[expected])
 		val resource = mockedResource(messageBody, resourceContent)
 		val reference = XtextPackage.eINSTANCE.grammar_UsedGrammars
 
@@ -234,13 +201,8 @@ class IndexServiceClientTest {
 	@Test
 	def void shouldRaiseExceptionOnNullReference() {
 		// given
-		val client = mock(Client)
-		val uri = URI.create("http://example.org")
-		val unitUnderTest = new IndexServiceClient(client, uri, [mock(HttpServletRequest)])
-
 		val resource = mock(XtextResource)
 		when(resource.resourceSet).thenReturn(mock(XtextResourceSet))
-		when(resource.URI).thenReturn(mock(org.eclipse.emf.common.util.URI))
 
 		// when
 		val actualException = catchThrowable[unitUnderTest.getScope(resource, null, null)]
@@ -257,7 +219,7 @@ class IndexServiceClientTest {
 		// arbitrary EClass that does not match the one of the reference
 		when(resultingEObjectDescriptionMock.EClass).thenReturn(XtextPackage.eINSTANCE.condition)
 
-		val unitUnderTest = mockedIndexService("Sample content", #[resultingEObjectDescriptionMock])
+		setupMocksWithAuthHeader("Sample content", #[resultingEObjectDescriptionMock])
 		val resource = mockedResource("Sample content", new BasicEList(#[mock(EObject)]))
 
 		val reference = XtextPackage.eINSTANCE.grammar_UsedGrammars
@@ -281,7 +243,7 @@ class IndexServiceClientTest {
 		val resultingEObjectDescriptionMock = mock(IEObjectDescription)
 		when(resultingEObjectDescriptionMock.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
 
-		val unitUnderTest = mockedIndexService("Sample content", #[resultingEObjectDescriptionMock], null)
+		setupMocksWithoutRequest("Sample content", #[resultingEObjectDescriptionMock])
 		val resource = mockedResource("Sample content", new BasicEList(#[mock(EObject)]))
 
 		val reference = XtextPackage.eINSTANCE.grammar_UsedGrammars
@@ -305,7 +267,7 @@ class IndexServiceClientTest {
 		val resultingEObjectDescriptionMock = mock(IEObjectDescription)
 		when(resultingEObjectDescriptionMock.EClass).thenReturn(XtextPackage.eINSTANCE.grammar)
 
-		val unitUnderTest = mockedIndexService("Sample content", #[resultingEObjectDescriptionMock], mock(HttpServletRequest))
+		setupMocks("Sample content", #[resultingEObjectDescriptionMock])
 		val resource = mockedResource("Sample content", new BasicEList(#[mock(EObject)]))
 
 		val reference = XtextPackage.eINSTANCE.grammar_UsedGrammars
@@ -322,36 +284,33 @@ class IndexServiceClientTest {
 		]
 	}
 
-	private def mockedIndexService(String payload, List<IEObjectDescription> resultingEObjectDescriptions) {
-		val request = mock(HttpServletRequest)
-		when(request.getHeader(eq(AUTHORIZATION))).thenReturn(AUTH_HEADER)
-
-		return this.mockedIndexService(payload, resultingEObjectDescriptions, request)
+	private def void setupMocksWithAuthHeader(String payload, List<IEObjectDescription> resultingEObjectDescriptions) {
+		setupMocks(payload, resultingEObjectDescriptions)
+		when(contextRequest.getHeader(eq(AUTHORIZATION))).thenReturn(AUTH_HEADER)
 	}
 
-	private def mockedIndexService(String payload, List<IEObjectDescription> resultingEObjectDescriptions,
-		HttpServletRequest contextRequest) {
-		val client = mock(Client)
+	private def void setupMocks(String payload, List<IEObjectDescription> resultingEObjectDescriptions) {
+		when(requestProvider.get).thenReturn(contextRequest)
+		setupMocksWithoutRequest(payload, resultingEObjectDescriptions)
+	}
+
+	private def void setupMocksWithoutRequest(String payload, List<IEObjectDescription> resultingEObjectDescriptions) {
 		val target = mock(WebTarget)
 		val invocationBuilder = mock(Builder)
-		when(client.target(any(URI))).thenReturn(target)
+		when(client.target(eq(uri))).thenReturn(target)
 		when(target.queryParam(any, any)).thenReturn(target)
 		when(target.request(anyString)).thenReturn(invocationBuilder)
 		when(invocationBuilder.header(eq(AUTHORIZATION), eq(AUTH_HEADER))).thenReturn(invocationBuilder)
 
 		val payloadMatcher = if(payload === null) any else eq(Entity.text(payload))
 		when(invocationBuilder.post(payloadMatcher, any(GenericType))).thenReturn(resultingEObjectDescriptions)
-
-		val uri = URI.create("http://example.org")
-
-		return new IndexServiceClient(client, uri, [contextRequest])
 	}
 
 	private def mockedResource(String payload, EList<EObject> resourceContents) {
 		val resource = mock(XtextResource)
 		val serializer = mock(ISerializer)
 		when(resource.resourceSet).thenReturn(mock(XtextResourceSet))
-		when(resource.URI).thenReturn(mock(org.eclipse.emf.common.util.URI))
+		when(resource.URI).thenReturn(mock(URI))
 
 		when(resource.serializer).thenReturn(serializer)
 		if(payload !== null) {
