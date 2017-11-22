@@ -27,6 +27,8 @@ import org.eclipse.xtext.resource.EObjectDescription
 import org.eclipse.xtext.resource.IEObjectDescription
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.resource.XtextResourceSet
+import org.eclipse.xtext.web.server.generator.DefaultContentTypeProvider
+import org.eclipse.xtext.web.server.generator.IContentTypeProvider
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Rule
