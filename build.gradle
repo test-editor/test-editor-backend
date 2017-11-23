@@ -36,7 +36,7 @@ subprojects {
         dropwizard: '1.2.0',
         testEditorDropwizard: '0.4.0',
         xtext: '2.13.0',
-        testEditorLanguage: '1.8.0'
+        testEditorLanguage: '1.9.0'
     ]
     ext.configPath = "./"
     
