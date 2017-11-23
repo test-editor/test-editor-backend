@@ -15,6 +15,7 @@ import javax.ws.rs.POST
 import javax.ws.rs.Path
 import javax.ws.rs.Produces
 import javax.ws.rs.QueryParam
+import javax.ws.rs.core.Context
 import javax.ws.rs.core.Response
 import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.util.EcoreUtil
@@ -37,10 +38,10 @@ import org.testeditor.web.backend.xtext.TestEditorConfiguration
 import org.testeditor.web.xtext.index.serialization.EObjectDescriptionDeserializer
 import org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerializer
 
-import static org.assertj.core.api.Assertions.assertThat
-import static org.mockito.Mockito.*
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
-import javax.ws.rs.core.Context
+import static org.assertj.core.api.Assertions.assertThat
+import static org.mockito.ArgumentMatchers.*
+import static org.mockito.Mockito.*
 
 class IndexServiceClientIntegrationTest {
 
@@ -85,8 +86,7 @@ class IndexServiceClientIntegrationTest {
 
 		val client = new IndexServiceClient(
 			new JerseyClientBuilder(dropwizardClient.environment).build(TEST_CLIENT_NAME),
-			java.net.URI.create('''«dropwizardServer.baseUri»/xtext/index/global-scope'''),
-			[request])
+			java.net.URI.create('''«dropwizardServer.baseUri»/xtext/index/global-scope'''), [request])
 
 		val resource = new XtextResourceSet().getResource(
 			URI.createURI(ResourceHelpers.resourceFilePath("pack/MacroLib.tml")), true) as XtextResource
@@ -127,8 +127,8 @@ class DummyGlobalScopeResource {
 	public String contentType = null
 	public String contextURI = null
 	public String authHeader = null
-	
-		@POST
+
+	@POST
 	@Consumes("text/plain")
 	@Produces("application/json")
 	def Response getScope(String context, @QueryParam("contentType") String contentType,

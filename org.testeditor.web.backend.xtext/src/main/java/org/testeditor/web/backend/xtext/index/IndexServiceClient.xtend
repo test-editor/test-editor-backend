@@ -104,7 +104,7 @@ class IndexServiceClient implements IGlobalScopeProvider {
 				return indexServiceRequest.header(AUTHORIZATION, authorizationHeader)
 			}
 			else {
-				logger.info("Context request carries no authorization header. Request to index service will be sent without authorization header.")
+				logger.warn("Context request carries no authorization header. Request to index service will be sent without authorization header.")
 			}
 		} else {
 			logger.warn("Failed to retrieve context request. Request to index service will be sent without authorization header.")
