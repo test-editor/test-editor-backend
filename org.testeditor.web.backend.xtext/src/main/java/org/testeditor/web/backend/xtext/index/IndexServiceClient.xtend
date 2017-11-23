@@ -6,6 +6,7 @@ import com.google.inject.name.Named
 import java.net.URI
 import java.util.List
 import java.util.Map
+import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
 import javax.ws.rs.client.Entity
 import javax.ws.rs.core.GenericType
@@ -20,27 +21,37 @@ import org.eclipse.xtext.scoping.IScope
 import org.eclipse.xtext.scoping.impl.SimpleScope
 import org.slf4j.LoggerFactory
 
+import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
+
 import static extension java.util.Objects.requireNonNull
+import com.google.inject.Provider
+import javax.ws.rs.client.WebTarget
 
 class IndexServiceClient implements IGlobalScopeProvider {
 
 	static val logger = LoggerFactory.getLogger(IndexServiceClient)
+	
 
 	val Client client
 	val URI baseURI
+	
+	var Provider<HttpServletRequest> requestProvider
 
 	@Inject
-	new(@Named("index-service-client") Client client, @Named("index-service-base-URI") URI target) {
+	new(@Named("index-service-client") Client client, @Named("index-service-base-URI") URI target,
+		Provider<HttpServletRequest> request) {
 		client.requireNonNull("client must not be null")
 		target.requireNonNull("URI must not be null")
+		request.requireNonNull("Context request must not be null")
 
 		this.client = client
 		this.baseURI = target
+		this.requestProvider = request
 	}
 	
 	override getScope(Resource context, EReference reference, Predicate<IEObjectDescription> filter) {
-		var result = IScope.NULLSCOPE
-		if(context !== null && context.resourceSet !== null) {
+		
+		if (context !== null && context.resourceSet !== null) {
 			reference.requireNonNull("reference must not be null")
 
 			val queryParams = newHashMap
@@ -50,18 +61,20 @@ class IndexServiceClient implements IGlobalScopeProvider {
 			val target = queryParams.entrySet.fold(client.target(baseURI))
 					[target, entry|target.queryParam(entry.key, entry.value)]
 
-			val eObjectDescriptions = target.request(MediaType.APPLICATION_JSON).post(body,
-				new GenericType<List<IEObjectDescription>>() {
-				})
+			val eObjectDescriptions = target.buildRequest
+					.post(body, new GenericType<List<IEObjectDescription>>() {})
 				
-			val validEObjectDescriptions = eObjectDescriptions.filterIncompatible(reference)
+			var validEObjectDescriptions = eObjectDescriptions.filterIncompatible(reference)
+			if (filter !== null) {
+				validEObjectDescriptions = validEObjectDescriptions.filter(filter)
+			}
 			
-			result = new SimpleScope(validEObjectDescriptions)
+			return new SimpleScope(validEObjectDescriptions)
 		}
-		return result
+		return IScope.NULLSCOPE
 	}
 	
-	private def filterIncompatible(List<IEObjectDescription> eObjectDescriptions, EReference reference) {
+	private def Iterable<IEObjectDescription> filterIncompatible(List<IEObjectDescription> eObjectDescriptions, EReference reference) {
 		val compatibilityMap = eObjectDescriptions.groupBy[it.EClass === reference.EReferenceType]
 		compatibilityMap.get(false)?.forEach[logger.warn(
 		"dropping type-incompatible element (expected eReference type: {}; index service provided element of type: {}).",
@@ -79,6 +92,24 @@ class IndexServiceClient implements IGlobalScopeProvider {
 			default:
 				Entity.text(null)
 		}
+	}
+	
+	private def buildRequest(WebTarget target)
+	{
+		val indexServiceRequest = target.request(MediaType.APPLICATION_JSON)
+		val contextRequest = requestProvider.get 
+		if (contextRequest !== null) {
+			val authorizationHeader = contextRequest?.getHeader(AUTHORIZATION)
+			if (authorizationHeader !== null && authorizationHeader != "") {
+				return indexServiceRequest.header(AUTHORIZATION, authorizationHeader)
+			}
+			else {
+				logger.warn("Context request carries no authorization header. Request to index service will be sent without authorization header.")
+			}
+		} else {
+			logger.warn("Failed to retrieve context request. Request to index service will be sent without authorization header.")
+		}
+		return indexServiceRequest;
 	}
 }
 

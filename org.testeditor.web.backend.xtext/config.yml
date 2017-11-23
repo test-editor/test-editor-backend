@@ -1,4 +1,4 @@
-indexServiceURL: http://localhost:8080/xtext/index/global-scope
+indexServiceURL: http://localhost:8100/xtext/index/global-scope
 
 server:
   applicationConnectors:
