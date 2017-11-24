@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.*
 import static org.mockito.ArgumentMatchers.*
 import static org.mockito.Mockito.*
 import com.google.inject.Provider
+import ch.qos.logback.classic.spi.ILoggingEvent
 
 @RunWith(MockitoJUnitRunner)
 class IndexServiceClientTest {
@@ -45,7 +46,7 @@ class IndexServiceClientTest {
 	static val AUTH_HEADER = "Bearer DUMMYTOKEN"
 
 	@Mock
-	var Appender logAppender
+	var Appender<ILoggingEvent> logAppender
 	var ArgumentCaptor<LoggingEvent> logCaptor
 
 	@Mock
