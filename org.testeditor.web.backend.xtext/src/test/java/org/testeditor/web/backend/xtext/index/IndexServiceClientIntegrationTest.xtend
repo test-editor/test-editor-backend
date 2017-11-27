@@ -29,8 +29,8 @@ import org.testeditor.tcl.dsl.TclStandaloneSetup
 import org.testeditor.tsl.dsl.web.TslWebSetup
 import org.testeditor.web.backend.xtext.TestEditorApplication
 import org.testeditor.web.backend.xtext.TestEditorConfiguration
-import org.testeditor.web.xtext.index.serialization.EObjectDescriptionDeserializer
-import org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerializer
+import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionDeserializer
+import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSerializer
 
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
 import static org.assertj.core.api.Assertions.assertThat

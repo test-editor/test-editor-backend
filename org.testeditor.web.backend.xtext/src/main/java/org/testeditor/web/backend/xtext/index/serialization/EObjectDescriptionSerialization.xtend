@@ -1,4 +1,4 @@
-package org.testeditor.web.xtext.index.serialization
+package org.testeditor.web.backend.xtext.index.serialization
 
 class EObjectDescriptionSerialization {
 	public static val EOBJECT_URI__FIELD_NAME = "eObjectURI"

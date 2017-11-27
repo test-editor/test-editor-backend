@@ -1,4 +1,4 @@
-package org.testeditor.web.xtext.index.serialization
+package org.testeditor.web.backend.xtext.index.serialization
 
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonProcessingException
@@ -15,10 +15,10 @@ import org.eclipse.xtext.naming.QualifiedName
 import org.eclipse.xtext.resource.IEObjectDescription
 import org.eclipse.xtext.resource.persistence.SerializableEObjectDescription
 
-import static org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerialization.EOBJECT_URI__FIELD_NAME
-import static org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerialization.QUALIFIED_NAME__DELIMITER
-import static org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerialization.QUALIFIED_NAME__FIELD_NAME
-import static org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerialization.URI__FIELD_NAME
+import static org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSerialization.EOBJECT_URI__FIELD_NAME
+import static org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSerialization.QUALIFIED_NAME__DELIMITER
+import static org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSerialization.QUALIFIED_NAME__FIELD_NAME
+import static org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSerialization.URI__FIELD_NAME
 
 class EObjectDescriptionDeserializer extends StdDeserializer<IEObjectDescription> {
 

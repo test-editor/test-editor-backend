@@ -1,11 +1,13 @@
 package org.testeditor.web.backend.xtext
 
+import com.fasterxml.jackson.databind.module.SimpleModule
 import com.google.inject.Guice
 import com.google.inject.Injector
 import com.google.inject.Module
 import com.google.inject.name.Names
 import com.google.inject.util.Modules
 import io.dropwizard.client.JerseyClientBuilder
+import io.dropwizard.setup.Bootstrap
 import io.dropwizard.setup.Environment
 import java.net.URI
 import javax.inject.Inject
@@ -14,6 +16,7 @@ import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
 import org.eclipse.jetty.server.session.SessionHandler
 import org.eclipse.xtend.lib.annotations.Accessors
+import org.eclipse.xtext.resource.IEObjectDescription
 import org.eclipse.xtext.scoping.IGlobalScopeProvider
 import org.eclipse.xtext.util.Modules2
 import org.eclipse.xtext.web.server.generator.DefaultContentTypeProvider
@@ -26,6 +29,8 @@ import org.testeditor.tcl.dsl.ide.TclIdeModule
 import org.testeditor.tsl.dsl.TslRuntimeModule
 import org.testeditor.tsl.dsl.web.TslWebSetup
 import org.testeditor.web.backend.xtext.index.IndexServiceClient
+import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionDeserializer
+import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSerializer
 import org.testeditor.web.dropwizard.xtext.XtextApplication
 import org.testeditor.web.dropwizard.xtext.XtextServiceResource
 
@@ -42,6 +47,18 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 
 	def static void main(String[] args) {
 		new TestEditorApplication().run(args)
+	}
+
+	override initialize(Bootstrap<TestEditorConfiguration> bootstrap) {
+		super.initialize(bootstrap)
+		registerCustomEObjectSerializer(bootstrap)
+	}
+
+	private def registerCustomEObjectSerializer(Bootstrap<TestEditorConfiguration> bootstrap) {
+		val customSerializerModule = new SimpleModule
+		customSerializerModule.addSerializer(IEObjectDescription, new EObjectDescriptionSerializer)
+		customSerializerModule.addDeserializer(IEObjectDescription, new EObjectDescriptionDeserializer)
+		bootstrap.objectMapper.registerModule(customSerializerModule)
 	}
 
 	override protected configureXtextServices(TestEditorConfiguration configuration, Environment environment) {
