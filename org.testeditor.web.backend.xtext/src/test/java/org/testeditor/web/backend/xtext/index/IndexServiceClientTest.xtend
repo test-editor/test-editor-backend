@@ -2,12 +2,13 @@ package org.testeditor.web.backend.xtext.index
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.Appender
+import com.google.inject.Provider
 import java.util.List
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
-import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.client.WebTarget
 import javax.ws.rs.core.GenericType
@@ -21,7 +22,6 @@ import org.eclipse.xtext.resource.IEObjectDescription
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.resource.XtextResourceSet
 import org.eclipse.xtext.scoping.IScope
-import org.eclipse.xtext.serializer.ISerializer
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -36,9 +36,8 @@ import org.slf4j.LoggerFactory
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
 import static org.assertj.core.api.Assertions.*
 import static org.mockito.ArgumentMatchers.*
+
 import static extension org.mockito.Mockito.*
-import com.google.inject.Provider
-import ch.qos.logback.classic.spi.ILoggingEvent
 
 @RunWith(MockitoJUnitRunner)
 class IndexServiceClientTest {
@@ -51,13 +50,13 @@ class IndexServiceClientTest {
 
 	@Mock
 	var Client client
-	
-	//URI is a final class, which cannot be mocked by Mockito by default.
-	//Therefore, Mockito's inline-mockmaker was enabled by placing the file
-	//"org.mockito.plugins.MockMaker" in "src/test/resources/mockito-extensions",
-	//with content "mock-maker-inline".
-	//See https://github.com/mockito/mockito/wiki/What%27s-new-in-Mockito-2#unmockable
-	//for documentation.
+
+	// URI is a final class, which cannot be mocked by Mockito by default.
+	// Therefore, Mockito's inline-mockmaker was enabled by placing the file
+	// "org.mockito.plugins.MockMaker" in "src/test/resources/mockito-extensions",
+	// with content "mock-maker-inline".
+	// See https://github.com/mockito/mockito/wiki/What%27s-new-in-Mockito-2#unmockable
+	// for documentation.
 	@Spy
 	var java.net.URI uri = java.net.URI.create("http://www.example.org")
 	@Mock
@@ -310,8 +309,7 @@ class IndexServiceClientTest {
 		when(target.request(anyString)).thenReturn(invocationBuilder)
 		when(invocationBuilder.header(eq(AUTHORIZATION), eq(AUTH_HEADER))).thenReturn(invocationBuilder)
 
-		val payloadMatcher = if(payload === null) any else eq(Entity.text(payload))
-		when(invocationBuilder.post(payloadMatcher, any(GenericType))).thenReturn(resultingEObjectDescriptions)
+		when(invocationBuilder.post(any, any(GenericType))).thenReturn(resultingEObjectDescriptions)
 	}
 
 	/**
@@ -320,16 +318,11 @@ class IndexServiceClientTest {
 	 * (both parameters may be null).
 	 */
 	private def mockedResource(String payload, EList<EObject> resourceContents) {
-		val serializer = ISerializer.mock
 		val resource = XtextResource.mock
 		when(resource.resourceSet).thenReturn(XtextResourceSet.mock)
 		when(resource.URI).thenReturn(URI.mock)
-		when(resource.serializer).thenReturn(serializer)
-		if(payload !== null) {
-			when(serializer.serialize(any)).thenReturn(payload)
-		}
 
-		if(resourceContents !== null) {
+		if (resourceContents !== null) {
 			when(resource.contents).thenReturn(resourceContents)
 		}
 

@@ -5,8 +5,6 @@ import javax.ws.rs.core.Form
 import org.junit.Test
 
 import static javax.ws.rs.core.Response.Status.*
-import static org.mockito.Mockito.*
-import java.net.URI
 
 class XtextIndexIntegrationTest extends AbstractXtextIntegrationTest {
 
@@ -31,9 +29,6 @@ class XtextIndexIntegrationTest extends AbstractXtextIntegrationTest {
 
 		// then
 		response.status.assertEquals(OK.statusCode)
-		verify(indexServiceJerseyClientMock, atLeastOnce).target(eq(URI.create("http://localhost:8080/xtext/index/global-scope")))
-		verifyNoMoreInteractions(indexServiceJerseyClientMock)
-		
 	}
 
 }

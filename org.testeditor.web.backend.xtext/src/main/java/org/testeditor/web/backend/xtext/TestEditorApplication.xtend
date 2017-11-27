@@ -39,8 +39,6 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 	Injector tclInjector = null
 	@Accessors(PUBLIC_GETTER)
 	Injector amlInjector = null
-	
-	
 
 	def static void main(String[] args) {
 		new TestEditorApplication().run(args)
