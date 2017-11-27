@@ -11,3 +11,8 @@ run {
 	main mainClassName
 	args 'server', configPath + 'config.yml'
 }
+
+dependencyCheck {
+    failBuildOnCVSS=11
+    suppressionFile=file("suppressions.xml").getCanonicalPath()
+}

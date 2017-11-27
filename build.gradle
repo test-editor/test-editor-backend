@@ -49,13 +49,13 @@ subprojects {
     
     apply from: "$rootDir/gradle/publishing.gradle"
 
-    check.dependsOn dependencyCheckAnalyze
-
     dependencyCheck {
-        autoUpdate=false
+        autoUpdate=true
         cveValidForHours=1
-        failBuildOnCVSS=1
         format='ALL'
+        data {
+            directory='./.odcdb'
+        }
     }
 
 	sourceSets {

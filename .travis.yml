@@ -5,5 +5,7 @@ jdk:
 cache:
   directories:
   - $HOME/.gradle
-after_failure:
-    - find build/reports/. -type f -exec cat {} +
+  - ./.odcdb
+script:
+  - ./gradlew check
+  - ./.travis-cat_owasp_depcheck_reports.sh
