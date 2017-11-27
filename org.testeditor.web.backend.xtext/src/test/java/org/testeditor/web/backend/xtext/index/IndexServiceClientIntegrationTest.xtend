@@ -2,6 +2,9 @@ package org.testeditor.web.backend.xtext.index
 
 import com.codahale.metrics.Metric
 import com.fasterxml.jackson.databind.module.SimpleModule
+import com.google.inject.Guice
+import com.google.inject.Module
+import com.google.inject.name.Names
 import com.squarespace.jersey2.guice.JerseyGuiceUtils
 import io.dropwizard.client.JerseyClientBuilder
 import io.dropwizard.setup.Bootstrap
@@ -9,15 +12,16 @@ import io.dropwizard.setup.Environment
 import io.dropwizard.testing.ResourceHelpers
 import io.dropwizard.testing.junit.DropwizardAppRule
 import io.dropwizard.testing.junit.DropwizardClientRule
+import java.net.URI
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.Consumes
 import javax.ws.rs.POST
 import javax.ws.rs.Path
 import javax.ws.rs.Produces
 import javax.ws.rs.QueryParam
+import javax.ws.rs.client.Client
 import javax.ws.rs.core.Context
 import javax.ws.rs.core.Response
-import org.eclipse.emf.common.util.URI
 import org.eclipse.emf.ecore.util.EcoreUtil
 import org.eclipse.xtext.naming.QualifiedName
 import org.eclipse.xtext.resource.EObjectDescription
@@ -40,7 +44,6 @@ import org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerializer
 
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
 import static org.assertj.core.api.Assertions.assertThat
-import static org.mockito.ArgumentMatchers.*
 import static org.mockito.Mockito.*
 
 class IndexServiceClientIntegrationTest {
@@ -75,21 +78,18 @@ class IndexServiceClientIntegrationTest {
 	}
 
 	static val TEST_CLIENT_NAME = "index-service-client"
+	static val AUTH_HEADER = "Bearer DUMMYTOKEN"
 
 	@Test
 	def void shouldReturnDummyScope() {
 		// given
 		stripLingeringMetrics(dropwizardClient.getEnvironment());
-		val AUTH_HEADER = "Bearer DUMMYTOKEN"
-		val request = mock(HttpServletRequest)
-		when(request.getHeader(eq(AUTHORIZATION))).thenReturn(AUTH_HEADER)
 
-		val client = new IndexServiceClient(
-			new JerseyClientBuilder(dropwizardClient.environment).build(TEST_CLIENT_NAME),
-			java.net.URI.create('''«dropwizardServer.baseUri»/xtext/index/global-scope'''), [request])
+		val client = mockedIndexServiceClient
 
 		val resource = new XtextResourceSet().getResource(
-			URI.createURI(ResourceHelpers.resourceFilePath("pack/MacroLib.tml")), true) as XtextResource
+			org.eclipse.emf.common.util.URI.createURI(ResourceHelpers.resourceFilePath("pack/MacroLib.tml")),
+			true) as XtextResource
 		val reference = TclPackage.eINSTANCE.macroTestStepContext_MacroCollection
 
 		// when
@@ -110,6 +110,21 @@ class IndexServiceClientIntegrationTest {
 			assertThat(contextURI).isEqualTo(resource.URI.toString)
 			assertThat(authHeader).isEqualTo(AUTH_HEADER)
 		]
+	}
+
+	private def getMockedIndexServiceClient() {
+		val client = new JerseyClientBuilder(dropwizardClient.environment).build(TEST_CLIENT_NAME)
+		val baseURI = URI.create('''«dropwizardServer.baseUri»/xtext/index/global-scope''')
+		val contextRequest = mock(HttpServletRequest)
+		when(contextRequest.getHeader(AUTHORIZATION)).thenReturn(AUTH_HEADER)
+
+		val Module testBindings = [
+			bind(Client).annotatedWith(Names.named("index-service-client")).toInstance(client)
+			bind(URI).annotatedWith(Names.named("index-service-base-URI")).toInstance(baseURI)
+			bind(HttpServletRequest).toProvider[contextRequest]
+		]
+
+		return Guice.createInjector(testBindings).getInstance(IndexServiceClient)
 	}
 
 	// See https://github.com/dropwizard/dropwizard/issues/832, 
