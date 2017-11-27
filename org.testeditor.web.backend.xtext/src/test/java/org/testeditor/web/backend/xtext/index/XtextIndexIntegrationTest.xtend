@@ -30,10 +30,7 @@ class XtextIndexIntegrationTest extends AbstractXtextIntegrationTest {
 		val response = validateRequest.submit.get
 
 		// then
-		response.status.assertEquals(OK.statusCode)
-		verify(indexServiceJerseyClientMock, atLeastOnce).target(eq(URI.create("http://localhost:8080/xtext/index/global-scope")))
-		verifyNoMoreInteractions(indexServiceJerseyClientMock)
-		
+		response.status.assertEquals(OK.statusCode)		
 	}
 
 }

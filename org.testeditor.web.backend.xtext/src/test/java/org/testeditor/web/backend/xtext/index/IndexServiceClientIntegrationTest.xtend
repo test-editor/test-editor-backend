@@ -104,7 +104,8 @@ class IndexServiceClientIntegrationTest {
 			assertThat(head.qualifiedName.toString).isEqualTo("de.testeditor.SampleMacroCollection")
 		]
 		assertThat(dummyResource).satisfies [
-			assertThat(context).isEqualTo(resource.serializer.serialize(resource.contents.head))
+			//index service does not consider context content
+			//assertThat(context).isEqualTo(resource.serializer.serialize(resource.contents.head))
 			assertThat(eReferenceURIString).isEqualTo(EcoreUtil.getURI(reference).toString)
 			assertThat(contentType).isEqualTo(resource.languageName)
 			assertThat(contextURI).isEqualTo(resource.URI.toString)
@@ -133,33 +134,6 @@ class IndexServiceClientIntegrationTest {
 		env.metrics().removeMatching[String name, Metric metric|name.contains(TEST_CLIENT_NAME)]
 	}
 
-}
-
-@Path("/xtext/index/global-scope")
-class DummyGlobalScopeResource {
-	public String context = null
-	public String eReferenceURIString = null
-	public String contentType = null
-	public String contextURI = null
-	public String authHeader = null
-
-	@POST
-	@Consumes("text/plain")
-	@Produces("application/json")
-	def Response getScope(String context, @QueryParam("contentType") String contentType,
-		@QueryParam("contextURI") String contextURI, @QueryParam("reference") String eReferenceURIString,
-		@Context HttpServletRequest request) {
-		this.context = context
-		this.contentType = contentType
-		this.contextURI = contextURI
-		this.eReferenceURIString = eReferenceURIString
-		this.authHeader = request.getHeader(AUTHORIZATION)
-
-		val description = EObjectDescription.create(QualifiedName.create("de", "testeditor", "SampleMacroCollection"),
-			TclFactory.eINSTANCE.createMacroCollection)
-
-		return Response.ok(#[description]).build
-	}
 }
 
 class TestEditorApplicationDummy extends TestEditorApplication {
