@@ -119,7 +119,6 @@ class IndexServiceClientIntegrationTest {
 		when(contextRequest.getHeader(AUTHORIZATION)).thenReturn(AUTH_HEADER)
 
 		val Module testBindings = [
-			// bind(IGlobalScopeProvider).to(IndexServiceClient)
 			bind(Client).annotatedWith(Names.named("index-service-client")).toInstance(client)
 			bind(URI).annotatedWith(Names.named("index-service-base-URI")).toInstance(baseURI)
 			bind(HttpServletRequest).toProvider[contextRequest]

@@ -2,6 +2,7 @@ package org.testeditor.web.backend.xtext.index
 
 import com.google.common.base.Predicate
 import com.google.inject.Inject
+import com.google.inject.Provider
 import com.google.inject.name.Named
 import java.net.URI
 import java.util.List
@@ -9,6 +10,7 @@ import java.util.Map
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
 import javax.ws.rs.client.Entity
+import javax.ws.rs.client.WebTarget
 import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.MediaType
 import org.eclipse.emf.ecore.EReference
@@ -24,8 +26,6 @@ import org.slf4j.LoggerFactory
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
 
 import static extension java.util.Objects.requireNonNull
-import com.google.inject.Provider
-import javax.ws.rs.client.WebTarget
 
 class IndexServiceClient implements IGlobalScopeProvider {
 
@@ -36,7 +36,8 @@ class IndexServiceClient implements IGlobalScopeProvider {
 	Client client
 	
 	@Inject
-	@Named("index-service-base-URI") URI baseURI
+	@Named("index-service-base-URI")
+	URI baseURI
 	
 	@Inject
 	Provider<HttpServletRequest> requestProvider
