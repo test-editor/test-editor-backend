@@ -5,3 +5,7 @@ jdk:
 cache:
   directories:
   - $HOME/.gradle
+  - ./.odcdb
+script:
+  - ./gradlew check
+  - ./.travis-cat_owasp_depcheck_reports.sh

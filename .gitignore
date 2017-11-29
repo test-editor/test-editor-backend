@@ -4,6 +4,7 @@
 .settings/
 .metadata/
 bin/
+.odcdb/
 
 ### IntelliJ ###
 *.iml
