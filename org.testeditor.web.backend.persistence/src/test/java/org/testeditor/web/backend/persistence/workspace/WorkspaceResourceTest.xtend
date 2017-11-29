@@ -1,89 +1,49 @@
 package org.testeditor.web.backend.persistence.workspace
 
-import java.io.File
-import javax.inject.Inject
 import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.mockito.InjectMocks
+import org.mockito.Mock
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
+import org.testeditor.web.backend.persistence.git.GitProvider
+
+import static org.mockito.Mockito.*
 
 class WorkspaceResourceTest extends AbstractPersistenceTest {
 
-	@Rule public val remoteGitFolder = new TemporaryFolder
-	@Rule public val tempFolder = new TemporaryFolder
+	@Rule public val folder = new TemporaryFolder
 
-	@Inject WorkspaceResource createWorkspace // class under test
-	@Inject PersistenceConfiguration config
-
-	@Before
-	def void setupRemoteGitRepository() {
-		// setup remote Git repository
-		val git = Git.init.setDirectory(remoteGitFolder.root).call
-		JGitTestUtil.writeTrashFile(git.repository, 'README.md', '# Readme')
-		git.add.addFilepattern("README.md").call
-		git.commit.setMessage("Initial commit").call
-		config.projectRepoUrl = "file://" + remoteGitFolder.root.absolutePath
-	}
+	@InjectMocks WorkspaceResource workspaceResource
+	@Mock GitProvider gitProvider
 
 	@Before
-	def void setupConfiguration() {
-		config.gitFSRoot = tempFolder.root.absolutePath
-	}
-
-	private def File setupDirtyWorkspace(String userId) {
-		val workspace = tempFolder.newFolder(userId)
-		new File(workspace, ".git").mkdirs
-		return workspace
+	def void setup() {
+		val git = Git.init.setDirectory(folder.root).call
+		when(gitProvider.git).thenReturn(git)
 	}
 
 	@Test
-	def void testGitRepoInitialize() {
+	def void listFiles() {
 		// given
-		val workspace = new File(tempFolder.root, 'u123456')
+		folder.newFile('a.txt')
+		folder.newFolder('subfolder')
+		folder.newFile('subfolder/sub.txt')
 
 		// when
-		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace)
+		val files = workspaceResource.listFiles
 
-		// then 
-		new File(workspace, "README.md").exists.assertTrue
-		createWorkspace.isGitInitialized(workspace).assertTrue
-		cloned.assertTrue
-
-		JGitTestUtil.read(new File(workspace, ".git/config")) => [
-			contains("name = The User").assertTrue
-			contains("email = theuser@example.org").assertTrue
+		// then
+		files.children => [
+			size.assertEquals(2)
+			get(0) => [
+				path.assertEquals('subfolder')
+				children.size.assertEquals(1)
+				children.get(0).path.assertEquals('subfolder/sub.txt')
+			]
+			get(1).path.assertEquals('a.txt')
 		]
 	}
-
-	@Test
-	def void testGitRepoPresentStaysUntouched() {
-		// given
-		val workspace = setupDirtyWorkspace('u123456')
-
-		// when
-		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace)
-
-		// then
-		cloned.assertFalse
-		new File(workspace, "README.md").exists.assertFalse
-	}
-
-	@Test
-	def void testGitRepoInitializedOtherUserPresent() {
-		// given
-		setupDirtyWorkspace('u654321')
-		val workspace = new File(tempFolder.root, 'u123456')
-
-		// when
-		val cloned = createWorkspace.prepareWorkspaceIfNecessaryFor(workspace)
-
-		// then
-		cloned.assertTrue
-		new File(workspace, "README.md").exists.assertTrue
-	}
-
 }
