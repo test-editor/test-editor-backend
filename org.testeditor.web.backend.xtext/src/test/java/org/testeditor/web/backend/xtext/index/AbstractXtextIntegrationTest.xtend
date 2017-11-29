@@ -2,60 +2,29 @@ package org.testeditor.web.backend.xtext.index
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.google.inject.Guice
-import com.google.inject.Injector
-import com.google.inject.Module
-import com.google.inject.name.Names
-import com.google.inject.util.Modules
+import com.fasterxml.jackson.databind.module.SimpleModule
+import com.squarespace.jersey2.guice.JerseyGuiceUtils
 import de.xtendutils.junit.AssertionHelper
-import io.dropwizard.setup.Environment
 import io.dropwizard.testing.ResourceHelpers
 import io.dropwizard.testing.junit.DropwizardAppRule
-import java.net.URI
-import javax.inject.Inject
-import javax.inject.Provider
-import javax.servlet.http.HttpServletRequest
-import javax.ws.rs.client.Client
+import io.dropwizard.testing.junit.DropwizardClientRule
 import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
-import javax.ws.rs.client.WebTarget
-import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.MediaType
-import org.eclipse.jetty.server.session.SessionHandler
-import org.eclipse.xtend.lib.annotations.Accessors
-import org.eclipse.xtext.resource.EObjectDescription
-import org.eclipse.xtext.scoping.IGlobalScopeProvider
-import org.eclipse.xtext.util.Modules2
-import org.eclipse.xtext.web.server.generator.DefaultContentTypeProvider
-import org.eclipse.xtext.web.server.generator.IContentTypeProvider
+import org.eclipse.xtext.resource.IEObjectDescription
+import org.junit.Before
 import org.junit.Rule
-import org.testeditor.aml.dsl.AmlRuntimeModule
-import org.testeditor.aml.dsl.AmlStandaloneSetup
-import org.testeditor.tcl.TclFactory
-import org.testeditor.tcl.dsl.TclRuntimeModule
-import org.testeditor.tcl.dsl.TclStandaloneSetup
-import org.testeditor.tcl.dsl.ide.TclIdeModule
-import org.testeditor.tsl.dsl.TslRuntimeModule
-import org.testeditor.tsl.dsl.web.TslWebSetup
 import org.testeditor.web.backend.xtext.TestEditorApplication
 import org.testeditor.web.backend.xtext.TestEditorConfiguration
-import org.testeditor.web.dropwizard.xtext.XtextApplication
-import org.testeditor.web.dropwizard.xtext.XtextServiceResource
+import org.testeditor.web.xtext.index.serialization.EObjectDescriptionDeserializer
+import org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerializer
 
 import static io.dropwizard.testing.ConfigOverride.config
-import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
-import static org.mockito.ArgumentMatchers.*
-import static org.mockito.Mockito.*
 
 abstract class AbstractXtextIntegrationTest {
 
 	protected static val userId = 'john.doe'
 	protected val token = createToken
-	protected static val indexServiceJerseyClientMock = mock(Client)
-
-	val configs = #[
-		config('server.applicationConnectors[0].port', '0')
-	]
 
 	static def String createToken() {
 		val builder = JWT.create => [
@@ -66,19 +35,59 @@ abstract class AbstractXtextIntegrationTest {
 		return builder.sign(Algorithm.HMAC256("secret"))
 	}
 
+	/**
+	 * Workaround related to the following dropwizard / dropwizard-guice / jersey2-guice issues
+	 * https://github.com/dropwizard/dropwizard/issues/1772
+	 * https://github.com/HubSpot/dropwizard-guice/issues/95
+	 * https://github.com/HubSpot/dropwizard-guice/issues/88
+	 * https://github.com/Squarespace/jersey2-guice/pull/39
+	 */
+	static def void ensureServiceLocatorPopulated() {
+		JerseyGuiceUtils.reset
+	}
+
+	static var DummyGlobalScopeResource dummyResource
+
+	new() {
+		initializeRules
+	}
+	
+	def void initializeRules() {
+		dummyResource = new DummyGlobalScopeResource
+		ensureServiceLocatorPopulated
+		dropwizardIndexServerRule = new EagerDropwizardClientRule(dummyResource)
+		
+		dropwizardXtextClientRule = new DropwizardAppRule(TestEditorApplication,
+			ResourceHelpers.resourceFilePath('test-config.yml'),
+			#[config('indexServiceURL', '''«dropwizardIndexServerRule.baseUri»/xtext/index/global-scope''')])
+	}
+	
+	/**
+	 * Actually a client rule, but acts as the server (remote) for this test
+	 */
 	@Rule
-	public val dropwizardAppRule = new DropwizardAppRule(
-		TestEditorTestApplication,
-		ResourceHelpers.resourceFilePath('test-config.yml'),
-		configs
-	)
+	public var DropwizardClientRule dropwizardIndexServerRule
+
+	@Rule
+	public var DropwizardAppRule<TestEditorConfiguration> dropwizardXtextClientRule
+
+	@Before
+	def void registerCustomSerializers() {
+		val customDeserializerModule = new SimpleModule
+		customDeserializerModule.addDeserializer(IEObjectDescription, new EObjectDescriptionDeserializer)
+
+		val customSerializerModule = new SimpleModule
+		customSerializerModule.addSerializer(IEObjectDescription, new EObjectDescriptionSerializer)
+
+		dropwizardXtextClientRule.objectMapper.registerModule(customDeserializerModule)
+		dropwizardIndexServerRule.objectMapper.registerModule(customSerializerModule)
+	}
 
 	protected extension val AssertionHelper = AssertionHelper.instance
-	protected val client = dropwizardAppRule.client
 
 	protected def Builder createRequest(String relativePath) {
-		val uri = '''http://localhost:«dropwizardAppRule.localPort»/«relativePath»'''
-		val builder = client.target(uri).request
+		val uri = '''http://localhost:«dropwizardXtextClientRule.localPort»/«relativePath»'''
+		val builder = dropwizardXtextClientRule.client.target(uri).request
 		builder.header('Authorization', '''Bearer «token»''')
 		return builder
 	}
@@ -87,79 +96,19 @@ abstract class AbstractXtextIntegrationTest {
 		return Entity.entity(charSequence.toString, MediaType.TEXT_PLAIN)
 	}
 
-	static class TestEditorTestApplication extends XtextApplication<TestEditorConfiguration> {
+}
 
-		@Accessors(PUBLIC_GETTER)
-		var Injector tslInjector = null
-		@Accessors(PUBLIC_GETTER)
-		var Injector tclInjector = null
-		@Accessors(PUBLIC_GETTER)
-		var Injector amlInjector = null
+/**
+ * Enforces eager initialization of the rule's internal DropwizardTestSupport
+ * reference. This is needed by this test setup, because it has an app rule
+ * depending on a client rule. For proper initialization of the former, the
+ * latter has to be fully initialized, first.
+ */
+class EagerDropwizardClientRule extends DropwizardClientRule {
 
-		@Inject Provider<HttpServletRequest> requestProvider
-
-		def static void main(String[] args) {
-			new TestEditorApplication().run(args)
-		}
-
-		override protected configureXtextServices(TestEditorConfiguration configuration, Environment environment) {
-			configureXtextIndex(configuration, environment)
-
-			environment.jersey.register(XtextServiceResource)
-			environment.servlets.sessionHandler = new SessionHandler
-		}
-
-		def configureXtextIndex(TestEditorConfiguration configuration, Environment environment) {
-			val client = indexServiceJerseyClientMock
-			val target = mock(WebTarget)
-			val invocationBuilder = mock(Builder)
-			when(client.target(any(URI))).thenReturn(target)
-			when(target.queryParam(any, any)).thenReturn(target)
-			when(target.request(anyString)).thenReturn(invocationBuilder)
-			when(invocationBuilder.header(eq(AUTHORIZATION), anyString)).thenReturn(invocationBuilder)
-			when(invocationBuilder.post(any(Entity), any(GenericType))).thenReturn(
-				#[EObjectDescription.create("TestName", TclFactory.eINSTANCE.createMacroCollection)])
-
-			val baseURI = URI.create("http://localhost:8080/xtext/index/global-scope")
-			val Module overridingModule = [
-				bind(IGlobalScopeProvider).to(IndexServiceClient)
-				bind(Client).annotatedWith(Names.named("index-service-client")).toInstance(client)
-				bind(URI).annotatedWith(Names.named("index-service-base-URI")).toInstance(baseURI)
-				bind(IContentTypeProvider).to(DefaultContentTypeProvider)
-				bind(HttpServletRequest).toProvider(requestProvider)
-			]
-
-			setupLanguagesWithXtextIndex(overridingModule)
-		}
-
-		def setupLanguagesWithXtextIndex(Module ... overridingModules) {
-			val injectors = #[
-				new TslWebSetup {
-					override createInjector() {
-						return Guice.createInjector(Modules.override(new TslRuntimeModule).with(overridingModules))
-					}
-				},
-				new TclStandaloneSetup {
-					override createInjector() {
-						return Guice.createInjector(
-							Modules.override(Modules2.mixin(new TclRuntimeModule, new TclIdeModule)).with(
-								overridingModules))
-					}
-				},
-				new AmlStandaloneSetup {
-					override createInjector() {
-						return Guice.createInjector(Modules.override(new AmlRuntimeModule).with(overridingModules))
-					}
-				}
-			].map[createInjectorAndDoEMFRegistration]
-			this.tslInjector = injectors.get(0)
-			this.tclInjector = injectors.get(1)
-			this.amlInjector = injectors.get(2)
-		}
-
-		override protected getLanguageSetups() {
-		}
-
+	new(Object... resources) {
+		super(resources)
+		before
 	}
 
 }
