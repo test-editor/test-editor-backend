@@ -16,8 +16,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.testeditor.web.backend.xtext.TestEditorApplication
 import org.testeditor.web.backend.xtext.TestEditorConfiguration
-import org.testeditor.web.xtext.index.serialization.EObjectDescriptionDeserializer
-import org.testeditor.web.xtext.index.serialization.EObjectDescriptionSerializer
+import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionDeserializer
+import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSerializer
 
 import static io.dropwizard.testing.ConfigOverride.config
 
@@ -51,17 +51,17 @@ abstract class AbstractXtextIntegrationTest {
 	new() {
 		initializeRules
 	}
-	
+
 	def void initializeRules() {
 		dummyResource = new DummyGlobalScopeResource
 		ensureServiceLocatorPopulated
 		dropwizardIndexServerRule = new EagerDropwizardClientRule(dummyResource)
-		
+
 		dropwizardXtextClientRule = new DropwizardAppRule(TestEditorApplication,
 			ResourceHelpers.resourceFilePath('test-config.yml'),
 			#[config('indexServiceURL', '''«dropwizardIndexServerRule.baseUri»/xtext/index/global-scope''')])
 	}
-	
+
 	/**
 	 * Actually a client rule, but acts as the server (remote) for this test
 	 */
