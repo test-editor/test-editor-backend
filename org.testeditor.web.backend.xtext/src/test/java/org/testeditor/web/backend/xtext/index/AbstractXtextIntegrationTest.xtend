@@ -48,28 +48,28 @@ abstract class AbstractXtextIntegrationTest {
 
 	static var DummyGlobalScopeResource dummyResource
 
+	new() {
+		initializeRules
+	}
+	
+	def void initializeRules() {
+		dummyResource = new DummyGlobalScopeResource
+		ensureServiceLocatorPopulated
+		dropwizardIndexServerRule = new EagerDropwizardClientRule(dummyResource)
+		
+		dropwizardXtextClientRule = new DropwizardAppRule(TestEditorApplication,
+			ResourceHelpers.resourceFilePath('test-config.yml'),
+			#[config('indexServiceURL', '''«dropwizardIndexServerRule.baseUri»/xtext/index/global-scope''')])
+	}
+	
 	/**
 	 * Actually a client rule, but acts as the server (remote) for this test
 	 */
 	@Rule
-	public var DropwizardClientRule dropwizardServerRule
+	public var DropwizardClientRule dropwizardIndexServerRule
 
 	@Rule
-	public var DropwizardAppRule<TestEditorConfiguration> dropwizardClientRule = createClientRule
-
-	private def createServerRule() {
-		dummyResource = new DummyGlobalScopeResource
-		ensureServiceLocatorPopulated
-		dropwizardServerRule = new EagerDropwizardClientRule(dummyResource)
-
-		return dropwizardServerRule
-	}
-
-	private def createClientRule() {
-		dropwizardClientRule = new DropwizardAppRule(TestEditorApplication,
-			ResourceHelpers.resourceFilePath('test-config.yml'),
-			#[config('indexServiceURL', '''«createServerRule.baseUri»/xtext/index/global-scope''')])
-	}
+	public var DropwizardAppRule<TestEditorConfiguration> dropwizardXtextClientRule
 
 	@Before
 	def void registerCustomSerializers() {
@@ -79,16 +79,15 @@ abstract class AbstractXtextIntegrationTest {
 		val customSerializerModule = new SimpleModule
 		customSerializerModule.addSerializer(IEObjectDescription, new EObjectDescriptionSerializer)
 
-		dropwizardClientRule.objectMapper.registerModule(customDeserializerModule)
-		dropwizardServerRule.objectMapper.registerModule(customSerializerModule)
+		dropwizardXtextClientRule.objectMapper.registerModule(customDeserializerModule)
+		dropwizardIndexServerRule.objectMapper.registerModule(customSerializerModule)
 	}
 
 	protected extension val AssertionHelper = AssertionHelper.instance
-	protected val client = dropwizardClientRule.client
 
 	protected def Builder createRequest(String relativePath) {
-		val uri = '''http://localhost:«dropwizardClientRule.localPort»/«relativePath»'''
-		val builder = client.target(uri).request
+		val uri = '''http://localhost:«dropwizardXtextClientRule.localPort»/«relativePath»'''
+		val builder = dropwizardXtextClientRule.client.target(uri).request
 		builder.header('Authorization', '''Bearer «token»''')
 		return builder
 	}
@@ -99,6 +98,12 @@ abstract class AbstractXtextIntegrationTest {
 
 }
 
+/**
+ * Enforces eager initialization of the rule's internal DropwizardTestSupport
+ * reference. This is needed by this test setup, because it has an app rule
+ * depending on a client rule. For proper initialization of the former, the
+ * latter has to be fully initialized, first.
+ */
 class EagerDropwizardClientRule extends DropwizardClientRule {
 
 	new(Object... resources) {
