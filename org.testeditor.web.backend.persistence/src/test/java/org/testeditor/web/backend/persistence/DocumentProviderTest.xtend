@@ -8,6 +8,7 @@ import org.junit.Test
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
+import java.io.File
 
 class DocumentProviderTest extends AbstractGitTest {
 
@@ -43,6 +44,20 @@ class DocumentProviderTest extends AbstractGitTest {
 
 		// then
 		remoteGit.assertSingleCommit(numberOfCommitsBefore, ADD, newFileName)
+	}
+	
+	//if files/folders are written before "git init", the latter will fail!
+	@Test
+	def void createInitsRepositoryBeforeWritingToWorkspace() {
+		// given
+		val pathToResourceToBeCreated = "some/parent/folder/example.tsl"
+		
+		// when
+		documentProvider.create(pathToResourceToBeCreated, "content")
+		
+		// then
+		workspaceProvider.workspace.assertFileExists(pathToResourceToBeCreated)
+		workspaceProvider.workspace.assertFileExists(".git")
 	}
 
 	@Test
@@ -140,5 +155,9 @@ class DocumentProviderTest extends AbstractGitTest {
 		git.getDiffEntries(git.lastCommit).exists [
 			changeType === expectedChangeType && newPath == path
 		].assertTrue('''Expected the following change: «expectedChangeType» «path», but found: «diffEntries.head.changeType» «diffEntries.head.newPath»''')
+	}
+	
+	private def assertFileExists(File parent, String path) {
+		new File(parent, path).exists.assertTrue
 	}
 }
