@@ -10,6 +10,7 @@ import org.apache.commons.io.FileUtils
 import org.junit.Test
 
 import static javax.ws.rs.core.Response.Status.*
+import java.io.InputStream
 
 class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest {
 
@@ -29,7 +30,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		val response = request.submit.get
 
 		// then
-		response.status.assertEquals(CREATED.statusCode)
+		response.status.assertEquals(CREATED.statusCode, response.readEntity(String))
 		read(resourcePath).assertEquals(simpleTsl)
 	}
 
