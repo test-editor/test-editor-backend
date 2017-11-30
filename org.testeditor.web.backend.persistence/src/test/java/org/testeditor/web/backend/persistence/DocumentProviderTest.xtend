@@ -23,13 +23,13 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void createCommitsNewFile() {
 		// given
 		val numberOfCommitsBefore = git.log.call.size
+		val newFileName = "theNewFile.txt"
 
 		// when
-		documentProvider.create('a.txt', 'test')
+		documentProvider.create(newFileName, 'test')
 
 		// then
-		val numberOfCommitsAfter = git.log.call.size
-		numberOfCommitsAfter.assertEquals(numberOfCommitsBefore + 1)
+		git.assertSingleCommit(numberOfCommitsBefore, ADD, newFileName)
 	}
 
 	@Test
@@ -61,7 +61,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void createOrUpdatePreExistingFileCommitsModifications() {
 		// given
-		val preExistingFile = preExistingFileInRepo
+		val preExistingFile = createAndPushFileToRepo
 		val numberOfCommitsBefore = git.log.call.size
 
 		// when
@@ -74,11 +74,11 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void saveCommitsChanges() {
 		// given
-		val existingFileName = preExistingFileInRepo
+		val existingFileName = createAndPushFileToRepo
 		val numberOfCommitsBefore = git.log.call.size
 
 		// when
-		documentProvider.save(existingFileName, "Contents of pre-existing file")
+		documentProvider.save(existingFileName, "New contents of pre-existing file")
 
 		// then
 		git.assertSingleCommit(numberOfCommitsBefore, MODIFY, existingFileName)
@@ -87,11 +87,11 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void savePushesChanges() {
 		// given
-		val existingFileName = preExistingFileInRepo
+		val existingFileName = createAndPushFileToRepo
 		val numberOfCommitsBefore = remoteGit.log.call.size
 
 		// when
-		documentProvider.save(existingFileName, "Contents of pre-existing file")
+		documentProvider.save(existingFileName, "New contents of pre-existing file")
 
 		// then
 		remoteGit.assertSingleCommit(numberOfCommitsBefore, MODIFY, existingFileName)
@@ -100,7 +100,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void deleteCommitsChanges() {
 		// given
-		val existingFileName = preExistingFileInRepo
+		val existingFileName = createAndPushFileToRepo
 		val numberOfCommitsBefore = git.log.call.size
 
 		// when
@@ -113,7 +113,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void deletePushesChanges() {
 		// given
-		val existingFileName = preExistingFileInRepo
+		val existingFileName = createAndPushFileToRepo
 		val numberOfCommitsBefore = remoteGit.log.call.size
 
 		// when
@@ -123,7 +123,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		remoteGit.assertSingleCommit(numberOfCommitsBefore, DELETE, existingFileName)
 	}
 
-	private def preExistingFileInRepo() {
+	private def createAndPushFileToRepo() {
 		val filename = "preExistingFile.txt"
 		localGitRoot.newFile(filename).createNewFile
 		git.pull.call
