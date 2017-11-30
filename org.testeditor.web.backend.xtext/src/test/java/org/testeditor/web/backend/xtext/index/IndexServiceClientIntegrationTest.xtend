@@ -35,6 +35,7 @@ import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSe
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
 import static org.assertj.core.api.Assertions.assertThat
 import static org.mockito.Mockito.*
+import org.junit.Ignore
 
 class IndexServiceClientIntegrationTest {
 
@@ -70,7 +71,7 @@ class IndexServiceClientIntegrationTest {
 	static val TEST_CLIENT_NAME = "index-service-client"
 	static val AUTH_HEADER = "Bearer DUMMYTOKEN"
 
-	@Test
+	@Ignore
 	def void shouldReturnDummyScope() {
 		// given
 		stripLingeringMetrics(dropwizardClient.getEnvironment());
