@@ -37,7 +37,7 @@ import static org.mockito.Mockito.*
 class IndexServiceClientIntegrationTest {
 
 	@Rule
-	public val wiredMockRule = new WireMockRule(wireMockConfig.port(0))
+	public val wiredMockRule = new WireMockRule(wireMockConfig.port(0)) // 0 = use a free port when starting 
 
 	@Rule
 	public val dropwizardClient = new DropwizardAppRule(TestEditorApplicationDummy,
@@ -78,7 +78,7 @@ class IndexServiceClientIntegrationTest {
 
 		// then 
 		assertThat(actual.allElements).satisfies [
-			assertThat(size).isEqualTo(1) // Integer.valueOf(1)) 
+			assertThat(size).isEqualTo(1) 
 			assertThat(head.getEClass.name).isEqualTo("MacroCollection")
 			assertThat(head.qualifiedName.toString).isEqualTo("sampleEObject")
 		]
