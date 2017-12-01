@@ -210,6 +210,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	private def File write(String resourcePath, CharSequence charSequence) {
 		val file = getFile(resourcePath)
 		FileUtils.write(file, charSequence, StandardCharsets.UTF_8)
+		commitInRemoteRepository(resourcePath)
 		return file
 	}
 

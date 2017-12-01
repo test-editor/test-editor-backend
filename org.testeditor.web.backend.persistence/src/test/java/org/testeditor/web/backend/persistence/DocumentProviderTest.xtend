@@ -8,6 +8,7 @@ import org.junit.Test
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
+import org.eclipse.jgit.diff.DiffEntry
 
 class DocumentProviderTest extends AbstractGitTest {
 
@@ -38,16 +39,16 @@ class DocumentProviderTest extends AbstractGitTest {
 		// then
 		remoteGit.assertSingleCommit(numberOfCommitsBefore, ADD, newFileName)
 	}
-	
-	//if files/folders are written before "git init", the latter will fail!
+
+	// if files/folders are written before "git init", the latter will fail!
 	@Test
 	def void createInitsRepositoryBeforeWritingToWorkspace() {
 		// given
 		val pathToResourceToBeCreated = "some/parent/folder/example.tsl"
-		
+
 		// when
 		documentProvider.create(pathToResourceToBeCreated, "content")
-		
+
 		// then
 		workspaceProvider.workspace.assertFileExists(pathToResourceToBeCreated)
 		workspaceProvider.workspace.assertFileExists(".git")
@@ -79,7 +80,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		// then
 		localGit.assertSingleCommit(numberOfCommitsBefore, MODIFY, preExistingFile)
 	}
-	
+
 	@Test
 	def void saveCommitsChanges() {
 		// given
@@ -149,11 +150,20 @@ class DocumentProviderTest extends AbstractGitTest {
 		numberOfCommitsAfter.assertEquals(numberOfCommitsBefore + 1)
 		val diffEntries = git.getDiffEntries(git.lastCommit)
 		git.getDiffEntries(git.lastCommit).exists [
-			changeType === expectedChangeType && newPath == path
-		].assertTrue('''Expected the following change: «expectedChangeType» «path», but found: «diffEntries.head.changeType» «diffEntries.head.newPath»''')
+			changeType === expectedChangeType && pathForChangeType(changeType) == path
+		].
+			assertTrue('''Expected the following change: «expectedChangeType» «path», but found: «diffEntries.head.changeType» «diffEntries.head.newPath»''')
 	}
-	
+
+	private def pathForChangeType(DiffEntry diffEntry, ChangeType changeType) {
+		return switch (changeType) {
+			case ADD: diffEntry.newPath
+			default: diffEntry.oldPath
+		}
+	}
+
 	private def assertFileExists(File parent, String path) {
 		new File(parent, path).exists.assertTrue
 	}
+
 }
