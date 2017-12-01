@@ -1,36 +1,29 @@
 package org.testeditor.web.backend.persistence
 
+import java.io.File
 import javax.inject.Inject
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
-import org.junit.Before
 import org.junit.Test
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
-import java.io.File
 
 class DocumentProviderTest extends AbstractGitTest {
 
 	@Inject DocumentProvider documentProvider
-	Git git
-
-	@Before
-	def void setup() {
-		git = gitProvider.git
-	}
 
 	@Test
 	def void createCommitsNewFile() {
 		// given
-		val numberOfCommitsBefore = git.log.call.size
+		val numberOfCommitsBefore = remoteGit.log.call.size
 		val newFileName = "theNewFile.txt"
 
 		// when
 		documentProvider.create(newFileName, 'test')
 
 		// then
-		git.assertSingleCommit(numberOfCommitsBefore, ADD, newFileName)
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, newFileName)
 	}
 
 	@Test
@@ -64,46 +57,49 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void createOrUpdateNonExistingFileAddsAndCommits() {
 		// given
 		val nonExistingFile = "aFileThatHasNotYetBeenCreated.txt"
-		val numberOfCommitsBefore = git.log.call.size
+		val numberOfCommitsBefore = remoteGit.log.call.size
 
 		// when
 		documentProvider.createOrUpdate(nonExistingFile, "Contents of new file")
 
 		// then
-		git.assertSingleCommit(numberOfCommitsBefore, ADD, nonExistingFile)
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, nonExistingFile)
 	}
 
 	@Test
 	def void createOrUpdatePreExistingFileCommitsModifications() {
 		// given
 		val preExistingFile = createAndPushFileToRepo
-		val numberOfCommitsBefore = git.log.call.size
+		val localGit = gitProvider.git
+		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
 		documentProvider.createOrUpdate(preExistingFile, "New contents of pre-existing file")
 
 		// then
-		git.assertSingleCommit(numberOfCommitsBefore, MODIFY, preExistingFile)
+		localGit.assertSingleCommit(numberOfCommitsBefore, MODIFY, preExistingFile)
 	}
 	
 	@Test
 	def void saveCommitsChanges() {
 		// given
 		val existingFileName = createAndPushFileToRepo
-		val numberOfCommitsBefore = git.log.call.size
+		val localGit = gitProvider.git
+		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
 		documentProvider.save(existingFileName, "New contents of pre-existing file")
 
 		// then
-		git.assertSingleCommit(numberOfCommitsBefore, MODIFY, existingFileName)
+		localGit.assertSingleCommit(numberOfCommitsBefore, MODIFY, existingFileName)
 	}
 
 	@Test
 	def void savePushesChanges() {
 		// given
 		val existingFileName = createAndPushFileToRepo
-		val numberOfCommitsBefore = remoteGit.log.call.size
+		val localGit = gitProvider.git
+		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
 		documentProvider.save(existingFileName, "New contents of pre-existing file")
@@ -116,20 +112,22 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void deleteCommitsChanges() {
 		// given
 		val existingFileName = createAndPushFileToRepo
-		val numberOfCommitsBefore = git.log.call.size
+		val localGit = gitProvider.git
+		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
 		documentProvider.delete(existingFileName)
 
 		// then
-		git.assertSingleCommit(numberOfCommitsBefore, DELETE, existingFileName)
+		localGit.assertSingleCommit(numberOfCommitsBefore, DELETE, existingFileName)
 	}
 
 	@Test
 	def void deletePushesChanges() {
 		// given
 		val existingFileName = createAndPushFileToRepo
-		val numberOfCommitsBefore = remoteGit.log.call.size
+		val localGit = gitProvider.git
+		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
 		documentProvider.delete(existingFileName)
@@ -140,11 +138,9 @@ class DocumentProviderTest extends AbstractGitTest {
 
 	private def createAndPushFileToRepo() {
 		val filename = "preExistingFile.txt"
-		localGitRoot.newFile(filename).createNewFile
-		git.pull.call
-		git.add.addFilepattern(filename).call
-		git.commit.setMessage("set test preconditions").call
-		git.push.call
+		remoteGitFolder.newFile(filename).createNewFile
+		remoteGit.add.addFilepattern(filename).call
+		remoteGit.commit.setMessage("set test preconditions").call
 		return filename
 	}
 
