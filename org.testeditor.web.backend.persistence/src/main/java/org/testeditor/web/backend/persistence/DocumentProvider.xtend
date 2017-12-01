@@ -112,6 +112,7 @@ class DocumentProvider {
 	}
 
 	private def boolean create(File file) {
+		updateGit
 		val parent = new File(file.parent)
 		if (!parent.exists) {
 			logger.debug("Creating directory='{}'.", parent)
