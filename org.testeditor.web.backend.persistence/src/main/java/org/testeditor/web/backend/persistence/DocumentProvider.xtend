@@ -6,6 +6,7 @@ import java.io.FileNotFoundException
 import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
+import org.eclipse.jgit.api.Git
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
 import org.testeditor.web.backend.persistence.git.GitProvider
@@ -65,24 +66,40 @@ class DocumentProvider {
 
 	def boolean delete(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		if (!file.exists) {
+		updateGit
+		if (file.exists) {
+			val deleted = FileUtils.deleteQuietly(file)
+			if (deleted) {
+				commit(file)
+			}
+			return deleted
+		} else {
 			throw new FileNotFoundException(resourcePath)
 		}
-		return FileUtils.deleteQuietly(file)
 	}
 
-	private def void write(File file, String content) {
+	private def void write(File file, String content
+	) {
 		Files.asCharSink(file, UTF_8).write(content)
 		commit(file)
 	}
 
 	private def void commit(File file) {
-		val workspace = workspaceProvider.workspace
 		val git = gitProvider.git
-		val filePattern = workspace.toPath.relativize(file.toPath).toString
-		git.add.addFilepattern(filePattern).call
+		git.stage(file)
 		git.commit.setMessage("bla").call
 		updateGit
+	}
+
+	private def void stage(Git git, File file) {
+		val workspace = workspaceProvider.workspace
+		val filePattern = workspace.toPath.relativize(file.toPath).toString
+		if (file.exists) {
+			git.add.addFilepattern(filePattern).call
+		} else {
+			git.rm.addFilepattern(filePattern).call
+		}
+
 	}
 
 	private def void updateGit() {

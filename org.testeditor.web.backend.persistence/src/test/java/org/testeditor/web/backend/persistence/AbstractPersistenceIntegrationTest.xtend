@@ -25,7 +25,7 @@ abstract class AbstractPersistenceIntegrationTest {
 		create
 	]
 
-	public var TemporaryFolder remoteGitFolder
+	protected var TemporaryFolder remoteGitFolder
 
 	protected def getConfigs() {
 		#[
@@ -62,6 +62,12 @@ abstract class AbstractPersistenceIntegrationTest {
 		git.add.addFilepattern("README.md").call
 		git.commit.setMessage("Initial commit").call
 		return "file://" + remoteGitFolder.root.absolutePath
+	}
+	
+	protected def commitInRemoteRepository(String pathToCommit) {
+		val git = Git.open(remoteGitFolder.root)
+		git.add.addFilepattern(pathToCommit).call
+		git.commit.setMessage("pre-existing commit in remote repository")
 	}
 
 	@After
