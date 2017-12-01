@@ -3,7 +3,7 @@ indexServiceURL: http://localhost:8080/xtext/index/global-scope
 server:
   applicationConnectors:
   - type: http 
-    port: 8080
+    port: 0
   adminConnectors:
   - type: http
-    port: 8081
+    port: 0

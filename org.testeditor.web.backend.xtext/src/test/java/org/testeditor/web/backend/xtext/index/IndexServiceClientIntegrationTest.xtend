@@ -1,17 +1,15 @@
 package org.testeditor.web.backend.xtext.index
 
-import com.codahale.metrics.Metric
 import com.fasterxml.jackson.databind.module.SimpleModule
+import com.github.tomakehurst.wiremock.junit.WireMockRule
 import com.google.inject.Guice
 import com.google.inject.Module
 import com.google.inject.name.Names
-import com.squarespace.jersey2.guice.JerseyGuiceUtils
 import io.dropwizard.client.JerseyClientBuilder
 import io.dropwizard.setup.Bootstrap
 import io.dropwizard.setup.Environment
 import io.dropwizard.testing.ResourceHelpers
 import io.dropwizard.testing.junit.DropwizardAppRule
-import io.dropwizard.testing.junit.DropwizardClientRule
 import java.net.URI
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.client.Client
@@ -20,7 +18,6 @@ import org.eclipse.xtext.resource.IEObjectDescription
 import org.eclipse.xtext.resource.XtextResource
 import org.eclipse.xtext.resource.XtextResourceSet
 import org.junit.Before
-import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.Test
 import org.testeditor.aml.dsl.AmlStandaloneSetup
@@ -30,41 +27,26 @@ import org.testeditor.tsl.dsl.web.TslWebSetup
 import org.testeditor.web.backend.xtext.TestEditorApplication
 import org.testeditor.web.backend.xtext.TestEditorConfiguration
 import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionDeserializer
-import org.testeditor.web.backend.xtext.index.serialization.EObjectDescriptionSerializer
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 import static javax.ws.rs.core.HttpHeaders.AUTHORIZATION
 import static org.assertj.core.api.Assertions.assertThat
 import static org.mockito.Mockito.*
 
 class IndexServiceClientIntegrationTest {
 
-	/**
-	 * Workaround related to the following dropwizard / dropwizard-guice / jersey2-guice issues
-	 * https://github.com/dropwizard/dropwizard/issues/1772
-	 * https://github.com/HubSpot/dropwizard-guice/issues/95
-	 * https://github.com/HubSpot/dropwizard-guice/issues/88
-	 * https://github.com/Squarespace/jersey2-guice/pull/39
-	 */
-	@BeforeClass
-	static def void ensureServiceLocatorPopulated() {
-		JerseyGuiceUtils.reset
-	}
+	@Rule
+	public val wiredMockRule = new WireMockRule(wireMockConfig.port(0)) // 0 = use a free port when starting 
 
 	@Rule
 	public val dropwizardClient = new DropwizardAppRule(TestEditorApplicationDummy,
 		ResourceHelpers.resourceFilePath("test-config.yml"), #[ // config('logging.level', 'TRACE')
 		])
 
-	val dummyResource = new DummyGlobalScopeResource
-
-	@Rule
-	public val dropwizardServer = new DropwizardClientRule(dummyResource);
-
 	@Before
 	def void registerCustomSerializers() {
-		val customSerializerModule = new SimpleModule
-		customSerializerModule.addSerializer(IEObjectDescription, new EObjectDescriptionSerializer())
-		dropwizardServer.objectMapper.registerModule(customSerializerModule)
+		stripLingeringMetrics(dropwizardClient.getEnvironment());
 	}
 
 	static val TEST_CLIENT_NAME = "index-service-client"
@@ -73,7 +55,16 @@ class IndexServiceClientIntegrationTest {
 	@Test
 	def void shouldReturnDummyScope() {
 		// given
-		stripLingeringMetrics(dropwizardClient.getEnvironment());
+		stubFor(
+			post(urlMatching('/xtext/index/global-scope.*')).willReturn(
+				aResponse.withHeader("Content-Type", "application/json").withStatus(200).withBody(
+				'''
+					[ {
+					  "eObjectURI" : "#//",
+					  "uri" : "«EcoreUtil.getURI(TclPackage.eINSTANCE.macroCollection).toString»",
+					  "fullyQualifiedName" : "sampleEObject"
+					} ]
+				''')))
 
 		val client = mockedIndexServiceClient
 
@@ -87,25 +78,15 @@ class IndexServiceClientIntegrationTest {
 
 		// then 
 		assertThat(actual.allElements).satisfies [
-// will not compile with Xtext < 2.13 due to https://bugs.eclipse.org/bugs/show_bug.cgi?id=485032
-// for some reason, the Gradle build does not seem to use the latest version of Xtext
-//			assertThat(size).isEqualTo(1)
+			assertThat(size).isEqualTo(1) 
 			assertThat(head.getEClass.name).isEqualTo("MacroCollection")
-			assertThat(head.qualifiedName.toString).isEqualTo("de.testeditor.SampleMacroCollection")
-		]
-		assertThat(dummyResource).satisfies [
-			// index service does not consider context content
-			// assertThat(context).isEqualTo(resource.serializer.serialize(resource.contents.head))
-			assertThat(eReferenceURIString).isEqualTo(EcoreUtil.getURI(reference).toString)
-			assertThat(contentType).isEqualTo(resource.languageName)
-			assertThat(contextURI).isEqualTo(resource.URI.toString)
-			assertThat(authHeader).isEqualTo(AUTH_HEADER)
+			assertThat(head.qualifiedName.toString).isEqualTo("sampleEObject")
 		]
 	}
 
 	private def getMockedIndexServiceClient() {
 		val client = new JerseyClientBuilder(dropwizardClient.environment).build(TEST_CLIENT_NAME)
-		val baseURI = URI.create('''«dropwizardServer.baseUri»/xtext/index/global-scope''')
+		val baseURI = URI.create('''http://localhost:«wiredMockRule.port»/xtext/index/global-scope''')
 		val contextRequest = mock(HttpServletRequest)
 		when(contextRequest.getHeader(AUTHORIZATION)).thenReturn(AUTH_HEADER)
 
@@ -121,7 +102,7 @@ class IndexServiceClientIntegrationTest {
 	// See https://github.com/dropwizard/dropwizard/issues/832, 
 	// https://github.com/jshort/coner/commit/4f6a622543548211dc2569f62b00dbc7c04e2f64
 	private static def void stripLingeringMetrics(Environment env) {
-		env.metrics().removeMatching[String name, Metric metric|name.contains(TEST_CLIENT_NAME)]
+		env.metrics.removeMatching[name, metric|name.contains(TEST_CLIENT_NAME)]
 	}
 
 }
