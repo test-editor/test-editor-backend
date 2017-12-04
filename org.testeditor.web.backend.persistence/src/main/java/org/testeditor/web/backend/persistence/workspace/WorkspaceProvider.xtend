@@ -14,9 +14,9 @@ class WorkspaceProvider {
 	def File getWorkspace() {
 		if (config.separateUserWorkspaces) {
 			val userId = userProvider.get.id?:userProvider.get.email.replaceAll('@.*$', '')
-			return new File(config.gitFSRoot, userId)
+			return new File(config.localRepoFileRoot, userId)
 		} else {
-			return new File(config.gitFSRoot)
+			return new File(config.localRepoFileRoot)
 		}
 	}
 

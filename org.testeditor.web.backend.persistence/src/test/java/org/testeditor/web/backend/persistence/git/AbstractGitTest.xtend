@@ -27,12 +27,12 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 		JGitTestUtil.writeTrashFile(git.repository, 'README.md', '# Readme')
 		git.add.addFilepattern("README.md").call
 		git.commit.setMessage("Initial commit").call
-		config.projectRepoUrl = "file://" + remoteGitFolder.root.absolutePath
+		config.remoteRepoUrl = "file://" + remoteGitFolder.root.absolutePath
 	}
 
 	@Before
 	def void setupConfiguration() {
-		config.gitFSRoot = localGitRoot.root.absolutePath
+		config.localRepoFileRoot = localGitRoot.root.absolutePath
 	}
 
 	protected def String read(File file) {

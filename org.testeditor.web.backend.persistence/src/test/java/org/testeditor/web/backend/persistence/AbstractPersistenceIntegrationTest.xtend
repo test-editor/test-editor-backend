@@ -24,8 +24,8 @@ abstract class AbstractPersistenceIntegrationTest {
 
 	val configs = #[
 		config('server.applicationConnectors[0].port', '0'),
-		config('gitFSRoot', workspaceRoot.root.path),
-		config('projectRepoUrl', 'dummy')
+		config('localRepoFileRoot', workspaceRoot.root.path),
+		config('remoteRepoUrl', 'dummy')
 	]
 
 	static def String createToken() {

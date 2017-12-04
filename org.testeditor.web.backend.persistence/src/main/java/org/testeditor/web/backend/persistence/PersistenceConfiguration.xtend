@@ -10,13 +10,13 @@ class PersistenceConfiguration extends Configuration {
 
 	@NotEmpty
 	@Accessors
-	private String projectRepoUrl
+	private String remoteRepoUrl
 	
 	@Accessors
 	private Boolean separateUserWorkspaces = true
 
 	@NotEmpty
 	@Accessors
-	private String gitFSRoot = 'repo'
+	private String localRepoFileRoot = 'repo'
 
 }

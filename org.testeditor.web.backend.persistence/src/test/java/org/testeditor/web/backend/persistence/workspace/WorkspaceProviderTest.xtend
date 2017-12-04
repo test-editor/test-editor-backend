@@ -22,7 +22,7 @@ class WorkspaceProviderTest extends AbstractPersistenceTest {
 		val workspace = workspaceProvider.workspace
 
 		// then
-		workspace.assertEquals(new File(config.gitFSRoot, user.id))
+		workspace.assertEquals(new File(config.localRepoFileRoot, user.id))
 	}
 
 	@Test
@@ -34,7 +34,7 @@ class WorkspaceProviderTest extends AbstractPersistenceTest {
 		val workspace = workspaceProvider.workspace
 
 		// then
-		workspace.assertEquals(new File(config.gitFSRoot))
+		workspace.assertEquals(new File(config.localRepoFileRoot))
 	}
 
 }

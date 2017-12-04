@@ -1,4 +1,4 @@
-projectRepoUrl: https://github.com/test-editor/test-editor-examples.git
+remoteRepoUrl: https://github.com/test-editor/test-editor-examples.git
 
 server:
   applicationConnectors:

@@ -47,7 +47,7 @@ class GitProvider {
 	}
 
 	private def Git initializeNew(File workspace) {
-		return Git.cloneRepository.setURI(config.projectRepoUrl).setDirectory(workspace).call
+		return Git.cloneRepository.setURI(config.remoteRepoUrl).setDirectory(workspace).call
 	}
 
 }

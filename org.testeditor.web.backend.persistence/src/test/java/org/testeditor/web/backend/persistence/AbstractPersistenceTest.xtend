@@ -37,7 +37,7 @@ abstract class AbstractPersistenceTest {
 
 	protected def void collectModules(List<Module> modules) {
 		val config = new PersistenceConfiguration => [
-			gitFSRoot = "theRoot"
+			localRepoFileRoot = "theRoot"
 		]
 		val user = new User("theUser", "The User", "theuser@example.org")
 		val Module guiceModule = [
