@@ -12,10 +12,7 @@ class XtextIndexIntegrationTest extends AbstractXtextIntegrationTest {
 	@Test
 	def void validateCallsIndexService() {
 		// given
-		stubFor(
-			post(urlMatching('/xtext/index/global-scope.*')).willReturn(
-				aResponse.withHeader("Content-Type", "application/json").withStatus(200).withBody(
-				'[ ]')))
+		stubFor(post(urlMatching('/xtext/index/global-scope.*')).willReturn(okJson('[ ]')))
 
 		val tcl = '''
 			package org.testeditor
@@ -34,11 +31,11 @@ class XtextIndexIntegrationTest extends AbstractXtextIntegrationTest {
 		val response = validateRequest.submit.get
 
 		// then
-		verify(postRequestedFor(urlMatching('/xtext/index/global-scope.*'))
-			.withHeader("Content-Type", equalTo('text/plain'))
-			.withQueryParam('contextURI', equalTo('Minimal.tcl'))
-			.withQueryParam('reference', equalTo('http://www.testeditor.org/tcl#//ComponentTestStepContext/component'))
-			.withQueryParam('contentType', equalTo('org.testeditor.tcl.dsl.Tcl'))
+		verify(
+			postRequestedFor(urlMatching('/xtext/index/global-scope.*')).withHeader("Content-Type",
+				equalTo('text/plain')).withQueryParam('contextURI', equalTo('Minimal.tcl')).withQueryParam('reference',
+				equalTo('http://www.testeditor.org/tcl#//ComponentTestStepContext/component')).
+				withQueryParam('contentType', equalTo('org.testeditor.tcl.dsl.Tcl'))
 		)
 		
 		response.status.assertEquals(OK.statusCode)

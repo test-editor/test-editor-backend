@@ -19,10 +19,7 @@ class IndexServiceClientRegressionTests extends AbstractXtextIntegrationTest {
 	@Test
 	def void shouldNotCauseXtextSerializationToFail() {
 		// given
-		stubFor(
-			post(urlMatching('/xtext/index/global-scope.*')).willReturn(
-				aResponse.withHeader("Content-Type", "application/json").withStatus(200).withBody(
-				'[ ]')))
+		stubFor(post(urlMatching('/xtext/index/global-scope.*')).willReturn(okJson('[ ]')))
 
 		val tcl = '''
 			package org.testeditor.demo.swing
