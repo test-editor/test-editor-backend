@@ -4,6 +4,7 @@ import javax.ws.rs.client.Entity
 import javax.ws.rs.core.Form
 import org.junit.Test
 
+import static com.github.tomakehurst.wiremock.client.WireMock.*
 import static javax.ws.rs.core.Response.Status.*
 
 class IndexServiceClientRegressionTests extends AbstractXtextIntegrationTest {
@@ -11,13 +12,18 @@ class IndexServiceClientRegressionTests extends AbstractXtextIntegrationTest {
 	/**
 	 * Regression test to reproduce an issue in the index service client.
 	 * 
-	 * Observed behavior: in the context of the following request, the index service client tried to serialize the
+	 * Observed behavior: in the context of the following request, the xtext client tried to serialize the
 	 * Xtext resource's contents to send it as the body of the request to the index service. This seemed to throw off
 	 * the Xtext serializer.
 	 */
 	@Test
 	def void shouldNotCauseXtextSerializationToFail() {
 		// given
+		stubFor(
+			post(urlMatching('/xtext/index/global-scope.*')).willReturn(
+				aResponse.withHeader("Content-Type", "application/json").withStatus(200).withBody(
+				'[ ]')))
+
 		val tcl = '''
 			package org.testeditor.demo.swing
 			
