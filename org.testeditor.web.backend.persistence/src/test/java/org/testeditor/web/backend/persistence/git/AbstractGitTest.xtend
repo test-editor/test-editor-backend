@@ -6,7 +6,14 @@ import java.io.File
 import java.util.List
 import javax.inject.Inject
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.diff.DiffEntry
+import org.eclipse.jgit.diff.DiffFormatter
+import org.eclipse.jgit.diff.RawTextComparator
 import org.eclipse.jgit.junit.JGitTestUtil
+import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.util.io.DisabledOutputStream
 import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -27,6 +34,8 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 
 	@Inject protected GitProvider gitProvider
 	@Mock protected WorkspaceProvider workspaceProvider
+	
+	protected Git remoteGit
 
 	override protected collectModules(List<Module> modules) {
 		super.collectModules(modules)
@@ -41,10 +50,10 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 	@Before
 	def void setupRemoteGitRepository() {
 		// setup remote Git repository
-		val git = Git.init.setDirectory(remoteGitFolder.root).call
-		JGitTestUtil.writeTrashFile(git.repository, 'README.md', '# Readme')
-		git.add.addFilepattern("README.md").call
-		git.commit.setMessage("Initial commit").call
+		remoteGit = Git.init.setDirectory(remoteGitFolder.root).call
+		JGitTestUtil.writeTrashFile(remoteGit.repository, 'README.md', '# Readme')
+		remoteGit.add.addFilepattern("README.md").call
+		remoteGit.commit.setMessage("Initial commit").call
 		config.projectRepoUrl = "file://" + remoteGitFolder.root.absolutePath
 	}
 
@@ -55,6 +64,32 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 
 	protected def String read(File file) {
 		return Files.asCharSource(file, UTF_8).read
+	}
+	
+	protected def RevCommit getLastCommit(Git git) {
+		val repository = git.repository
+		val lastCommitId = repository.resolve(Constants.HEAD)
+		val walk = new RevWalk(repository)
+		val commit = walk.parseCommit(lastCommitId)
+		return commit
+	}
+	
+	
+	/**
+	 * Helper method for calculating the diff of a Git commit.
+	 */
+	protected def List<DiffEntry> getDiffEntries(Git git, RevCommit commit) {
+		val repository = git.repository
+		if (commit.parentCount > 1) {
+			throw new IllegalArgumentException("Not supported for merge commits.")
+		}
+		val parent = commit.parents.head
+		val diffFormatter = new DiffFormatter(DisabledOutputStream.INSTANCE) => [ df |
+			df.repository = repository
+			df.diffComparator = RawTextComparator.DEFAULT
+			df.detectRenames = true
+		]
+		return diffFormatter.scan(parent, commit.tree)
 	}
 
 }
