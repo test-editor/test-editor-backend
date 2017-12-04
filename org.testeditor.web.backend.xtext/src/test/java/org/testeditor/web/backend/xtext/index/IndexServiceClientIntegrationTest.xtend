@@ -57,7 +57,7 @@ class IndexServiceClientIntegrationTest {
 		// given
 		stubFor(
 			post(urlMatching('/xtext/index/global-scope.*')).willReturn(
-				aResponse.withHeader("Content-Type", "application/json").withStatus(200).withBody(
+				okJson(
 				'''
 					[ {
 					  "eObjectURI" : "#//",
