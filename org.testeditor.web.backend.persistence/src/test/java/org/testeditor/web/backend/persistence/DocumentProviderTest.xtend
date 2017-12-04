@@ -1,18 +1,18 @@
 package org.testeditor.web.backend.persistence
 
+import com.google.common.base.Charsets
+import com.google.common.io.Files
 import java.io.File
 import javax.inject.Inject
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import org.junit.Test
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
-import org.eclipse.jgit.diff.DiffEntry
 
 class DocumentProviderTest extends AbstractGitTest {
 
 	@Inject DocumentProvider documentProvider
+	@Inject extension JGitTestUtils
 
 	@Test
 	def void createCommitsNewFile() {
@@ -40,6 +40,25 @@ class DocumentProviderTest extends AbstractGitTest {
 		remoteGit.assertSingleCommit(numberOfCommitsBefore, ADD, newFileName)
 	}
 
+	// empty directories are not versioned by Git, so for now, directory creation
+	// will not cause a commit. But the directory is, of course, expected to be
+	// present in the working directory after the method's invocation; also, the
+	// working directory needs to be initialized as a repository.
+	@Test
+	def void createFolderInitializesGitButDoesNotCommit() {
+		// given
+		val directoriesToBeCreated = "some/parent/folder"
+		val numberOfCommitsBefore = remoteGit.log.call.size
+
+		// when
+		documentProvider.createFolder(directoriesToBeCreated)
+
+		// then
+		workspaceProvider.workspace.assertFileExists(directoriesToBeCreated)
+		workspaceProvider.workspace.assertFileExists(".git")
+		gitProvider.git.log.call.size.assertEquals(numberOfCommitsBefore)
+	}
+
 	// if files/folders are written before "git init", the latter will fail!
 	@Test
 	def void createInitsRepositoryBeforeWritingToWorkspace() {
@@ -51,6 +70,19 @@ class DocumentProviderTest extends AbstractGitTest {
 
 		// then
 		workspaceProvider.workspace.assertFileExists(pathToResourceToBeCreated)
+		workspaceProvider.workspace.assertFileExists(".git")
+	}
+
+	@Test
+	def void deleteInitsRepositoryBeforeWritingToWorkspace() {
+		// given
+		val fileInRemoteRepo = createAndPushFileToRepo("some/parent/folder/example.tsl")
+
+		// when
+		documentProvider.delete(fileInRemoteRepo)
+
+		// then
+		workspaceProvider.workspace.assertFileDoesNotExist(fileInRemoteRepo)
 		workspaceProvider.workspace.assertFileExists(".git")
 	}
 
@@ -137,33 +169,36 @@ class DocumentProviderTest extends AbstractGitTest {
 		remoteGit.assertSingleCommit(numberOfCommitsBefore, DELETE, existingFileName)
 	}
 
+	@Test
+	def void loadPullsChanges() {
+		// given
+		val expectedFileContents = "The file contents.\n"
+		val existingFileName = createAndPushFileToRepo("preExistingFile.txt", expectedFileContents)
+
+		// when
+		val actualFileContents = documentProvider.load(existingFileName)
+
+		// then
+		localGitRoot.root.assertFileExists(existingFileName)
+		actualFileContents.assertEquals(expectedFileContents)
+	}
+
+
+
 	private def createAndPushFileToRepo() {
-		val filename = "preExistingFile.txt"
-		remoteGitFolder.newFile(filename).createNewFile
-		remoteGit.add.addFilepattern(filename).call
+		return this.createAndPushFileToRepo("preExistingFile.txt")
+	}
+
+	private def createAndPushFileToRepo(String path) {
+		return this.createAndPushFileToRepo(path, "These are the file's contents!\n")
+	}
+
+	private def createAndPushFileToRepo(String path, String fileContents) {
+		Files.createParentDirs(new File(remoteGitFolder.root, path))
+		val file = remoteGitFolder.newFile(path)
+		Files.asCharSink(file, Charsets.UTF_8).write(fileContents)
+		remoteGit.add.addFilepattern(path).call
 		remoteGit.commit.setMessage("set test preconditions").call
-		return filename
+		return path
 	}
-
-	private def assertSingleCommit(Git git, int numberOfCommitsBefore, ChangeType expectedChangeType, String path) {
-		val numberOfCommitsAfter = git.log.call.size
-		numberOfCommitsAfter.assertEquals(numberOfCommitsBefore + 1)
-		val diffEntries = git.getDiffEntries(git.lastCommit)
-		git.getDiffEntries(git.lastCommit).exists [
-			changeType === expectedChangeType && pathForChangeType(changeType) == path
-		].
-			assertTrue('''Expected the following change: «expectedChangeType» «path», but found: «diffEntries.head.changeType» «diffEntries.head.newPath»''')
-	}
-
-	private def pathForChangeType(DiffEntry diffEntry, ChangeType changeType) {
-		return switch (changeType) {
-			case ADD: diffEntry.newPath
-			default: diffEntry.oldPath
-		}
-	}
-
-	private def assertFileExists(File parent, String path) {
-		new File(parent, path).exists.assertTrue
-	}
-
 }

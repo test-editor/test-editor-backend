@@ -9,7 +9,6 @@ import javax.ws.rs.client.Invocation.Builder
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 
@@ -63,11 +62,11 @@ abstract class AbstractPersistenceIntegrationTest {
 		git.commit.setMessage("Initial commit").call
 		return "file://" + remoteGitFolder.root.absolutePath
 	}
-	
+
 	protected def commitInRemoteRepository(String pathToCommit) {
 		val git = Git.open(remoteGitFolder.root)
 		git.add.addFilepattern(pathToCommit).call
-		git.commit.setMessage("pre-existing commit in remote repository")
+		git.commit.setMessage("pre-existing commit in remote repository").call
 	}
 
 	@After
