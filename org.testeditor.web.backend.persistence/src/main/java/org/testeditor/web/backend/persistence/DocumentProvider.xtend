@@ -30,7 +30,7 @@ class DocumentProvider {
 	def boolean create(String resourcePath, String content) {
 		val file = getWorkspaceFile(resourcePath)
 		val created = create(file)
-		if(created) {
+		if (created) {
 			file.write(content)
 		}
 		return created
@@ -47,7 +47,7 @@ class DocumentProvider {
 	def boolean createOrUpdate(String resourcePath, String content) {
 		val file = getWorkspaceFile(resourcePath)
 		var created = false
-		if(!file.exists) {
+		if (!file.exists) {
 			created = create(file)
 		}
 		file.write(content)
@@ -66,9 +66,9 @@ class DocumentProvider {
 
 	def boolean delete(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		if(file.exists) {
+		if (file.exists) {
 			val deleted = FileUtils.deleteQuietly(file)
-			if(deleted) {
+			if (deleted) {
 				commit(file)
 			}
 			return deleted
@@ -95,7 +95,7 @@ class DocumentProvider {
 	private def void stage(Git git, File file) {
 		val workspace = workspaceProvider.workspace
 		val filePattern = workspace.toPath.relativize(file.toPath).toString
-		if(file.exists) {
+		if (file.exists) {
 			git.add.addFilepattern(filePattern).call
 		} else {
 			git.rm.addFilepattern(filePattern).call
@@ -125,14 +125,14 @@ class DocumentProvider {
 		val workspacePath = workspace.canonicalPath
 		val filePath = workspaceFile.canonicalPath
 		val validPath = filePath.startsWith(workspacePath)
-		if(!validPath) {
+		if (!validPath) {
 			throw new MaliciousPathException(workspacePath, filePath, userProvider.get.name)
 		}
 	}
 
 	private def boolean create(File file) {
 		val parent = new File(file.parent)
-		if(!parent.exists) {
+		if (!parent.exists) {
 			logger.debug("Creating directory='{}'.", parent)
 			parent.mkdirs
 		}

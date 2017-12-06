@@ -75,8 +75,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		response.status.assertEquals(FORBIDDEN.statusCode)
 		val responseMessage = response.readEntity(String)
-		responseMessage.startsWith("You are not allowed to access this resource. Your attempt has been logged").
-			assertTrue
+		responseMessage.startsWith("You are not allowed to access this resource. Your attempt has been logged").assertTrue
 		getRemoteFile(maliciousResourcePath).exists.assertFalse
 	}
 
@@ -204,8 +203,6 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		response.status.assertEquals(NOT_FOUND.statusCode)
 	}
-
-
 
 	private def Entity<String> stringEntity(CharSequence charSequence) {
 		return Entity.entity(charSequence.toString, MediaType.TEXT_PLAIN)

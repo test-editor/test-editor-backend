@@ -31,7 +31,7 @@ class JGitTestUtils {
 	 */
 	def List<DiffEntry> getDiffEntries(Git git, RevCommit commit) {
 		val repository = git.repository
-		if(commit.parentCount > 1) {
+		if (commit.parentCount > 1) {
 			throw new IllegalArgumentException("Not supported for merge commits.")
 		}
 		val parent = commit.parents.head
@@ -43,30 +43,33 @@ class JGitTestUtils {
 		return diffFormatter.scan(parent, commit.tree)
 	}
 
-	def assertSingleCommit(Git git, int numberOfCommitsBefore, ChangeType expectedChangeType, String path) {
+	def void assertSingleCommit(Git git, int numberOfCommitsBefore, ChangeType expectedChangeType, String path) {
 		val numberOfCommitsAfter = git.log.call.size
 		numberOfCommitsAfter.assertEquals(numberOfCommitsBefore + 1)
+		git.assertContainsChange(git.lastCommit, expectedChangeType, path)
+	}
+
+	def void assertContainsChange(Git git, RevCommit commit, ChangeType expectedChangeType, String path) {
 		val diffEntries = git.getDiffEntries(git.lastCommit)
-		git.getDiffEntries(git.lastCommit).exists [
-			changeType === expectedChangeType && pathForChangeType(changeType) == path
-		].
+		diffEntries.exists[changeType === expectedChangeType && pathForChangeType(changeType) == path].
 			assertTrue('''Expected the following change: «expectedChangeType» «path», but found: «diffEntries.head.changeType» «diffEntries.head.newPath»''')
 	}
 
-	def pathForChangeType(DiffEntry diffEntry, ChangeType changeType) {
+	def String pathForChangeType(DiffEntry diffEntry, ChangeType changeType) {
 		return switch (changeType) {
 			case ADD: diffEntry.newPath
 			default: diffEntry.oldPath
 		}
 	}
 
-	def assertFileExists(File parent, String path) {
+	def void assertFileExists(File parent, String path) {
 		val file = new File(parent, path)
 		file.exists.assertTrue('''Expected file does not exist: «file.absolutePath»''')
 	}
 
-	def assertFileDoesNotExist(File parent, String path) {
+	def void assertFileDoesNotExist(File parent, String path) {
 		val file = new File(parent, path)
 		file.exists.assertFalse('''Unexpected file found: «file.absolutePath»''')
 	}
+
 }

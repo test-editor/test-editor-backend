@@ -1,8 +1,5 @@
 package org.testeditor.web.backend.persistence
 
-import com.google.common.base.Charsets
-import com.google.common.io.Files
-import java.io.File
 import javax.inject.Inject
 import org.junit.Test
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
@@ -76,7 +73,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void deleteInitsRepositoryBeforeWritingToWorkspace() {
 		// given
-		val fileInRemoteRepo = createAndPushFileToRepo("some/parent/folder/example.tsl")
+		val fileInRemoteRepo = createPreExistingFileInRemoteRepository("some/parent/folder/example.tsl")
 
 		// when
 		documentProvider.delete(fileInRemoteRepo)
@@ -102,7 +99,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void createOrUpdatePreExistingFileCommitsModifications() {
 		// given
-		val preExistingFile = createAndPushFileToRepo
+		val preExistingFile = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
 		val numberOfCommitsBefore = localGit.log.call.size
 
@@ -116,7 +113,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void saveCommitsChanges() {
 		// given
-		val existingFileName = createAndPushFileToRepo
+		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
 		val numberOfCommitsBefore = localGit.log.call.size
 
@@ -130,7 +127,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void savePushesChanges() {
 		// given
-		val existingFileName = createAndPushFileToRepo
+		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
 		val numberOfCommitsBefore = localGit.log.call.size
 
@@ -144,7 +141,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void deleteCommitsChanges() {
 		// given
-		val existingFileName = createAndPushFileToRepo
+		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
 		val numberOfCommitsBefore = localGit.log.call.size
 
@@ -158,7 +155,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void deletePushesChanges() {
 		// given
-		val existingFileName = createAndPushFileToRepo
+		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
 		val numberOfCommitsBefore = localGit.log.call.size
 
@@ -173,7 +170,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void loadPullsChanges() {
 		// given
 		val expectedFileContents = "The file contents.\n"
-		val existingFileName = createAndPushFileToRepo("preExistingFile.txt", expectedFileContents)
+		val existingFileName = createPreExistingFileInRemoteRepository("preExistingFile.txt", expectedFileContents)
 
 		// when
 		val actualFileContents = documentProvider.load(existingFileName)
@@ -183,22 +180,4 @@ class DocumentProviderTest extends AbstractGitTest {
 		actualFileContents.assertEquals(expectedFileContents)
 	}
 
-
-
-	private def createAndPushFileToRepo() {
-		return this.createAndPushFileToRepo("preExistingFile.txt")
-	}
-
-	private def createAndPushFileToRepo(String path) {
-		return this.createAndPushFileToRepo(path, "These are the file's contents!\n")
-	}
-
-	private def createAndPushFileToRepo(String path, String fileContents) {
-		Files.createParentDirs(new File(remoteGitFolder.root, path))
-		val file = remoteGitFolder.newFile(path)
-		Files.asCharSink(file, Charsets.UTF_8).write(fileContents)
-		remoteGit.add.addFilepattern(path).call
-		remoteGit.commit.setMessage("set test preconditions").call
-		return path
-	}
 }
