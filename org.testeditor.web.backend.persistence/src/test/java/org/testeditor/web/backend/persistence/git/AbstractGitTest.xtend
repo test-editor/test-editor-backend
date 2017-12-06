@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.persistence.git
 
+import com.google.common.base.Charsets
 import com.google.common.io.Files
 import com.google.inject.Module
 import java.io.File
@@ -27,7 +28,7 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 
 	@Inject protected GitProvider gitProvider
 	@Mock protected WorkspaceProvider workspaceProvider
-	
+
 	protected Git remoteGit
 
 	override protected collectModules(List<Module> modules) {
@@ -59,5 +60,29 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 		return Files.asCharSource(file, UTF_8).read
 	}
 
+	protected def createPreExistingFileInRemoteRepository() {
+		return this.createPreExistingFileInRemoteRepository("preExistingFile.txt")
+	}
+
+	protected def createPreExistingFileInRemoteRepository(String path) {
+		return this.createPreExistingFileInRemoteRepository(path, "These are the file's contents!\n")
+	}
+
+	protected def createPreExistingFileInRemoteRepository(String path, String fileContents) {
+		remoteGitFolder.write(path, fileContents)
+		remoteGit.addAndCommit(path, "set test preconditions")
+	}
+
+	protected def write(TemporaryFolder targetDir, String path, String fileContents) {
+		Files.createParentDirs(new File(targetDir.root, path))
+		val file = targetDir.newFile(path)
+		Files.asCharSink(file, Charsets.UTF_8).write(fileContents)
+	}
+
+	protected def addAndCommit(Git git, String path, String message) {
+		remoteGit.add.addFilepattern(path).call
+		remoteGit.commit.setMessage(message).call
+		return path
+	}
 
 }
