@@ -77,10 +77,7 @@ class DocumentProvider {
 		}
 	}
 
-	private def void write(
-		File file,
-		String content
-	) {
+	private def void write(File file, String content) {
 		Files.asCharSink(file, UTF_8).write(content)
 		commit(file)
 	}
@@ -89,7 +86,7 @@ class DocumentProvider {
 		val git = gitProvider.git
 		git.stage(file)
 		git.commit.setMessage("bla").call
-		updateGit
+		pullAndPush
 	}
 
 	private def void stage(Git git, File file) {
@@ -103,7 +100,7 @@ class DocumentProvider {
 
 	}
 
-	private def void updateGit() {
+	private def void pullAndPush() {
 		val git = gitProvider.git
 		git.pull.call
 		git.push.call
@@ -117,7 +114,7 @@ class DocumentProvider {
 		val workspace = workspaceProvider.getWorkspace()
 		val file = new File(workspace, resourcePath)
 		verifyFileIsWithinWorkspace(workspace, file)
-		updateGit
+		pullAndPush
 		return file
 	}
 
