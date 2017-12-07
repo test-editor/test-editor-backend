@@ -6,6 +6,8 @@ import de.xtendutils.junit.AssertionHelper
 import io.dropwizard.testing.ResourceHelpers
 import io.dropwizard.testing.junit.DropwizardAppRule
 import javax.ws.rs.client.Invocation.Builder
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.After
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -22,11 +24,15 @@ abstract class AbstractPersistenceIntegrationTest {
 		create
 	]
 
-	val configs = #[
-		config('server.applicationConnectors[0].port', '0'),
-		config('localRepoFileRoot', workspaceRoot.root.path),
-		config('remoteRepoUrl', 'dummy')
-	]
+	protected var TemporaryFolder remoteGitFolder
+
+	protected def getConfigs() {
+		#[
+			config('server.applicationConnectors[0].port', '0'),
+			config('localRepoFileRoot', workspaceRoot.root.path),
+			config('remoteRepoUrl', setupRemoteGitRepository)
+		]
+	}
 
 	static def String createToken() {
 		val builder = JWT.create => [
@@ -47,9 +53,26 @@ abstract class AbstractPersistenceIntegrationTest {
 	protected extension val AssertionHelper = AssertionHelper.instance
 	protected val client = dropwizardAppRule.client
 
+	public def setupRemoteGitRepository() {
+		remoteGitFolder = new TemporaryFolder => [create]
+
+		val git = Git.init.setDirectory(remoteGitFolder.root).call
+		JGitTestUtil.writeTrashFile(git.repository, 'README.md', '# Readme')
+		git.add.addFilepattern("README.md").call
+		git.commit.setMessage("Initial commit").call
+		return "file://" + remoteGitFolder.root.absolutePath
+	}
+
+	protected def commitInRemoteRepository(String pathToCommit) {
+		val git = Git.open(remoteGitFolder.root)
+		git.add.addFilepattern(pathToCommit).call
+		git.commit.setMessage("pre-existing commit in remote repository").call
+	}
+
 	@After
-	def void deleteTemporaryFolder() {
+	def void deleteTemporaryFolders() {
 		workspaceRoot.delete
+		remoteGitFolder.delete
 	}
 
 	protected def Builder createRequest(String relativePath) {

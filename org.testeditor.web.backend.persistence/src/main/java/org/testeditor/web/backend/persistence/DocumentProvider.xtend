@@ -6,8 +6,10 @@ import java.io.FileNotFoundException
 import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
+import org.eclipse.jgit.api.Git
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
+import org.testeditor.web.backend.persistence.git.GitProvider
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.auth.User
 
@@ -22,6 +24,7 @@ class DocumentProvider {
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
 
 	@Inject Provider<User> userProvider
+	@Inject GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
 
 	def boolean create(String resourcePath, String content) {
@@ -63,14 +66,44 @@ class DocumentProvider {
 
 	def boolean delete(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		if (!file.exists) {
+		if (file.exists) {
+			val deleted = FileUtils.deleteQuietly(file)
+			if (deleted) {
+				commit(file)
+			}
+			return deleted
+		} else {
 			throw new FileNotFoundException(resourcePath)
 		}
-		return FileUtils.deleteQuietly(file)
 	}
 
 	private def void write(File file, String content) {
 		Files.asCharSink(file, UTF_8).write(content)
+		commit(file)
+	}
+
+	private def void commit(File file) {
+		val git = gitProvider.git
+		git.stage(file)
+		git.commit.setMessage("bla").call
+		pullAndPush
+	}
+
+	private def void stage(Git git, File file) {
+		val workspace = workspaceProvider.workspace
+		val filePattern = workspace.toPath.relativize(file.toPath).toString
+		if (file.exists) {
+			git.add.addFilepattern(filePattern).call
+		} else {
+			git.rm.addFilepattern(filePattern).call
+		}
+
+	}
+
+	private def void pullAndPush() {
+		val git = gitProvider.git
+		git.pull.call
+		git.push.call
 	}
 
 	private def String read(File file) {
@@ -81,6 +114,7 @@ class DocumentProvider {
 		val workspace = workspaceProvider.getWorkspace()
 		val file = new File(workspace, resourcePath)
 		verifyFileIsWithinWorkspace(workspace, file)
+		pullAndPush
 		return file
 	}
 

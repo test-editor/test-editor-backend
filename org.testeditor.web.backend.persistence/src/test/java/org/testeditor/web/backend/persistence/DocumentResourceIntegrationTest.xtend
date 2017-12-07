@@ -7,9 +7,11 @@ import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.MediaType
 import org.apache.commons.io.FileUtils
+import org.eclipse.jgit.api.Git
 import org.junit.Test
 
 import static javax.ws.rs.core.Response.Status.*
+import static org.eclipse.jgit.api.ResetCommand.ResetType.HARD
 
 class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest {
 
@@ -73,9 +75,8 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		response.status.assertEquals(FORBIDDEN.statusCode)
 		val responseMessage = response.readEntity(String)
-		responseMessage.startsWith("You are not allowed to access this resource. Your attempt has been logged").
-			assertTrue
-		getFile(maliciousResourcePath).exists.assertFalse
+		responseMessage.startsWith("You are not allowed to access this resource. Your attempt has been logged").assertTrue
+		getRemoteFile(maliciousResourcePath).exists.assertFalse
 	}
 
 	@Test
@@ -89,7 +90,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(INTERNAL_SERVER_ERROR.statusCode)
-		getFile(tooLongFileName).exists.assertFalse
+		getRemoteFile(tooLongFileName).exists.assertFalse
 	}
 
 	@Test
@@ -103,7 +104,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(CREATED.statusCode)
-		val folder = getFile(folderPath)
+		val folder = getLocalFile(folderPath)
 		folder.exists.assertTrue
 		folder.isDirectory.assertTrue
 	}
@@ -173,7 +174,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(OK.statusCode)
-		getFile(resourcePath).exists.assertFalse
+		getRemoteFile(resourcePath).exists.assertFalse
 	}
 
 	@Test
@@ -188,7 +189,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(OK.statusCode)
-		getFile(rootFolder).exists.assertFalse
+		getRemoteFile(rootFolder).exists.assertFalse
 	}
 
 	@Test
@@ -208,20 +209,27 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	}
 
 	private def File write(String resourcePath, CharSequence charSequence) {
-		val file = getFile(resourcePath)
+		val file = getRemoteFile(resourcePath)
 		FileUtils.write(file, charSequence, StandardCharsets.UTF_8)
+		commitInRemoteRepository(resourcePath)
 		return file
 	}
 
 	private def String read(String resourcePath) {
-		val file = getFile(resourcePath)
+		val file = getRemoteFile(resourcePath)
 		file.exists.assertTrue('''File with path='«resourcePath»' does not exist.''')
 		return FileUtils.readFileToString(file, StandardCharsets.UTF_8)
 	}
 
-	private def File getFile(String resourcePath) {
+	private def File getLocalFile(String resourcePath) {
 		val userRoot = new File(workspaceRoot.root.path, userId)
 		return new File(userRoot, resourcePath)
+	}
+
+	private def File getRemoteFile(String resourcePath) {
+		val git = Git.open(remoteGitFolder.root)
+		git.reset.setMode(HARD).call // reset, so pushed changes are checked out into the working directory
+		return new File(remoteGitFolder.root.path, resourcePath)
 	}
 
 	private def Builder createDocumentRequest(String resourcePath) {

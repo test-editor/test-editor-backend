@@ -1,13 +1,8 @@
 package org.testeditor.web.backend.persistence.git
 
-import com.google.inject.Module
 import java.io.File
-import java.util.List
-import javax.inject.Inject
 import org.eclipse.jgit.api.Git
 import org.junit.Test
-import org.mockito.Mock
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static org.eclipse.jgit.lib.ConfigConstants.*
 import static org.eclipse.jgit.lib.Constants.DEFAULT_REMOTE_NAME
@@ -15,19 +10,6 @@ import static org.eclipse.jgit.lib.Constants.DEFAULT_REMOTE_NAME
 import static extension org.mockito.Mockito.*
 
 class GitProviderTest extends AbstractGitTest {
-
-	@Inject GitProvider gitProvider
-	@Mock WorkspaceProvider workspaceProvider
-
-	override protected collectModules(List<Module> modules) {
-		super.collectModules(modules)
-
-		// configure WorkspaceProvider mock
-		when(workspaceProvider.workspace).thenReturn(localGitRoot.root)
-		modules += [ binder |
-			binder.bind(WorkspaceProvider).toInstance(workspaceProvider)
-		]
-	}
 
 	@Test
 	def void clonesRemoteRepository() {
