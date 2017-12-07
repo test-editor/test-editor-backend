@@ -37,7 +37,7 @@ subprojects {
 
     ext.versions = [
         dropwizard: '1.2.0',
-        testEditorDropwizard: '0.4.0',
+        testEditorDropwizard: '0.5.0',
         xtext: '2.13.0',
         testEditorLanguage: '1.9.0'
     ]
@@ -66,6 +66,7 @@ subprojects {
     dependencies {
         compile "org.eclipse.xtend:org.eclipse.xtend.lib:$versions.xtext"
         compile "org.testeditor.web:org.testeditor.web.dropwizard:$versions.testEditorDropwizard"
+        testCompile "org.testeditor.web:org.testeditor.web.dropwizard.testing:$versions.testEditorDropwizard"
         testCompile 'junit:junit:4.12'
         testCompile 'org.mockito:mockito-core:2.7.22'
         testCompile 'de.xtendutils:junit:0.0.4'
