@@ -9,7 +9,7 @@ import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
 class DocumentProviderTest extends AbstractGitTest {
 
 	@Inject DocumentProvider documentProvider
-	@Inject extension JGitTestUtils
+	
 
 	@Test
 	def void createCommitsNewFile() {

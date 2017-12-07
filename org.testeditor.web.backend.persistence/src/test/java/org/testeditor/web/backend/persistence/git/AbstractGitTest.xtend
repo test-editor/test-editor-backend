@@ -1,9 +1,6 @@
 package org.testeditor.web.backend.persistence.git
 
-import com.google.common.base.Charsets
-import com.google.common.io.Files
 import com.google.inject.Module
-import java.io.File
 import java.util.List
 import javax.inject.Inject
 import org.eclipse.jgit.api.Git
@@ -15,14 +12,17 @@ import org.mockito.Mock
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
-
-import static java.nio.charset.StandardCharsets.UTF_8
 import static org.mockito.Mockito.*
+import org.testeditor.web.dropwizard.testing.files.FileTestUtils
+import org.testeditor.web.dropwizard.testing.git.JGitTestUtils
 
 abstract class AbstractGitTest extends AbstractPersistenceTest {
 
 	@Rule public val remoteGitFolder = new TemporaryFolder
 	@Rule public val localGitRoot = new TemporaryFolder
+
+	@Inject protected extension JGitTestUtils
+	@Inject protected extension FileTestUtils
 
 	@Inject protected PersistenceConfiguration config
 
@@ -56,10 +56,6 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 		config.gitFSRoot = localGitRoot.root.absolutePath
 	}
 
-	protected def String read(File file) {
-		return Files.asCharSource(file, UTF_8).read
-	}
-
 	protected def createPreExistingFileInRemoteRepository() {
 		return this.createPreExistingFileInRemoteRepository("preExistingFile.txt")
 	}
@@ -69,19 +65,8 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 	}
 
 	protected def createPreExistingFileInRemoteRepository(String path, String fileContents) {
-		remoteGitFolder.write(path, fileContents)
+		remoteGitFolder.root.write(path, fileContents)
 		remoteGit.addAndCommit(path, "set test preconditions")
-	}
-
-	protected def write(TemporaryFolder targetDir, String path, String fileContents) {
-		Files.createParentDirs(new File(targetDir.root, path))
-		val file = targetDir.newFile(path)
-		Files.asCharSink(file, Charsets.UTF_8).write(fileContents)
-	}
-
-	protected def addAndCommit(Git git, String path, String message) {
-		remoteGit.add.addFilepattern(path).call
-		remoteGit.commit.setMessage(message).call
 		return path
 	}
 
