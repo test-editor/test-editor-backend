@@ -26,6 +26,8 @@ class WorkspaceResource {
 
 	private def WorkspaceElement createWorkspaceElements() {
 		val git = gitProvider.git
+		git.pull.call
+		
 		val workspaceRoot = git.repository.directory.toPath.parent
 		val Map<Path, WorkspaceElement> pathToElement = newHashMap
 		Files.walkFileTree(workspaceRoot, new WorkspaceFileVisitor(workspaceRoot, pathToElement))

@@ -11,6 +11,7 @@ import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 import org.testeditor.web.backend.persistence.git.GitProvider
 
 import static org.mockito.Mockito.*
+import org.eclipse.jgit.api.PullCommand
 
 class WorkspaceResourceTest extends AbstractPersistenceTest {
 
@@ -21,7 +22,9 @@ class WorkspaceResourceTest extends AbstractPersistenceTest {
 
 	@Before
 	def void setup() {
-		val git = Git.init.setDirectory(folder.root).call
+		val git = spy(Git.init.setDirectory(folder.root).call)
+		val pullMock = mock(PullCommand)
+		when(git.pull).thenReturn(pullMock)
 		when(gitProvider.git).thenReturn(git)
 	}
 
