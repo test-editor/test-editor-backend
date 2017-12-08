@@ -7,6 +7,7 @@ import javax.inject.Inject
 import javax.ws.rs.GET
 import javax.ws.rs.Produces
 import javax.ws.rs.core.MediaType
+import org.eclipse.jgit.api.Git
 import org.testeditor.web.backend.persistence.git.GitProvider
 
 @javax.ws.rs.Path("/workspace")
@@ -19,15 +20,14 @@ class WorkspaceResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("list-files")
 	def WorkspaceElement listFiles() {
-		val workspaceRoot = createWorkspaceElements
+		val git = gitProvider.git
+		git.pull.call
+		val workspaceRoot = createWorkspaceElements(git)
 		workspaceRoot.name = '''workspace («workspaceRoot.name»)'''
 		return workspaceRoot
 	}
 
-	private def WorkspaceElement createWorkspaceElements() {
-		val git = gitProvider.git
-		git.pull.call
-		
+	private def WorkspaceElement createWorkspaceElements(Git git) {
 		val workspaceRoot = git.repository.directory.toPath.parent
 		val Map<Path, WorkspaceElement> pathToElement = newHashMap
 		Files.walkFileTree(workspaceRoot, new WorkspaceFileVisitor(workspaceRoot, pathToElement))

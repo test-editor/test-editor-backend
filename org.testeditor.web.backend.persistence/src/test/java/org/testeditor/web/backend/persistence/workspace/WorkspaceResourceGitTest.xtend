@@ -1,6 +1,7 @@
 package org.testeditor.web.backend.persistence.workspace
 
 import javax.inject.Inject
+import org.eclipse.jgit.api.Git
 import org.junit.Test
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
@@ -11,7 +12,6 @@ class WorkspaceResourceGitTest extends AbstractGitTest {
 	@Test
 	def void pullsOnListFiles() {
 		// given
-		val filesInRepoBefore = remoteGitFolder.root.listFiles[name != ".git"].size
 		val preExistingFile = createPreExistingFileInRemoteRepository("initialFile.txt")
 
 		// when
@@ -19,8 +19,10 @@ class WorkspaceResourceGitTest extends AbstractGitTest {
 
 		// then
 		actualFiles.children => [
-			size.assertEquals(filesInRepoBefore + 1)
 			exists[name == preExistingFile]
 		]
+		val lastLocalCommit = Git.init.setDirectory(localGitRoot.root).call.lastCommit
+		lastLocalCommit.assertEquals(remoteGit.lastCommit)
 	}
+
 }
