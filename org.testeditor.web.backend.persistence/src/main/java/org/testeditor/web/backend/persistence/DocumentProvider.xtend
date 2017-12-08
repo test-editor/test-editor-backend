@@ -57,6 +57,7 @@ class DocumentProvider {
 
 	def String load(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
+		gitProvider.git.pull.call
 		return file.read
 	}
 

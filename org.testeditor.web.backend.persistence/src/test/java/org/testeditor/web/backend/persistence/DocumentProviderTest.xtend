@@ -256,5 +256,23 @@ class DocumentProviderTest extends AbstractGitTest {
 		localGitRoot.root.assertFileExists(existingFileName)
 		actualFileContents.assertEquals(expectedFileContents)
 	}
+	
+	@Test
+	def void loadPullsChangesWhenAlreadyInitialized() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository("preExistingFile.txt", "The initial file contents.\n")
+		documentProvider.load(existingFileName)
+
+		val fileContentsAfterChange = "The file contents after a remote change.\n"
+		remoteGitFolder.root.write(existingFileName, fileContentsAfterChange)
+		remoteGit.addAndCommit(existingFileName, "changes by someone else.")
+		
+		// when
+		val actualFileContents = documentProvider.load(existingFileName)
+		
+		// then
+		localGitRoot.root.assertFileExists(existingFileName)
+		actualFileContents.assertEquals(fileContentsAfterChange)
+	}
 
 }
