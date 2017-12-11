@@ -1,11 +1,16 @@
 package org.testeditor.web.backend.persistence.git
 
 import com.google.common.cache.CacheBuilder
+import com.jcraft.jsch.Session
 import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import org.eclipse.jgit.api.CloneCommand
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.transport.JschConfigSessionFactory
+import org.eclipse.jgit.transport.OpenSshConfig.Host
+import org.eclipse.jgit.transport.SshTransport
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
@@ -47,7 +52,28 @@ class GitProvider {
 	}
 
 	private def Git initializeNew(File workspace) {
-		return Git.cloneRepository.setURI(config.remoteRepoUrl).setDirectory(workspace).call
+		val command = Git.cloneRepository => [
+			setURI(config.remoteRepoUrl)
+			setSshSessionFactory(it)
+			setDirectory(workspace)
+		]
+		return command.call
 	}
 
+	private def void setSshSessionFactory(CloneCommand cloneCommand) {
+		val sshSessionFactory = new JschConfigSessionFactory {
+
+			override protected void configure(Host host, Session session) {
+				// do nothing
+			}
+
+		}
+		cloneCommand.transportConfigCallback = [ transport |
+			if (transport instanceof SshTransport) {
+				val sshTransport = transport as SshTransport
+				sshTransport.sshSessionFactory = sshSessionFactory
+			}
+		]
+	}
+	
 }

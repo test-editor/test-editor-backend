@@ -76,7 +76,7 @@ class DocumentProvider {
 			throw new FileNotFoundException(resourcePath)
 		}
 	}
-	
+
 	private def void write(File file, String content) {
 		write(file, content, '''update file: «file.name»''')
 	}
