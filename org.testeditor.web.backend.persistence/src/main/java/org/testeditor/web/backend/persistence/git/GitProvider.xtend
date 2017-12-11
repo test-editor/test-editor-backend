@@ -7,6 +7,7 @@ import com.jcraft.jsch.Session
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import org.eclipse.jgit.api.CloneCommand
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.GitCommand
 import org.eclipse.jgit.api.TransportCommand
@@ -23,7 +24,7 @@ import static org.eclipse.jgit.lib.Constants.DOT_GIT
 
 @Singleton
 class GitProvider {
-	
+
 	static val logger = LoggerFactory.getLogger(GitProvider)
 
 	val workspaceToGitCache = CacheBuilder.newBuilder.expireAfterAccess(10, MINUTES).build [ File workspace |
@@ -40,7 +41,7 @@ class GitProvider {
 		val workspace = workspaceProvider.workspace
 		return workspaceToGitCache.get(workspace)
 	}
-	
+
 	/**
 	 * configure transport commands with ssh credentials (if configured for this dropwizard app)
 	 */
@@ -48,7 +49,7 @@ class GitProvider {
 		command.setSshSessionFactory
 		return command
 	}
-	
+
 	private def Git initialize(File workspace) {
 		if (isExistingRepository(workspace)) {
 			return reinitializeExisting(workspace)
@@ -76,7 +77,7 @@ class GitProvider {
 	}
 
 	private def <T, C extends GitCommand<T>> void setSshSessionFactory(TransportCommand<C, ?> command) {
-		
+
 		val sshSessionFactory = new JschConfigSessionFactory {
 
 			override protected void configure(Host host, Session session) {
@@ -102,7 +103,7 @@ class GitProvider {
 			}
 
 		}
-		
+
 		command.transportConfigCallback = [ transport |
 			if (transport instanceof SshTransport) {
 				transport.sshSessionFactory = sshSessionFactory
@@ -110,5 +111,5 @@ class GitProvider {
 		]
 
 	}
-	
+
 }
