@@ -14,6 +14,7 @@ import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.auth.User
 
 import static java.nio.charset.StandardCharsets.*
+import static org.eclipse.jgit.lib.Constants.DOT_GIT
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
@@ -56,6 +57,7 @@ class DocumentProvider {
 
 	def String load(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
+		gitProvider.git.pull.call
 		return file.read
 	}
 
@@ -114,7 +116,7 @@ class DocumentProvider {
 		val workspace = workspaceProvider.getWorkspace()
 		val file = new File(workspace, resourcePath)
 		verifyFileIsWithinWorkspace(workspace, file)
-		pullAndPush
+		initGitIfRequired
 		return file
 	}
 
@@ -124,6 +126,12 @@ class DocumentProvider {
 		val validPath = filePath.startsWith(workspacePath)
 		if (!validPath) {
 			throw new MaliciousPathException(workspacePath, filePath, userProvider.get.name)
+		}
+	}
+
+	private def void initGitIfRequired() {
+		if (!new File(workspaceProvider.workspace, DOT_GIT).exists) {
+			pullAndPush
 		}
 	}
 

@@ -1,9 +1,11 @@
 package org.testeditor.web.backend.persistence
 
+import java.io.File
 import javax.inject.Inject
 import org.junit.Test
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
+import static org.eclipse.jgit.api.ResetCommand.ResetType.HARD
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
 
 class DocumentProviderTest extends AbstractGitTest {
@@ -137,6 +139,81 @@ class DocumentProviderTest extends AbstractGitTest {
 		// then
 		remoteGit.assertSingleCommit(numberOfCommitsBefore, MODIFY, existingFileName)
 	}
+	
+	@Test
+	def void saveMergesConcurrentNonConflictingChanges() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository("concurrentlyEditedFile.txt",'''
+			This is the initial
+			
+			content of the file.''')
+		
+		val contentAfterRemoteChange = '''
+			This is the initial
+			
+			content of this file.'''
+		
+		val contentAfterLocalChange = '''
+			This is the current
+			
+			content of the file.'''
+
+		// when
+		documentProvider.load(existingFileName)
+		remoteGitFolder.root.write(existingFileName, contentAfterRemoteChange)
+		remoteGit.addAndCommit(existingFileName, "modify second line")
+		documentProvider.save(existingFileName, contentAfterLocalChange)
+		
+		// then
+		val expected = '''
+			This is the current
+			
+			content of this file.'''
+		remoteGit.reset.setMode(HARD).call //reset remote to latest index state
+		val actual = read(new File(remoteGitFolder.root + "/" + existingFileName))
+		
+		actual.assertEquals(expected)
+	}
+	
+	@Test
+	def void saveFailsOnConcurrentConflictingChanges() {
+		// given
+		val existingFileName = "concurrentlyEditedFile.txt" 
+		createPreExistingFileInRemoteRepository(existingFileName,'''
+			This is the initial
+			content of the file.''')
+		
+		val contentAfterRemoteChange = '''
+			This is a stupid
+			file.'''
+		
+		val contentAfterLocalChange = '''
+			This is the current
+			content of the file.'''
+
+		// when
+		documentProvider.load(existingFileName)
+		remoteGitFolder.root.write(existingFileName, contentAfterRemoteChange)
+		remoteGit.addAndCommit(existingFileName, "modify second line")
+		documentProvider.save(existingFileName, contentAfterLocalChange)
+		
+		// then
+		remoteGit.reset.setMode(HARD).call //reset remote to latest index state
+		
+		val localFileWithConflict = localGitRoot.root + "/" + existingFileName
+		val actualLocalFileContent = read(new File(localFileWithConflict))
+		val expectedLocalFileContent = '''
+			<<<<<<< HEAD
+			«contentAfterLocalChange»
+			=======
+			«contentAfterRemoteChange»
+			>>>>>>> branch 'master' of file://«remoteGitFolder.root»
+			'''
+		actualLocalFileContent.assertEquals(expectedLocalFileContent)
+		
+		val actualRemoteFileContent = read(new File(remoteGitFolder.root + "/" + existingFileName))
+		actualRemoteFileContent.assertEquals(contentAfterRemoteChange)
+	}
 
 	@Test
 	def void deleteCommitsChanges() {
@@ -178,6 +255,24 @@ class DocumentProviderTest extends AbstractGitTest {
 		// then
 		localGitRoot.root.assertFileExists(existingFileName)
 		actualFileContents.assertEquals(expectedFileContents)
+	}
+	
+	@Test
+	def void loadPullsChangesWhenAlreadyInitialized() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository("preExistingFile.txt", "The initial file contents.\n")
+		documentProvider.load(existingFileName)
+
+		val fileContentsAfterChange = "The file contents after a remote change.\n"
+		remoteGitFolder.root.write(existingFileName, fileContentsAfterChange)
+		remoteGit.addAndCommit(existingFileName, "changes by someone else.")
+		
+		// when
+		val actualFileContents = documentProvider.load(existingFileName)
+		
+		// then
+		localGitRoot.root.assertFileExists(existingFileName)
+		actualFileContents.assertEquals(fileContentsAfterChange)
 	}
 
 }
