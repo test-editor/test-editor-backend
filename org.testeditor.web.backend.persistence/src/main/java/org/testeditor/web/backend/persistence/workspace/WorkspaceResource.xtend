@@ -21,7 +21,7 @@ class WorkspaceResource {
 	@javax.ws.rs.Path("list-files")
 	def WorkspaceElement listFiles() {
 		val git = gitProvider.git
-		git.pull.call
+		gitProvider.configuredPull.call
 		val workspaceRoot = createWorkspaceElements(git)
 		workspaceRoot.name = '''workspace («workspaceRoot.name»)'''
 		return workspaceRoot

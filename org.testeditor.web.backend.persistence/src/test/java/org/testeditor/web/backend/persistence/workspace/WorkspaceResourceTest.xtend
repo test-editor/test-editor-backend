@@ -26,6 +26,7 @@ class WorkspaceResourceTest extends AbstractPersistenceTest {
 		val pullMock = mock(PullCommand)
 		when(git.pull).thenReturn(pullMock)
 		when(gitProvider.git).thenReturn(git)
+		when(gitProvider.configuredPull).thenReturn(pullMock)
 	}
 
 	@Test

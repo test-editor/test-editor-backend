@@ -8,8 +8,11 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import org.eclipse.jgit.api.CloneCommand
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.GitCommand
+import org.eclipse.jgit.api.PullCommand
+import org.eclipse.jgit.api.PushCommand
+import org.eclipse.jgit.api.TransportCommand
 import org.eclipse.jgit.transport.JschConfigSessionFactory
 import org.eclipse.jgit.transport.OpenSshConfig.Host
 import org.eclipse.jgit.transport.SshTransport
@@ -39,7 +42,15 @@ class GitProvider {
 		val workspace = workspaceProvider.workspace
 		return workspaceToGitCache.get(workspace)
 	}
+	
+	public def PullCommand configuredPull() {
+		git.pull => [setSshSessionFactory]
+	}
 
+	public def PushCommand configuredPush() {
+		git.push => [setSshSessionFactory]
+	}
+	
 	private def Git initialize(File workspace) {
 		if (isExistingRepository(workspace)) {
 			return reinitializeExisting(workspace)
@@ -60,34 +71,32 @@ class GitProvider {
 	private def Git initializeNew(File workspace) {
 		val command = Git.cloneRepository => [
 			setURI(config.remoteRepoUrl)
-			setSshSessionFactory(it)
+			setSshSessionFactory
 			setDirectory(workspace)
 		]
 		return command.call
 	}
 
-	private def void setSshSessionFactory(CloneCommand cloneCommand) {
+	private def <T, C extends GitCommand<T>> void setSshSessionFactory(TransportCommand<C, ?> command) {
 		
 		val sshSessionFactory = new JschConfigSessionFactory {
 
 			override protected void configure(Host host, Session session) {
-				session.setConfig('StrictHostKeyChecking','no')
 				logger.info('''HashKnownHosts = «session.getConfig('HashKnownHosts')»''')
 				logger.info('''StrictHostKeyChecking = «session.getConfig('StrictHostKeyChecking')»''')
 			}
-			
+
 			// provide custom private key location (if not located at ~/.ssh/id_rsa)
 			// private custom known hosts file location (if not located at ~/.ssh/known_hosts
 			// see also http://www.codeaffine.com/2014/12/09/jgit-authentication/
 			override protected JSch createDefaultJSch(FS fs) throws JSchException {
 				val defaultJSch = super.createDefaultJSch(fs)
 				if (!config.privateKeyLocation.isNullOrEmpty) {
-					defaultJSch.removeAllIdentity
 					defaultJSch.addIdentity(config.privateKeyLocation)
 				}
 				if (!config.knownHostsLocation.isNullOrEmpty) {
 					defaultJSch.knownHosts = config.knownHostsLocation
-					defaultJSch.hostKeyRepository.hostKey.forEach[
+					defaultJSch.hostKeyRepository.hostKey.forEach [
 						logger.info('''host = «host», type = «type», key = «key», fingerprint = «getFingerPrint(defaultJSch)»''')
 					]
 				}
@@ -95,7 +104,8 @@ class GitProvider {
 			}
 
 		}
-		cloneCommand.transportConfigCallback = [ transport |
+		
+		command.transportConfigCallback = [ transport |
 			if (transport instanceof SshTransport) {
 				transport.sshSessionFactory = sshSessionFactory
 			}

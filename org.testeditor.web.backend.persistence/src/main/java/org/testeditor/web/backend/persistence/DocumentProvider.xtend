@@ -105,9 +105,8 @@ class DocumentProvider {
 	}
 
 	private def void pullAndPush() {
-		val git = gitProvider.git
-		git.pull.call
-		git.push.call
+		gitProvider.configuredPull.call
+		gitProvider.configuredPush.call
 	}
 
 	private def String read(File file) {
