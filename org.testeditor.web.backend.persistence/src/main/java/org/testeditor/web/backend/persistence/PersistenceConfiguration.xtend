@@ -18,5 +18,10 @@ class PersistenceConfiguration extends Configuration {
 	@NotEmpty
 	@Accessors
 	private String localRepoFileRoot = 'repo'
+	
+	@Accessors
+	private String privateKeyLocation
 
+	@Accessors
+	private String knownHostsLocation
 }

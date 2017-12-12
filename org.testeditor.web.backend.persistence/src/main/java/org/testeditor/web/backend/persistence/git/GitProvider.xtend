@@ -1,6 +1,8 @@
 package org.testeditor.web.backend.persistence.git
 
 import com.google.common.cache.CacheBuilder
+import com.jcraft.jsch.JSch
+import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -11,6 +13,8 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.transport.JschConfigSessionFactory
 import org.eclipse.jgit.transport.OpenSshConfig.Host
 import org.eclipse.jgit.transport.SshTransport
+import org.eclipse.jgit.util.FS
+import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
@@ -18,6 +22,8 @@ import static org.eclipse.jgit.lib.Constants.DOT_GIT
 
 @Singleton
 class GitProvider {
+	
+	static val logger = LoggerFactory.getLogger(GitProvider)
 
 	val workspaceToGitCache = CacheBuilder.newBuilder.expireAfterAccess(10, TimeUnit.MINUTES).build [ File workspace |
 		initialize(workspace)
@@ -61,19 +67,40 @@ class GitProvider {
 	}
 
 	private def void setSshSessionFactory(CloneCommand cloneCommand) {
+		
 		val sshSessionFactory = new JschConfigSessionFactory {
 
 			override protected void configure(Host host, Session session) {
-				// do nothing
+				session.setConfig('StrictHostKeyChecking','no')
+				logger.info('''HashKnownHosts = «session.getConfig('HashKnownHosts')»''')
+				logger.info('''StrictHostKeyChecking = «session.getConfig('StrictHostKeyChecking')»''')
+			}
+			
+			// provide custom private key location (if not located at ~/.ssh/id_rsa)
+			// private custom known hosts file location (if not located at ~/.ssh/known_hosts
+			// see also http://www.codeaffine.com/2014/12/09/jgit-authentication/
+			override protected JSch createDefaultJSch(FS fs) throws JSchException {
+				val defaultJSch = super.createDefaultJSch(fs)
+				if (!config.privateKeyLocation.isNullOrEmpty) {
+					defaultJSch.removeAllIdentity
+					defaultJSch.addIdentity(config.privateKeyLocation)
+				}
+				if (!config.knownHostsLocation.isNullOrEmpty) {
+					defaultJSch.knownHosts = config.knownHostsLocation
+					defaultJSch.hostKeyRepository.hostKey.forEach[
+						logger.info('''host = «host», type = «type», key = «key», fingerprint = «getFingerPrint(defaultJSch)»''')
+					]
+				}
+				return defaultJSch
 			}
 
 		}
 		cloneCommand.transportConfigCallback = [ transport |
 			if (transport instanceof SshTransport) {
-				val sshTransport = transport as SshTransport
-				sshTransport.sshSessionFactory = sshSessionFactory
+				transport.sshSessionFactory = sshSessionFactory
 			}
 		]
+
 	}
 	
 }
