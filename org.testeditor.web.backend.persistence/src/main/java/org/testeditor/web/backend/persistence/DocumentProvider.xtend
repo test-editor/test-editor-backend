@@ -24,7 +24,7 @@ class DocumentProvider {
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
 
 	@Inject Provider<User> userProvider
-	@Inject GitProvider gitProvider
+	@Inject extension GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
 
 	def boolean create(String resourcePath, String content) {
@@ -105,8 +105,8 @@ class DocumentProvider {
 	}
 
 	private def void pullAndPush() {
-		gitProvider.configuredPull.call
-		gitProvider.configuredPush.call
+		git.pull.configureTransport.call
+		git.push.configureTransport.call
 	}
 
 	private def String read(File file) {
@@ -114,7 +114,7 @@ class DocumentProvider {
 	}
 
 	private def File getWorkspaceFile(String resourcePath) {
-		val workspace = workspaceProvider.getWorkspace()
+		val workspace = workspaceProvider.workspace
 		val file = new File(workspace, resourcePath)
 		verifyFileIsWithinWorkspace(workspace, file)
 		pullAndPush

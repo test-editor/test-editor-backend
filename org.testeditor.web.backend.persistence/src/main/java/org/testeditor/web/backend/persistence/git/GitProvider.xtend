@@ -5,13 +5,10 @@ import com.jcraft.jsch.JSch
 import com.jcraft.jsch.JSchException
 import com.jcraft.jsch.Session
 import java.io.File
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.GitCommand
-import org.eclipse.jgit.api.PullCommand
-import org.eclipse.jgit.api.PushCommand
 import org.eclipse.jgit.api.TransportCommand
 import org.eclipse.jgit.transport.JschConfigSessionFactory
 import org.eclipse.jgit.transport.OpenSshConfig.Host
@@ -21,6 +18,7 @@ import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
+import static java.util.concurrent.TimeUnit.MINUTES
 import static org.eclipse.jgit.lib.Constants.DOT_GIT
 
 @Singleton
@@ -28,7 +26,7 @@ class GitProvider {
 	
 	static val logger = LoggerFactory.getLogger(GitProvider)
 
-	val workspaceToGitCache = CacheBuilder.newBuilder.expireAfterAccess(10, TimeUnit.MINUTES).build [ File workspace |
+	val workspaceToGitCache = CacheBuilder.newBuilder.expireAfterAccess(10, MINUTES).build [ File workspace |
 		initialize(workspace)
 	]
 
@@ -43,12 +41,12 @@ class GitProvider {
 		return workspaceToGitCache.get(workspace)
 	}
 	
-	public def PullCommand configuredPull() {
-		git.pull => [setSshSessionFactory]
-	}
-
-	public def PushCommand configuredPush() {
-		git.push => [setSshSessionFactory]
+	/**
+	 * configure transport commands with ssh credentials (if configured for this dropwizard app)
+	 */
+	def <T, C extends GitCommand<T>> GitCommand<T> configureTransport(TransportCommand<C, T> command) {
+		command.setSshSessionFactory
+		return command
 	}
 	
 	private def Git initialize(File workspace) {
