@@ -85,7 +85,7 @@ class GitProvider {
 			}
 
 			// provide custom private key location (if not located at ~/.ssh/id_rsa)
-			// private custom known hosts file location (if not located at ~/.ssh/known_hosts
+			// provide custom known hosts file location (if not located at ~/.ssh/known_hosts)
 			// see also http://www.codeaffine.com/2014/12/09/jgit-authentication/
 			override protected JSch createDefaultJSch(FS fs) throws JSchException {
 				val defaultJSch = super.createDefaultJSch(fs)
