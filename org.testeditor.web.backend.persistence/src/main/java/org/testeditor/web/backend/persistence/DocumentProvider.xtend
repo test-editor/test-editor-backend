@@ -7,6 +7,7 @@ import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.PersonIdent
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
 import org.testeditor.web.backend.persistence.git.GitProvider
@@ -87,9 +88,13 @@ class DocumentProvider {
 	}
 
 	private def void commit(File file, String message) {
-		val git = gitProvider.git
+		val personIdent = new PersonIdent(userProvider.get.name, userProvider.get.email)
 		git.stage(file)
-		git.commit.setMessage(message).call
+		git.commit //
+		.setMessage(message) //
+		.setAuthor(personIdent) //
+		.setCommitter(personIdent) //
+		.call
 		pullAndPush
 	}
 
