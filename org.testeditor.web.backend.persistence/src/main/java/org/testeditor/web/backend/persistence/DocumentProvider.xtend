@@ -31,7 +31,7 @@ class DocumentProvider {
 		val file = getWorkspaceFile(resourcePath)
 		val created = create(file)
 		if (created) {
-			file.write(content)
+			file.write(content, '''add file: «file.name»''')
 		}
 		return created
 	}
@@ -69,23 +69,27 @@ class DocumentProvider {
 		if (file.exists) {
 			val deleted = FileUtils.deleteQuietly(file)
 			if (deleted) {
-				commit(file)
+				file.commit('''delete file: «file.name»''')
 			}
 			return deleted
 		} else {
 			throw new FileNotFoundException(resourcePath)
 		}
 	}
-
+	
 	private def void write(File file, String content) {
-		Files.asCharSink(file, UTF_8).write(content)
-		commit(file)
+		write(file, content, '''update file: «file.name»''')
 	}
 
-	private def void commit(File file) {
+	private def void write(File file, String content, String commitMessage) {
+		Files.asCharSink(file, UTF_8).write(content)
+		file.commit(commitMessage)
+	}
+
+	private def void commit(File file, String message) {
 		val git = gitProvider.git
 		git.stage(file)
-		git.commit.setMessage("bla").call
+		git.commit.setMessage(message).call
 		pullAndPush
 	}
 

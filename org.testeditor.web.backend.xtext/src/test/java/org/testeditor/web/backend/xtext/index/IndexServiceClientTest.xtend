@@ -328,4 +328,5 @@ class IndexServiceClientTest {
 
 		return resource
 	}
+
 }

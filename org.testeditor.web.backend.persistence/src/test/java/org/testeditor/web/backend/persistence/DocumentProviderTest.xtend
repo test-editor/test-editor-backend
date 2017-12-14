@@ -9,7 +9,6 @@ import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
 class DocumentProviderTest extends AbstractGitTest {
 
 	@Inject DocumentProvider documentProvider
-	
 
 	@Test
 	def void createCommitsNewFile() {
@@ -178,6 +177,42 @@ class DocumentProviderTest extends AbstractGitTest {
 		// then
 		localGitRoot.root.assertFileExists(existingFileName)
 		actualFileContents.assertEquals(expectedFileContents)
+	}
+
+	@Test
+	def void createProducesProperCommitMessage() {
+		// given
+		val newFileName = "theNewFile.txt"
+
+		// when
+		documentProvider.create(newFileName, 'test')
+
+		// then
+		gitProvider.git.lastCommit.fullMessage.assertEquals('''add file: «newFileName»'''.toString)
+	}
+
+	@Test
+	def void saveProducesProperCommitMessage() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository
+
+		// when
+		documentProvider.save(existingFileName, "New contents of pre-existing file")
+
+		// then
+		gitProvider.git.lastCommit.fullMessage.assertEquals('''update file: «existingFileName»'''.toString)
+	}
+
+	@Test
+	def void deleteProducesProperCommitMessage() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository
+
+		// when
+		documentProvider.delete(existingFileName)
+
+		// then
+		gitProvider.git.lastCommit.fullMessage.assertEquals('''delete file: «existingFileName»'''.toString)
 	}
 
 }
