@@ -24,10 +24,8 @@ import org.eclipse.xtext.resource.XtextResourceSet
 import org.eclipse.xtext.scoping.IScope
 import org.junit.After
 import org.junit.Before
-import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.junit.runners.MethodSorters
 import org.mockito.ArgumentCaptor
 import org.mockito.InjectMocks
 import org.mockito.Mock
@@ -42,7 +40,6 @@ import static org.mockito.ArgumentMatchers.*
 import static extension org.mockito.Mockito.*
 
 @RunWith(MockitoJUnitRunner)
-@FixMethodOrder(MethodSorters.DEFAULT)
 class IndexServiceClientTest {
 
 	static val AUTH_HEADER = "Bearer DUMMYTOKEN"
