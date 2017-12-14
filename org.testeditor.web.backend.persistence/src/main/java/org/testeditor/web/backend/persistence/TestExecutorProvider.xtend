@@ -16,12 +16,15 @@ class TestExecutorProvider {
 
 	def ProcessBuilder testExecutionBuilder(String testCase) {
 		if (!testCase.endsWith(TEST_CASE_FILE_SUFFIX)) {
-			logger.warn('''File '«testCase»' is no test case (does not end on «TEST_CASE_FILE_SUFFIX»)''')
+			val errorMsg = '''File '«testCase»' is no test case (does not end on «TEST_CASE_FILE_SUFFIX»)'''
+			logger.error(errorMsg)
+			throw new IllegalArgumentException(errorMsg)
 		}
 		val testFile = workspaceProvider.workspace.toPath.resolve(testCase)
 		if (!testFile.toFile.exists) {
-			logger.error('''File '«testCase»' does not exist''')
-			return null
+			val errorMsg = '''File '«testCase»' does not exist'''
+			logger.error(errorMsg)
+			throw new IllegalArgumentException(errorMsg)
 		}
 
 		val testClass = testCase.toTestClassName

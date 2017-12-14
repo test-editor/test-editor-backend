@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.Appender
+import org.junit.Assert
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -29,7 +30,7 @@ class TestExecutorTest {
 	WorkspaceProvider workspaceProviderMock
 
 	@InjectMocks
-	TestExecutorProvider testExecutorProvider // class under test
+	TestExecutorProvider testExecutorProviderUnderTest // class under test
 	
 	@Mock
 	var Appender<ILoggingEvent> logAppender
@@ -51,33 +52,43 @@ class TestExecutorTest {
 	@Test
 	def void testWrongFilename() {
 		// given 
-		temporaryFolders.newFile('actual-file.tl')
+		val existingNonTestFile = 'actual-file.tl'
+		temporaryFolders.newFile(existingNonTestFile)
 
 		// when
-		val processBuilder = testExecutorProvider.testExecutionBuilder('actual-file.tl')
+		try {
+			testExecutorProviderUnderTest.testExecutionBuilder('actual-file.tl')
+			Assert.fail
+		} catch (IllegalArgumentException exception) {
+			// then
+			assertThat(exception.message).contains(''''«existingNonTestFile»' is no test case'''.toString)
+			verify(logAppender).doAppend(logCaptor.capture)
+			assertThat(logCaptor.value).satisfies [
+				assertThat(formattedMessage).contains(''''«existingNonTestFile»' is no test case'''.toString)
+				assertThat(level).isEqualTo(Level.ERROR)
+			]
+		}
 
-		// then
-		assertThat(processBuilder).isNotNull
-		verify(logAppender).doAppend(logCaptor.capture)
-		assertThat(logCaptor.value).satisfies [
-			assertThat(formattedMessage).isEqualTo("File 'actual-file.tl' is no test case (does not end on tcl)")
-			assertThat(level).isEqualTo(Level.WARN)
-		]
 	}
 
 	@Test
 	def void testNonExistingFile() {
+		// given
+		val nonExistingFile = 'fantasy-file.tcl' 
 
 		// when
-		val processBuilder = testExecutorProvider.testExecutionBuilder('fantasy-file.tcl')
-
-		// then see output
-		assertThat(processBuilder).isNull
-		verify(logAppender).doAppend(logCaptor.capture)
-		assertThat(logCaptor.value).satisfies [
-			assertThat(formattedMessage).isEqualTo("File 'fantasy-file.tcl' does not exist")
-			assertThat(level).isEqualTo(Level.ERROR)
-		]
+		try {
+			testExecutorProviderUnderTest.testExecutionBuilder(nonExistingFile)
+			Assert.fail
+		} catch (IllegalArgumentException exception) {
+			// then 
+			assertThat(exception.message).isEqualTo('''File '«nonExistingFile»' does not exist'''.toString)
+			verify(logAppender).doAppend(logCaptor.capture)
+			assertThat(logCaptor.value).satisfies [
+				assertThat(formattedMessage).isEqualTo('''File '«nonExistingFile»' does not exist'''.toString)
+				assertThat(level).isEqualTo(Level.ERROR)
+			]
+		}
 	}
 
 	@Test
@@ -88,7 +99,7 @@ class TestExecutorTest {
 		temporaryFolders.newFile(actualFile)
 
 		// when
-		val processBuilder = testExecutorProvider.testExecutionBuilder(actualFile)
+		val processBuilder = testExecutorProviderUnderTest.testExecutionBuilder(actualFile)
 
 		// then
 		assertThat(processBuilder).isNotNull

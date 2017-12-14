@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.*
 class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	@Test
-	def void testThatTestexecutionInvoked() {
+	def void testThatTestexecutionIsInvoked() {
 		// given
 		val testFile = 'test.tcl'
 		workspaceRoot.newFolder(userId)

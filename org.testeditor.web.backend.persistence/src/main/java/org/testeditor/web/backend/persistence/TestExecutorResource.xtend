@@ -22,16 +22,12 @@ class TestExecutorResource {
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.TEXT_PLAIN)
-	@Path("execute") 
+	@Path("execute")
 	def Response executeTests(@QueryParam("resource") String resourcePath) {
 		val builder = executorProvider.testExecutionBuilder(resourcePath)
-		if (builder !== null) {
-			logger.info('''Starting test for '«resourcePath»'.''')
-			builder.start
-			return Response.created(UriBuilder.fromResource(DocumentResource).build(#['logs/testrun.log'], false)).build
-		} else {
-			return Response.serverError.build
-		}
+		logger.info('''Starting test for '«resourcePath»'.''')
+		builder.start
+		return Response.created(UriBuilder.fromResource(DocumentResource).build(#['logs/testrun.log'], false)).build
 	}
 
 }
