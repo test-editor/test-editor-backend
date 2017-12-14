@@ -7,7 +7,6 @@ import com.jcraft.jsch.Session
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
-import org.eclipse.jgit.api.CloneCommand
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.GitCommand
 import org.eclipse.jgit.api.TransportCommand
