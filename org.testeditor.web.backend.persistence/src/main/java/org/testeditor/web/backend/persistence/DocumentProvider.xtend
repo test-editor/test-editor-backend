@@ -7,6 +7,7 @@ import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.PersonIdent
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
 import org.testeditor.web.backend.persistence.git.GitProvider
@@ -24,7 +25,7 @@ class DocumentProvider {
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
 
 	@Inject Provider<User> userProvider
-	@Inject GitProvider gitProvider
+	@Inject extension GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
 
 	def boolean create(String resourcePath, String content) {
@@ -76,7 +77,7 @@ class DocumentProvider {
 			throw new FileNotFoundException(resourcePath)
 		}
 	}
-	
+
 	private def void write(File file, String content) {
 		write(file, content, '''update file: «file.name»''')
 	}
@@ -87,9 +88,13 @@ class DocumentProvider {
 	}
 
 	private def void commit(File file, String message) {
-		val git = gitProvider.git
+		val personIdent = new PersonIdent(userProvider.get.name, userProvider.get.email)
 		git.stage(file)
-		git.commit.setMessage(message).call
+		git.commit //
+		.setMessage(message) //
+		.setAuthor(personIdent) //
+		.setCommitter(personIdent) //
+		.call
 		pullAndPush
 	}
 
@@ -105,9 +110,8 @@ class DocumentProvider {
 	}
 
 	private def void pullAndPush() {
-		val git = gitProvider.git
-		git.pull.call
-		git.push.call
+		git.pull.configureTransport.call
+		git.push.configureTransport.call
 	}
 
 	private def String read(File file) {
@@ -115,7 +119,7 @@ class DocumentProvider {
 	}
 
 	private def File getWorkspaceFile(String resourcePath) {
-		val workspace = workspaceProvider.getWorkspace()
+		val workspace = workspaceProvider.workspace
 		val file = new File(workspace, resourcePath)
 		verifyFileIsWithinWorkspace(workspace, file)
 		pullAndPush
