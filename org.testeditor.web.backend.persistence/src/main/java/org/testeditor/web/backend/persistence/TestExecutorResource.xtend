@@ -9,7 +9,7 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
-import javax.ws.rs.Produces
+import java.net.URI
 
 @Path("/tests")
 @Consumes(MediaType.APPLICATION_JSON)
@@ -20,14 +20,16 @@ class TestExecutorResource {
 	@Inject TestExecutorProvider executorProvider
 
 	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Produces(MediaType.TEXT_PLAIN)
 	@Path("execute")
 	def Response executeTests(@QueryParam("resource") String resourcePath) {
 		val builder = executorProvider.testExecutionBuilder(resourcePath)
-		logger.info('''Starting test for '«resourcePath»'.''')
+		val logFile = builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)
+		logger.info('''Starting test for resourcePath='«resourcePath»' logging into logFile='«logFile»'.''')
 		builder.start
-		return Response.created(UriBuilder.fromResource(DocumentResource).build(#[builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)], false)).build
+		return Response.created(logFile.resultingLogFileUri).build
 	}
 
+	private def URI resultingLogFileUri(String logFile){
+		return UriBuilder.fromResource(DocumentResource).build(#[logFile], false)
+	}
 }

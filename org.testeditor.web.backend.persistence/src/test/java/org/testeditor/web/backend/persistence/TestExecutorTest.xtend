@@ -25,17 +25,16 @@ import static org.mockito.Mockito.*
 class TestExecutorTest {
 
 	@Rule
-	public var temporaryFolders = new TemporaryFolder
+	public val temporaryFolders = new TemporaryFolder
+
+	@InjectMocks
+	TestExecutorProvider testExecutorProviderUnderTest
 
 	@Mock
 	WorkspaceProvider workspaceProviderMock
-
-	@InjectMocks
-	TestExecutorProvider testExecutorProviderUnderTest // class under test
-
 	@Mock
-	var Appender<ILoggingEvent> logAppender
-	var ArgumentCaptor<LoggingEvent> logCaptor
+	Appender<ILoggingEvent> logAppender
+	ArgumentCaptor<LoggingEvent> logCaptor
 
 	@Before
 	def void setupMocks() {
@@ -51,7 +50,7 @@ class TestExecutorTest {
 	}
 
 	@Test
-	def void testWrongFilename() {
+	def void testWrongFilenameFailsWithException() {
 		// given
 		val existingNonTestFile = 'actual-file.tl'
 		temporaryFolders.newFile(existingNonTestFile)
@@ -59,7 +58,7 @@ class TestExecutorTest {
 		// when
 		try {
 			testExecutorProviderUnderTest.testExecutionBuilder('actual-file.tl')
-			Assert.fail
+			Assert.fail('expected exception was NOT thrown!')
 		} catch (IllegalArgumentException exception) {
 			// then
 			assertThat(exception.message).contains(''''«existingNonTestFile»' is no test case'''.toString)
@@ -73,14 +72,14 @@ class TestExecutorTest {
 	}
 
 	@Test
-	def void testNonExistingFile() {
+	def void testNonExistingFileFailsWithException() {
 		// given
 		val nonExistingFile = 'fantasy-file.tcl'
 
 		// when
 		try {
 			testExecutorProviderUnderTest.testExecutionBuilder(nonExistingFile)
-			Assert.fail
+			Assert.fail('expected exception was NOT thrown!')
 		} catch (IllegalArgumentException exception) {
 			// then
 			assertThat(exception.message).isEqualTo('''File '«nonExistingFile»' does not exist'''.toString)
@@ -93,7 +92,7 @@ class TestExecutorTest {
 	}
 
 	@Test
-	def void testWithRegularTestFile() {
+	def void testWithRegularTestFileCreatesWellFormedProcessBuilder() {
 		// given
 		val actualFile = 'src/test/java/org/example/actual-file.tcl'
 		temporaryFolders.newFolder(actualFile.split('/').takeWhile[!endsWith('.tcl')])
@@ -107,7 +106,8 @@ class TestExecutorTest {
 		verifyZeroInteractions(logAppender)
 
 		processBuilder => [
-			assertThat(command).haveAtLeastOne(new Condition<String>([matches('^\\./gradlew .*--tests org\\.example\\.actual-file .*$')], 'gradle command line with test class'))
+			assertThat(command).haveAtLeastOne(
+				new Condition<String>([matches('^.*\\./gradlew .*--tests org\\.example\\.actual-file .*$')], 'gradle command line with test class'))
 			assertThat(environment).hasEntrySatisfying(TestExecutorProvider.LOGFILE_ENV_KEY, new Condition<String>([
 				matches(TestExecutorProvider.LOG_FOLDER + '/testrun-org\\.example\\.actual-file-[0-9]{15}\\.log')
 			], 'log file named accordingly'))

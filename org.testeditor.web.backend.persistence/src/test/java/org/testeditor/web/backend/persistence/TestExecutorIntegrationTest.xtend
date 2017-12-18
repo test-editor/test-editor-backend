@@ -27,16 +27,17 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		]
 
 		// when
-		val request = createTestExecutionRequest(testFile).buildPost(Entity.entity('{ }', MediaType.APPLICATION_JSON_TYPE))
+		val request = createTestExecutionRequest(testFile).buildPost(null)
 		val response = request.submit.get
 
 		// then
 		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
 		val logFileURI = response.headers.getFirst(HttpHeaders.LOCATION) as String
-		val logAsRelativeFile = logFileURI.split('/').dropWhile[!equals('documents')].drop(1).join('/')
-		val logfile = workspaceRoot.root.toPath.resolve(userId + '/' + logAsRelativeFile).toFile
+		val logAsRelativeFile = logFileURI.replaceFirst('.*/documents/','')
+		val workspaceRootPath = workspaceRoot.root.toPath
+		val logfile = workspaceRootPath.resolve(userId + '/' + logAsRelativeFile).toFile
 		assertThat(logfile).exists
-		val executionResult = workspaceRoot.root.toPath.resolve(userId + '/test.ok.txt').toFile
+		val executionResult = workspaceRootPath.resolve(userId + '/test.ok.txt').toFile
 		assertThat(executionResult).exists
 	}
 
