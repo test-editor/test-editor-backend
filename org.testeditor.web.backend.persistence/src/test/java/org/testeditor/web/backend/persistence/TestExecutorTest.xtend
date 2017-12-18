@@ -17,31 +17,24 @@ import org.mockito.Captor
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
-import org.mockito.MockitoAnnotations
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static org.assertj.core.api.Assertions.*
 import static org.mockito.Mockito.*
 
-class TestExecutorTest {
+class TestExecutorTest extends AbstractPersistenceTest {
 
-	@Rule
-	public val temporaryFolder = new TemporaryFolder
+	@Rule public val temporaryFolder = new TemporaryFolder
 
-	@InjectMocks
-	TestExecutorProvider testExecutorProviderUnderTest
+	@InjectMocks TestExecutorProvider testExecutorProviderUnderTest
 
-	@Mock
-	WorkspaceProvider workspaceProviderMock
-	@Mock
-	Appender<ILoggingEvent> logAppender
-	@Captor
-	ArgumentCaptor<LoggingEvent> logCaptor
+	@Mock WorkspaceProvider workspaceProviderMock
+	@Mock Appender<ILoggingEvent> logAppender
+	@Captor ArgumentCaptor<LoggingEvent> logCaptor
 
 	@Before
-	def void setupMocks() {
-		MockitoAnnotations.initMocks(this)
+	def void setupWorkspaceProviderMock() {
 		Mockito.when(workspaceProviderMock.workspace).thenReturn(temporaryFolder.root)
 	}
 
@@ -54,16 +47,16 @@ class TestExecutorTest {
 	@Test
 	def void testWrongFilenameFailsWithException() {
 		// given
-		val existingNonTestFile = 'actual-file.tl'
+		val existingNonTestFile = 'README.md'
 		temporaryFolder.newFile(existingNonTestFile)
 
 		// when
 		try {
-			testExecutorProviderUnderTest.testExecutionBuilder('actual-file.tl')
+			testExecutorProviderUnderTest.testExecutionBuilder(existingNonTestFile)
 			Assert.fail('expected exception was NOT thrown!')
-		} catch (IllegalArgumentException exception) {
+		} catch (IllegalArgumentException expectedException) {
 			// then
-			assertThat(exception.message).contains(''''«existingNonTestFile»' is no test case'''.toString)
+			assertThat(expectedException.message).contains(''''«existingNonTestFile»' is no test case'''.toString)
 			verify(logAppender).doAppend(logCaptor.capture)
 			assertThat(logCaptor.value).satisfies [
 				assertThat(formattedMessage).contains(''''«existingNonTestFile»' is no test case'''.toString)
@@ -76,15 +69,15 @@ class TestExecutorTest {
 	@Test
 	def void testNonExistingFileFailsWithException() {
 		// given
-		val nonExistingFile = 'fantasy-file.tcl'
+		val nonExistingFile = 'FantasyTest.tcl'
 
 		// when
 		try {
 			testExecutorProviderUnderTest.testExecutionBuilder(nonExistingFile)
 			Assert.fail('expected exception was NOT thrown!')
-		} catch (IllegalArgumentException exception) {
+		} catch (IllegalArgumentException expectedException) {
 			// then
-			assertThat(exception.message).isEqualTo('''File '«nonExistingFile»' does not exist'''.toString)
+			assertThat(expectedException.message).isEqualTo('''File '«nonExistingFile»' does not exist'''.toString)
 			verify(logAppender).doAppend(logCaptor.capture)
 			assertThat(logCaptor.value).satisfies [
 				assertThat(formattedMessage).isEqualTo('''File '«nonExistingFile»' does not exist'''.toString)
@@ -96,12 +89,14 @@ class TestExecutorTest {
 	@Test
 	def void testWithRegularTestFileCreatesWellFormedProcessBuilder() {
 		// given
-		val actualFile = 'src/test/java/org/example/actual-file.tcl'
-		temporaryFolder.newFolder(actualFile.split('/').takeWhile[!endsWith('.tcl')])
-		temporaryFolder.newFile(actualFile)
+		val exampleTestFile = 'src/test/java/org/example/ExampleTest.tcl'
+		temporaryFolder.newFolder(exampleTestFile.split('/').takeWhile[!endsWith('.tcl')])
+		temporaryFolder.newFile(exampleTestFile)
+		val expectedCommandMatchingRegEx = regExContainingInOrder('./gradlew', 'test', '--tests org.example.ExampleTest')
+		val expectedLogFileMatchingRegEx = '\\Q' + TestExecutorProvider.LOG_FOLDER + '/testrun-org.example.ExampleTest-\\E[0-9]{15}\\.log'
 
 		// when
-		val processBuilder = testExecutorProviderUnderTest.testExecutionBuilder(actualFile)
+		val processBuilder = testExecutorProviderUnderTest.testExecutionBuilder(exampleTestFile)
 
 		// then
 		assertThat(processBuilder).isNotNull
@@ -109,10 +104,10 @@ class TestExecutorTest {
 
 		processBuilder => [
 			assertThat(command).haveAtLeastOne(
-				stringMatching(regExContainingInOrder('./gradlew', 'test', '--tests org.example.actual-file'), 'gradle command line with test class'))
+				stringMatching(expectedCommandMatchingRegEx, 'gradle command line with test class'))
 
 			assertThat(environment).hasEntrySatisfying(TestExecutorProvider.LOGFILE_ENV_KEY,
-				stringMatching('\\Q' + TestExecutorProvider.LOG_FOLDER + '/testrun-org.example.actual-file-\\E[0-9]{15}\\.log', 'log file named accordingly'))
+				stringMatching(expectedLogFileMatchingRegEx, 'log file named accordingly'))
 
 			assertThat(directory.absolutePath).isEqualTo(temporaryFolder.root.absolutePath)
 		]
@@ -122,8 +117,8 @@ class TestExecutorTest {
 		return new Condition<String>([matches(regEx)], message)
 	}
 
-	private def String regExContainingInOrder(String ... elems) {
-		return elems.map[Pattern.quote(it)].join('.*', '.*', '.*', [it])
+	private def String regExContainingInOrder(String ... unquotedSubstrings) {
+		return unquotedSubstrings.map[Pattern.quote(it)].join('.*', '.*', '.*', [it])
 	}
 
 }
