@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.Appender
+import org.assertj.core.api.Condition
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Rule
@@ -31,7 +32,7 @@ class TestExecutorTest {
 
 	@InjectMocks
 	TestExecutorProvider testExecutorProviderUnderTest // class under test
-	
+
 	@Mock
 	var Appender<ILoggingEvent> logAppender
 	var ArgumentCaptor<LoggingEvent> logCaptor
@@ -51,7 +52,7 @@ class TestExecutorTest {
 
 	@Test
 	def void testWrongFilename() {
-		// given 
+		// given
 		val existingNonTestFile = 'actual-file.tl'
 		temporaryFolders.newFile(existingNonTestFile)
 
@@ -74,14 +75,14 @@ class TestExecutorTest {
 	@Test
 	def void testNonExistingFile() {
 		// given
-		val nonExistingFile = 'fantasy-file.tcl' 
+		val nonExistingFile = 'fantasy-file.tcl'
 
 		// when
 		try {
 			testExecutorProviderUnderTest.testExecutionBuilder(nonExistingFile)
 			Assert.fail
 		} catch (IllegalArgumentException exception) {
-			// then 
+			// then
 			assertThat(exception.message).isEqualTo('''File '«nonExistingFile»' does not exist'''.toString)
 			verify(logAppender).doAppend(logCaptor.capture)
 			assertThat(logCaptor.value).satisfies [
@@ -93,7 +94,7 @@ class TestExecutorTest {
 
 	@Test
 	def void testWithRegularTestFile() {
-		// given 
+		// given
 		val actualFile = 'src/test/java/org/example/actual-file.tcl'
 		temporaryFolders.newFolder(actualFile.split('/').takeWhile[!endsWith('.tcl')])
 		temporaryFolders.newFile(actualFile)
@@ -105,11 +106,13 @@ class TestExecutorTest {
 		assertThat(processBuilder).isNotNull
 		verifyZeroInteractions(logAppender)
 
-		processBuilder.command => [
-			assertThat(head).isEqualTo('./gradlew')
-			assertThat(it).contains('org.example.actual-file')
+		processBuilder => [
+			assertThat(command).haveAtLeastOne(new Condition<String>([matches('^\\./gradlew .*--tests org\\.example\\.actual-file .*$')], 'gradle command line with test class'))
+			assertThat(environment).hasEntrySatisfying(TestExecutorProvider.LOGFILE_ENV_KEY, new Condition<String>([
+				matches(TestExecutorProvider.LOG_FOLDER + '/testrun-org\\.example\\.actual-file-[0-9]{15}\\.log')
+			], 'log file named accordingly'))
+			assertThat(directory.absolutePath).isEqualTo(temporaryFolders.root.absolutePath)
 		]
-		assertThat(processBuilder.directory.absolutePath).isEqualTo(temporaryFolders.root.absolutePath)
 	}
 
 }

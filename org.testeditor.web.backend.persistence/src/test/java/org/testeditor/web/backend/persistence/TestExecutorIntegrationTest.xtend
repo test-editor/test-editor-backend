@@ -31,11 +31,12 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		val response = request.submit.get
 
 		// then
-		val locationHeader = response.headers.getFirst(HttpHeaders.LOCATION) as String
-		assertThat(locationHeader).endsWith('logs/testrun.log')
 		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
-
-		val executionResult = workspaceRoot.root.toPath.resolve(userId+'/test.ok.txt').toFile
+		val logFileURI = response.headers.getFirst(HttpHeaders.LOCATION) as String
+		val logAsRelativeFile = logFileURI.split('/').dropWhile[!equals('documents')].drop(1).join('/')
+		val logfile = workspaceRoot.root.toPath.resolve(userId + '/' + logAsRelativeFile).toFile
+		assertThat(logfile).exists
+		val executionResult = workspaceRoot.root.toPath.resolve(userId + '/test.ok.txt').toFile
 		assertThat(executionResult).exists
 	}
 

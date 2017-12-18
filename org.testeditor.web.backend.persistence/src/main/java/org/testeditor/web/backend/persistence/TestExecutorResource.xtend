@@ -27,7 +27,7 @@ class TestExecutorResource {
 		val builder = executorProvider.testExecutionBuilder(resourcePath)
 		logger.info('''Starting test for '«resourcePath»'.''')
 		builder.start
-		return Response.created(UriBuilder.fromResource(DocumentResource).build(#['logs/testrun.log'], false)).build
+		return Response.created(UriBuilder.fromResource(DocumentResource).build(#[builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)], false)).build
 	}
 
 }
