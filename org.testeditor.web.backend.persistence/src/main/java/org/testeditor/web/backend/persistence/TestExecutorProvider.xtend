@@ -20,6 +20,21 @@ class TestExecutorProvider {
 	@Inject WorkspaceProvider workspaceProvider
 
 	def ProcessBuilder testExecutionBuilder(String testCase) {
+		val testClass = testCase.testClass
+		val logFile = testClass.createNewLogFileName
+		val workingDir = workspaceProvider.workspace.absoluteFile
+		val processBuilder = new ProcessBuilder => [
+			command(constructCommandLine(testClass, logFile))
+			directory(workingDir)
+			redirectOutput(Redirect.INHERIT)
+			redirectError(Redirect.INHERIT)
+			environment.put(LOGFILE_ENV_KEY, logFile)
+		]
+
+		return processBuilder
+	}
+
+	private def String getTestClass(String testCase) {
 		if (!testCase.endsWith(TEST_CASE_FILE_SUFFIX)) {
 			val errorMsg = '''File '«testCase»' is no test case (does not end on «TEST_CASE_FILE_SUFFIX»)'''
 			logger.error(errorMsg)
@@ -31,19 +46,7 @@ class TestExecutorProvider {
 			logger.error(errorMsg)
 			throw new IllegalArgumentException(errorMsg)
 		}
-
-		val testClass = testCase.toTestClassName
-		val logFile = testClass.createNewLogFileName
-		val workingDir = workspaceProvider.workspace.absoluteFile
-		val processBuilder = new ProcessBuilder() //
-		.command(constructCommandLine(testClass, logFile)) //
-		.directory(workingDir) //
-		.redirectOutput(Redirect.INHERIT) //
-		.redirectError(Redirect.INHERIT)
-
-		processBuilder.environment.put(LOGFILE_ENV_KEY, logFile)
-
-		return processBuilder
+		return testCase.toTestClassName
 	}
 	
 	private def String toTestClassName(String fileName) {

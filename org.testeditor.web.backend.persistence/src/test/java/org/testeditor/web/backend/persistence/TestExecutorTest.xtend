@@ -5,6 +5,7 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.Appender
+import java.util.regex.Pattern
 import org.assertj.core.api.Condition
 import org.junit.Assert
 import org.junit.Before
@@ -12,6 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.mockito.ArgumentCaptor
+import org.mockito.Captor
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
@@ -25,7 +27,7 @@ import static org.mockito.Mockito.*
 class TestExecutorTest {
 
 	@Rule
-	public val temporaryFolders = new TemporaryFolder
+	public val temporaryFolder = new TemporaryFolder
 
 	@InjectMocks
 	TestExecutorProvider testExecutorProviderUnderTest
@@ -34,17 +36,17 @@ class TestExecutorTest {
 	WorkspaceProvider workspaceProviderMock
 	@Mock
 	Appender<ILoggingEvent> logAppender
+	@Captor
 	ArgumentCaptor<LoggingEvent> logCaptor
 
 	@Before
 	def void setupMocks() {
 		MockitoAnnotations.initMocks(this)
-		Mockito.when(workspaceProviderMock.workspace).thenReturn(temporaryFolders.root)
+		Mockito.when(workspaceProviderMock.workspace).thenReturn(temporaryFolder.root)
 	}
 
 	@Before
 	def void setupLogging() {
-		logCaptor = ArgumentCaptor.forClass(LoggingEvent)
 		val logBackRootLogger = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME) as Logger
 		logBackRootLogger.addAppender(logAppender)
 	}
@@ -53,7 +55,7 @@ class TestExecutorTest {
 	def void testWrongFilenameFailsWithException() {
 		// given
 		val existingNonTestFile = 'actual-file.tl'
-		temporaryFolders.newFile(existingNonTestFile)
+		temporaryFolder.newFile(existingNonTestFile)
 
 		// when
 		try {
@@ -95,8 +97,8 @@ class TestExecutorTest {
 	def void testWithRegularTestFileCreatesWellFormedProcessBuilder() {
 		// given
 		val actualFile = 'src/test/java/org/example/actual-file.tcl'
-		temporaryFolders.newFolder(actualFile.split('/').takeWhile[!endsWith('.tcl')])
-		temporaryFolders.newFile(actualFile)
+		temporaryFolder.newFolder(actualFile.split('/').takeWhile[!endsWith('.tcl')])
+		temporaryFolder.newFile(actualFile)
 
 		// when
 		val processBuilder = testExecutorProviderUnderTest.testExecutionBuilder(actualFile)
@@ -107,12 +109,21 @@ class TestExecutorTest {
 
 		processBuilder => [
 			assertThat(command).haveAtLeastOne(
-				new Condition<String>([matches('^.*\\./gradlew .*--tests org\\.example\\.actual-file .*$')], 'gradle command line with test class'))
-			assertThat(environment).hasEntrySatisfying(TestExecutorProvider.LOGFILE_ENV_KEY, new Condition<String>([
-				matches(TestExecutorProvider.LOG_FOLDER + '/testrun-org\\.example\\.actual-file-[0-9]{15}\\.log')
-			], 'log file named accordingly'))
-			assertThat(directory.absolutePath).isEqualTo(temporaryFolders.root.absolutePath)
+				stringMatching(regExContainingInOrder('./gradlew', 'test', '--tests org.example.actual-file'), 'gradle command line with test class'))
+
+			assertThat(environment).hasEntrySatisfying(TestExecutorProvider.LOGFILE_ENV_KEY,
+				stringMatching('\\Q' + TestExecutorProvider.LOG_FOLDER + '/testrun-org.example.actual-file-\\E[0-9]{15}\\.log', 'log file named accordingly'))
+
+			assertThat(directory.absolutePath).isEqualTo(temporaryFolder.root.absolutePath)
 		]
+	}
+	
+	private def Condition<String> stringMatching(String regEx, String message) {
+		return new Condition<String>([matches(regEx)], message)
+	}
+
+	private def String regExContainingInOrder(String ... elems) {
+		return elems.map[Pattern.quote(it)].join('.*', '.*', '.*', [it])
 	}
 
 }
