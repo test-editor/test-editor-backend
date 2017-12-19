@@ -16,6 +16,7 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 		environment.jersey => [
 			register(DocumentResource)
 			register(WorkspaceResource)
+			register(TestExecutorResource)
 			register(PersistenceExceptionMapper)
 		]
 	}
