@@ -1,5 +1,3 @@
-indexServiceURL: http://localhost:8100/xtext/index/global-scope
-
 server:
   applicationConnectors:
   - type: http 
