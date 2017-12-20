@@ -1,12 +1,12 @@
 package org.testeditor.web.backend.persistence
 
-import io.dropwizard.Configuration
 import javax.inject.Singleton
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.hibernate.validator.constraints.NotEmpty
+import org.testeditor.web.dropwizard.DropwizardApplicationConfiguration
 
 @Singleton
-class PersistenceConfiguration extends Configuration {
+class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 
 	@NotEmpty
 	@Accessors
@@ -24,4 +24,5 @@ class PersistenceConfiguration extends Configuration {
 
 	@Accessors
 	private String knownHostsLocation
+
 }
