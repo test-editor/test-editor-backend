@@ -44,12 +44,11 @@ class IndexServiceClientTest {
 
 	static val AUTH_HEADER = "Bearer DUMMYTOKEN"
 
-	@Mock
-	var Appender<ILoggingEvent> logAppender
+	
+	var Appender<ILoggingEvent> logAppender = mock(Appender, withSettings.verboseLogging)
 	var ArgumentCaptor<LoggingEvent> logCaptor
 
-	@Mock
-	var Client client
+	@Mock var Client client
 
 	// URI is a final class, which cannot be mocked by Mockito by default.
 	// Therefore, Mockito's inline-mockmaker was enabled by placing the file
@@ -57,15 +56,11 @@ class IndexServiceClientTest {
 	// with content "mock-maker-inline".
 	// See https://github.com/mockito/mockito/wiki/What%27s-new-in-Mockito-2#unmockable
 	// for documentation.
-	@Spy
-	var java.net.URI uri = java.net.URI.create("http://www.example.org")
-	@Mock
-	var Provider<HttpServletRequest> requestProvider
-	@Mock
-	var HttpServletRequest contextRequest
+	@Spy var java.net.URI uri = java.net.URI.create("http://www.example.org")
+	@Mock var Provider<HttpServletRequest> requestProvider
+	@Mock var HttpServletRequest contextRequest
 
-	@InjectMocks
-	IndexServiceClient unitUnderTest
+	@InjectMocks IndexServiceClient unitUnderTest
 
 	@Before
 	def void setupTestLogAppender() {
