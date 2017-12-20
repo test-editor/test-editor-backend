@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
 import java.net.URI
 
 @Path("/tests")
-@Consumes(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
 class TestExecutorResource {
 
 	static val logger = LoggerFactory.getLogger(TestExecutorResource)
