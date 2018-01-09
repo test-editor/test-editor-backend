@@ -4,14 +4,14 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'org.xtext:xtext-gradle-plugin:1.0.19'
-        classpath 'org.owasp:dependency-check-gradle:3.0.2'
+        classpath 'org.xtext:xtext-gradle-plugin:1.0.20'
+        classpath 'org.owasp:dependency-check-gradle:3.1.0'
     }
 }
 
 plugins {
     id 'net.researchgate.release' version '2.6.0'
-    id 'com.jfrog.bintray' version '1.7.3'
+    id 'com.jfrog.bintray' version '1.8.0'
 }
 
 subprojects {
@@ -19,6 +19,9 @@ subprojects {
         jcenter()
         maven {
             url  "http://dl.bintray.com/franzbecker/maven" 
+        }
+        maven {
+            url 'https://repo.gradle.org/gradle/libs-releases'
         }
         maven {
             url  "http://dl.bintray.com/test-editor/maven" 
@@ -66,12 +69,12 @@ subprojects {
     dependencies {
         compile "org.eclipse.xtend:org.eclipse.xtend.lib:$versions.xtext"
         compile "org.testeditor.web:org.testeditor.web.dropwizard:$versions.testEditorDropwizard"
+        compile 'commons-io:commons-io:2.6'
         testCompile "org.testeditor.web:org.testeditor.web.dropwizard.testing:$versions.testEditorDropwizard"
         testCompile 'junit:junit:4.12'
-        testCompile 'org.mockito:mockito-core:2.7.22'
+        testCompile 'org.mockito:mockito-core:2.13.0'
         testCompile 'de.xtendutils:junit:0.0.4'
         testCompile "io.dropwizard:dropwizard-testing:$versions.dropwizard"
-        testCompile 'commons-io:commons-io:2.5'
     }
    
 	test {
