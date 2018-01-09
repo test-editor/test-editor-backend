@@ -17,8 +17,8 @@ dependencies {
 
     compile "org.eclipse.xtend:org.eclipse.xtend.core:$versions.xtext"
     testCompile "org.eclipse.xtext:org.eclipse.xtext.testing:$versions.xtext"
-    compile 'org.gradle:gradle-tooling-api:2.14.1'
-    testCompile "com.github.tomakehurst:wiremock:2.11.0"
+    compile 'org.gradle:gradle-tooling-api:4.4.1'
+    testCompile "com.github.tomakehurst:wiremock:2.13.0"
 }
 
 mainClassName = 'org.testeditor.web.backend.xtext.TestEditorApplication'

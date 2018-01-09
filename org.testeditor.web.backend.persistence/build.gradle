@@ -1,8 +1,6 @@
 dependencies {
-	compile "org.eclipse.jgit:org.eclipse.jgit:4.7.0.201704051617-r"
-	compile "commons-io:commons-io:2.5"
-	compile 'com.auth0:java-jwt:3.2.0'
-	testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.7.0.201704051617-r"
+	compile "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
+	testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.10.0.201712302008-r"
 }
 
 mainClassName = 'org.testeditor.web.backend.persistence.PersistenceApplication'
