@@ -15,6 +15,7 @@ import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.auth.User
 
 import static java.nio.charset.StandardCharsets.*
+import java.nio.file.Paths
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
@@ -76,6 +77,12 @@ class DocumentProvider {
 		} else {
 			throw new FileNotFoundException(resourcePath)
 		}
+	}
+	
+	def boolean isBinary(String resourcePath) {
+		val file = getWorkspaceFile(resourcePath)
+		
+		return !java.nio.file.Files.probeContentType(file.toPath).toLowerCase.startsWith("text")
 	}
 
 	private def void write(File file, String content) {

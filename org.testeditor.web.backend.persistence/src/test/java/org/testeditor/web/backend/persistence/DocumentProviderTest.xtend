@@ -214,5 +214,29 @@ class DocumentProviderTest extends AbstractGitTest {
 		// then
 		gitProvider.git.lastCommit.fullMessage.assertEquals('''delete file: «existingFileName»'''.toString)
 	}
+	
+	@Test
+	def void recognizesBinaryFile() {
+		// given
+		val existingImageFile = createPreExistingBinaryFileInRemoteRepository("image.png")
+		
+		// when
+		val boolean actual = documentProvider.isBinary(existingImageFile);
+		
+		// then
+		assertTrue(actual)
+	}
+	
+	@Test
+	def void recognizesTextFile() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository("file.txt", "Plain-text content")
+		
+		// when
+		val boolean actual = documentProvider.isBinary(existingFileName);
+		
+		// then
+		assertFalse(actual)
+	}
 
 }
