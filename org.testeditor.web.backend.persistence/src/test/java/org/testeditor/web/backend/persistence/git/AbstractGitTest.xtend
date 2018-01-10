@@ -31,7 +31,7 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 	@Inject protected GitProvider gitProvider
 	@Mock protected WorkspaceProvider workspaceProvider
 	
-	private static final File BINARY_FILE = new File("src/test/resources/sample-binary-file.png")
+	protected static final File BINARY_FILE = new File("src/test/resources/sample-binary-file.png")
 
 	protected Git remoteGit
 
@@ -82,6 +82,7 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 		val fileToWrite = new File(remoteGitFolder.root, path)
 		Files.createParentDirs(fileToWrite)
 		Files.copy(BINARY_FILE, fileToWrite)
+		remoteGit.addAndCommit(path, "set test preconditions")
 		return path
 	}
 

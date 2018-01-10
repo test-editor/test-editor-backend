@@ -1,14 +1,22 @@
 package org.testeditor.web.backend.persistence
 
+import java.io.FileInputStream
 import javax.inject.Inject
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.ExpectedException
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
 
+import static extension com.google.common.io.ByteStreams.*
+import java.util.Arrays
+
 class DocumentProviderTest extends AbstractGitTest {
 
 	@Inject DocumentProvider documentProvider
+	
+	@Rule public val exception = ExpectedException.none()
 
 	@Test
 	def void createCommitsNewFile() {
@@ -230,13 +238,39 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void recognizesTextFile() {
 		// given
-		val existingFileName = createPreExistingFileInRemoteRepository("file.txt", "Plain-text content")
+		val existingFileName = createPreExistingFileInRemoteRepository("file.tcl", "Plain-text content")
 		
 		// when
-		val boolean actual = documentProvider.isBinary(existingFileName);
+		val actual = documentProvider.isBinary(existingFileName);
 		
 		// then
 		assertFalse(actual)
+	}
+	
+	@Test
+	def void loadBinaryReturnsContentAsStream() {
+		// given
+		val expectedContents = new FileInputStream(BINARY_FILE).toByteArray
+		val existingImageFile = createPreExistingBinaryFileInRemoteRepository("image.png")
+		
+		// when
+		val actualContents = documentProvider.loadBinary(existingImageFile)
+		
+		// then
+		assertTrue(Arrays.equals(actualContents.toByteArray, expectedContents))
+	}
+	
+	@Test
+	def void loadOnBinaryFileRaisesException() {
+		// given
+		val existingImageFile = createPreExistingBinaryFileInRemoteRepository("image.png")
+		
+		// then (!)
+		exception.expect(IllegalStateException)
+		exception.expectMessage('''File "«existingImageFile»" appears to be binary and cannot be loaded as text.''')		
+		
+		// when
+		documentProvider.load(existingImageFile)
 	}
 
 }

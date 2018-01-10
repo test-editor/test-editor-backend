@@ -16,6 +16,9 @@ import org.testeditor.web.dropwizard.auth.User
 
 import static java.nio.charset.StandardCharsets.*
 import java.nio.file.Paths
+import java.io.OutputStream
+import java.io.FileInputStream
+import java.io.InputStream
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
@@ -58,7 +61,11 @@ class DocumentProvider {
 
 	def String load(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		return file.read
+		if (!isBinary(resourcePath)) {
+			return file.read
+		} else {
+			throw new IllegalStateException('''File "«file.name»" appears to be binary and cannot be loaded as text.''')
+		}
 	}
 
 	def void save(String resourcePath, String content) {
@@ -78,11 +85,20 @@ class DocumentProvider {
 			throw new FileNotFoundException(resourcePath)
 		}
 	}
-	
+
 	def boolean isBinary(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		
-		return !java.nio.file.Files.probeContentType(file.toPath).toLowerCase.startsWith("text")
+		if (file.exists) {
+			return !java.nio.file.Files.probeContentType(file.toPath).toLowerCase.startsWith("text")
+		} else {
+			throw new FileNotFoundException('''file "«resourcePath»" does not exist.''')
+		}
+	}
+
+	def InputStream loadBinary(String resourcePath) {
+		val file = getWorkspaceFile(resourcePath)
+
+		return new FileInputStream(file)
 	}
 
 	private def void write(File file, String content) {
