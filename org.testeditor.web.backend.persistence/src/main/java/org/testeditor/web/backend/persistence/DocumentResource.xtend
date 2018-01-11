@@ -45,8 +45,7 @@ class DocumentResource {
 	}
 
 	@PUT
-	def Response createOrUpdate(@PathParam("resourcePath") String resourcePath, String content,
-		@Context HttpHeaders headers) {
+	def Response createOrUpdate(@PathParam("resourcePath") String resourcePath, String content, @Context HttpHeaders headers) {
 		val created = documentProvider.createOrUpdate(resourcePath, content)
 		if (created) {
 			return status(CREATED).build
@@ -56,13 +55,19 @@ class DocumentResource {
 	}
 
 	@GET
-	@Produces(MediaType.TEXT_PLAIN)
 	def Response load(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
 		try {
-			val content = documentProvider.load(resourcePath)
-			return status(OK).entity(content).build
+			return resourcePath.loadIntoResponse.build
 		} catch (FileNotFoundException e) {
 			return status(NOT_FOUND).build
+		}
+	}
+
+	private def loadIntoResponse(String resourcePath) {
+		if (documentProvider.isBinary(resourcePath)) {
+			status(OK).entity(documentProvider.loadBinary(resourcePath)).type(documentProvider.getType(resourcePath))
+		} else {
+			status(OK).entity(documentProvider.load(resourcePath)).type(MediaType.TEXT_PLAIN)
 		}
 	}
 

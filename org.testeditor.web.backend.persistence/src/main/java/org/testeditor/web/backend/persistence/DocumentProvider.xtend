@@ -2,7 +2,9 @@ package org.testeditor.web.backend.persistence
 
 import com.google.common.io.Files
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileNotFoundException
+import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
@@ -15,10 +17,6 @@ import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.auth.User
 
 import static java.nio.charset.StandardCharsets.*
-import java.nio.file.Paths
-import java.io.OutputStream
-import java.io.FileInputStream
-import java.io.InputStream
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
@@ -93,6 +91,11 @@ class DocumentProvider {
 		} else {
 			throw new FileNotFoundException('''file "«resourcePath»" does not exist.''')
 		}
+	}
+
+	def String getType(String resourcePath) {
+		val file = getWorkspaceFile(resourcePath)
+		return java.nio.file.Files.probeContentType(file.toPath)
 	}
 
 	def InputStream loadBinary(String resourcePath) {
