@@ -1,6 +1,8 @@
 package org.testeditor.web.backend.persistence.git
 
+import com.google.common.io.Files
 import com.google.inject.Module
+import java.io.File
 import java.util.List
 import javax.inject.Inject
 import org.eclipse.jgit.api.Git
@@ -12,11 +14,10 @@ import org.mockito.Mock
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
-import static org.mockito.Mockito.*
 import org.testeditor.web.dropwizard.testing.files.FileTestUtils
 import org.testeditor.web.dropwizard.testing.git.JGitTestUtils
-import com.google.common.io.Files
-import java.io.File
+
+import static org.mockito.Mockito.*
 
 abstract class AbstractGitTest extends AbstractPersistenceTest {
 
@@ -30,8 +31,8 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 
 	@Inject protected GitProvider gitProvider
 	@Mock protected WorkspaceProvider workspaceProvider
-	
-	protected static final File BINARY_FILE = new File("src/test/resources/sample-binary-file.png")
+
+	protected static val BINARY_FILE = new File("src/test/resources/sample-binary-file.png")
 
 	protected Git remoteGit
 
@@ -73,11 +74,11 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 		remoteGit.addAndCommit(path, "set test preconditions")
 		return path
 	}
-	
+
 	protected def createPreExistingBinaryFileInRemoteRepository() {
 		return this.createPreExistingBinaryFileInRemoteRepository("preExistingImageFile.png")
 	}
-	
+
 	protected def createPreExistingBinaryFileInRemoteRepository(String path) {
 		val fileToWrite = new File(remoteGitFolder.root, path)
 		Files.createParentDirs(fileToWrite)

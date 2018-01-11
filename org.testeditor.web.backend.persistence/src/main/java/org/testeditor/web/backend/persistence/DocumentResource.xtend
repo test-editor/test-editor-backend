@@ -64,7 +64,7 @@ class DocumentResource {
 	}
 
 	private def loadIntoResponse(String resourcePath) {
-		if (documentProvider.isBinary(resourcePath)) {
+		if (documentProvider.regardAsBinary(resourcePath)) {
 			status(OK).entity(documentProvider.loadBinary(resourcePath)).type(documentProvider.getType(resourcePath))
 		} else {
 			status(OK).entity(documentProvider.load(resourcePath)).type(MediaType.TEXT_PLAIN)

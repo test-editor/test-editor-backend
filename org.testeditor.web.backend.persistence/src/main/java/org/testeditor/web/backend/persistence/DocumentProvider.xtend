@@ -18,6 +18,8 @@ import org.testeditor.web.dropwizard.auth.User
 
 import static java.nio.charset.StandardCharsets.*
 
+import static extension java.nio.file.Files.probeContentType
+
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
  * consider the user workspace as well.
@@ -59,7 +61,7 @@ class DocumentProvider {
 
 	def String load(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		if (!isBinary(resourcePath)) {
+		if (!regardAsBinary(resourcePath)) {
 			return file.read
 		} else {
 			throw new IllegalStateException('''File "«file.name»" appears to be binary and cannot be loaded as text.''')
@@ -84,10 +86,10 @@ class DocumentProvider {
 		}
 	}
 
-	def boolean isBinary(String resourcePath) {
+	def boolean regardAsBinary(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
 		if (file.exists) {
-			return !java.nio.file.Files.probeContentType(file.toPath).toLowerCase.startsWith("text")
+			return !file.toPath.probeContentType.toLowerCase.startsWith("text")
 		} else {
 			throw new FileNotFoundException('''file "«resourcePath»" does not exist.''')
 		}
@@ -95,7 +97,7 @@ class DocumentProvider {
 
 	def String getType(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		return java.nio.file.Files.probeContentType(file.toPath)
+		return file.toPath.probeContentType
 	}
 
 	def InputStream loadBinary(String resourcePath) {
