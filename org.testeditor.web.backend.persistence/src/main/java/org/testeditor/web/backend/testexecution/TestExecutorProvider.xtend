@@ -53,7 +53,11 @@ class TestExecutorProvider {
 	}
 
 	private def String[] constructCommandLine(String testClass, String logFile) {
-		return #['/bin/sh', '-c', testClass.gradleTestCommandLine.andLogInto(logFile)]
+		return #['/bin/sh', '-c', testClass.gradleTestCommandLine.andLogInto(logFile).withPipefail]
+	}
+
+	private def String withPipefail(String command) {
+		return '''set -o pipefail; «command»'''
 	}
 
 	private def String andLogInto(String testExecution, String logFile) {

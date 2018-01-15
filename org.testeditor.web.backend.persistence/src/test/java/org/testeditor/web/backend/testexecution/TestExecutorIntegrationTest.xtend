@@ -1,5 +1,7 @@
 package org.testeditor.web.backend.testexecution
 
+import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.TimeUnit
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MultivaluedMap
@@ -33,12 +35,86 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 		// then
 		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
-		
+
 		val logfile = workspaceRootPath.resolve(userId + '/' + relativeLogFileNameFrom(response.headers))
 		assertThat(logfile).exists
-		
 		val executionResult = workspaceRootPath.resolve(userId + '/test.ok.txt').toFile
 		assertThat(executionResult).exists
+	}
+
+	@Test
+	def void testThatRunningStatusIsReturned() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				sleep 10 # ensure test reads process's status while still running
+				echo "test was run" > test.ok.txt
+			''')
+		]
+		val executionResponse = createTestExecutionRequest(testFile).post(null)
+		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+
+		// when
+		val actualTestStatus = createTestStatusRequest(testFile).get
+
+		// then
+		assertThat(actualTestStatus.readEntity(TestStatus)).isEqualTo(TestStatus.RUNNING)
+
+	}
+
+	@Test
+	def void testThatSuccessStatusIsReturned() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo "test was run" > test.ok.txt
+			''')
+		]
+		val executionResponse = createTestExecutionRequest(testFile).post(null)
+		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+		ensureTestHasTerminated()
+
+		// when
+		val actualTestStatus = createTestStatusRequest(testFile).get
+
+		// then
+		assertThat(actualTestStatus.readEntity(TestStatus)).isEqualTo(TestStatus.SUCCESS)
+
+	}
+
+	@Test
+	def void testThatFailureStatusIsReturned() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				exit 1 # signal error/failure
+			''')
+		]
+		val executionResponse = createTestExecutionRequest(testFile).post(null)
+		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+		ensureTestHasTerminated()
+
+		// when
+		val actualTestStatus = createTestStatusRequest(testFile).get
+
+		// then
+		assertThat(actualTestStatus.readEntity(TestStatus)).isEqualTo(TestStatus.FAILED)
+
 	}
 
 	private def String relativeLogFileNameFrom(MultivaluedMap<String, Object> headers) {
@@ -49,6 +125,15 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	private def Builder createTestExecutionRequest(String resourcePath) {
 		return createRequest('''tests/execute?resource=«resourcePath»''')
+	}
+
+	private def Builder createTestStatusRequest(String resourcePath) {
+		return createRequest('''tests/status?resource=«resourcePath»''')
+	}
+
+	def ensureTestHasTerminated() {
+		ForkJoinPool.commonPool.shutdown()
+		ForkJoinPool.commonPool.awaitQuiescence(50, TimeUnit.MILLISECONDS)
 	}
 
 }
