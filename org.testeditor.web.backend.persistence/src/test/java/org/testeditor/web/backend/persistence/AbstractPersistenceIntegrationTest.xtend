@@ -13,6 +13,8 @@ import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 
 import static io.dropwizard.testing.ConfigOverride.config
+import org.junit.Before
+import org.glassfish.jersey.client.ClientProperties
 
 abstract class AbstractPersistenceIntegrationTest {
 
@@ -67,6 +69,12 @@ abstract class AbstractPersistenceIntegrationTest {
 		val git = Git.open(remoteGitFolder.root)
 		git.add.addFilepattern(pathToCommit).call
 		git.commit.setMessage("pre-existing commit in remote repository").call
+	}
+
+	@Before
+	def void setClientTimeouts() {
+		client.property(ClientProperties.CONNECT_TIMEOUT, 10000);
+		client.property(ClientProperties.READ_TIMEOUT, 10000);
 	}
 
 	@After

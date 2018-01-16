@@ -1,6 +1,5 @@
 package org.testeditor.web.backend.testexecution
 
-import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.HttpHeaders
@@ -36,6 +35,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		// then
 		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
 
+		createAsyncTestStatusRequest(testFile).get // wait for test to terminate
 		val logfile = workspaceRootPath.resolve(userId + '/' + relativeLogFileNameFrom(response.headers))
 		assertThat(logfile).exists
 		val executionResult = workspaceRootPath.resolve(userId + '/test.ok.txt').toFile
@@ -82,10 +82,9 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		]
 		val executionResponse = createTestExecutionRequest(testFile).post(null)
 		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
-		ensureTestHasTerminated()
 
 		// when
-		val actualTestStatus = createTestStatusRequest(testFile).get
+		val actualTestStatus = createAsyncTestStatusRequest(testFile).get
 
 		// then
 		assertThat(actualTestStatus.readEntity(TestStatus)).isEqualTo(TestStatus.SUCCESS)
@@ -107,13 +106,47 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		]
 		val executionResponse = createTestExecutionRequest(testFile).post(null)
 		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
-		ensureTestHasTerminated()
 
 		// when
-		val actualTestStatus = createTestStatusRequest(testFile).get
+		val actualTestStatus = createAsyncTestStatusRequest(testFile).get
 
 		// then
 		assertThat(actualTestStatus.readEntity(TestStatus)).isEqualTo(TestStatus.FAILED)
+
+	}
+
+	@Test
+	def void testThatStatusRequestIsReturnedEventuallyForLongRunningTests() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				sleep 12 # should timeout twice w/ timeout = 5 sec
+			''')
+		]
+		val executionResponse = createTestExecutionRequest(testFile).post(null)
+		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+
+		val longPollingRequest = createAsyncTestStatusRequest(testFile).async
+		val statusList = <TestStatus>newLinkedList(TestStatus.RUNNING)
+
+		// when
+		for (var i = 0; i < 4 && statusList.head.equals(TestStatus.RUNNING); i++) {
+				val future = longPollingRequest.get
+				val response = future.get(120, TimeUnit.SECONDS)
+				assertThat(response.status).isEqualTo(200)
+				statusList.offerFirst(response.readEntity(TestStatus))
+				response.close
+		}
+
+		// then
+		assertThat(statusList.size).isGreaterThan(3)
+		assertThat(statusList.tail).allMatch[TestStatus.RUNNING.equals(it)]
+		assertThat(statusList.head).isEqualTo(TestStatus.SUCCESS)
 
 	}
 
@@ -131,9 +164,8 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		return createRequest('''tests/status?resource=«resourcePath»''')
 	}
 
-	def ensureTestHasTerminated() {
-		ForkJoinPool.commonPool.shutdown()
-		ForkJoinPool.commonPool.awaitQuiescence(50, TimeUnit.MILLISECONDS)
+	private def Builder createAsyncTestStatusRequest(String resourcePath) {
+		return createRequest('''tests/status/wait?resource=«resourcePath»''')
 	}
 
 }
