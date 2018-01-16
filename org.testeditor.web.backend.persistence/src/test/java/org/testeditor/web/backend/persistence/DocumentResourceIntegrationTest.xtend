@@ -2,6 +2,8 @@ package org.testeditor.web.backend.persistence
 
 import com.google.common.base.Strings
 import java.io.File
+import java.io.FileInputStream
+import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
@@ -13,6 +15,8 @@ import org.junit.Test
 import static javax.ws.rs.core.Response.Status.*
 import static org.eclipse.jgit.api.ResetCommand.ResetType.HARD
 
+import static extension org.apache.commons.io.IOUtils.contentEquals
+
 class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	val resourcePath = "some/parent/folder/example.tsl"
@@ -21,6 +25,8 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		
 		# Example
 	'''
+	val binaryResourcePath = "some/parent/folder/image.png"
+	val binaryContentsFile = new File("src/test/resources/sample-binary-file.png")
 
 	@Test
 	def void canCreateDocumentUsingPost() {
@@ -149,6 +155,29 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		response.status.assertEquals(OK.statusCode)
 		response.readEntity(String).assertEquals(simpleTsl)
+
+		val actualType = response.headers.get("Content-Type")
+		actualType.assertSingleElement
+		actualType.get(0).assertEquals("text/plain")
+	}
+
+	@Test
+	def void canRetrieveExistingBinaryDocument() {
+		// given
+		writeBinary(binaryResourcePath, binaryContentsFile)
+		val request = createDocumentRequest(binaryResourcePath)
+
+		// when
+		val response = request.get
+
+		// then
+		response.status.assertEquals(OK.statusCode)
+		val actualType = response.headers.get("Content-Type")
+		actualType.assertSingleElement
+		actualType.get(0).assertEquals("image/png")
+
+		val actualContents = response.readEntity(InputStream)
+		assertTrue(actualContents.contentEquals(new FileInputStream(binaryContentsFile)))
 	}
 
 	@Test
@@ -211,6 +240,13 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	private def File write(String resourcePath, CharSequence charSequence) {
 		val file = getRemoteFile(resourcePath)
 		FileUtils.write(file, charSequence, StandardCharsets.UTF_8)
+		commitInRemoteRepository(resourcePath)
+		return file
+	}
+
+	private def File writeBinary(String resourcePath, File binaryFileToCopy) {
+		val file = getRemoteFile(resourcePath)
+		FileUtils.copyFile(binaryFileToCopy, file)
 		commitInRemoteRepository(resourcePath)
 		return file
 	}

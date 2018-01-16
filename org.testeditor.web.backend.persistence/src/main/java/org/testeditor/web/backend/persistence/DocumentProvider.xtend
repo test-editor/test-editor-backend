@@ -2,7 +2,9 @@ package org.testeditor.web.backend.persistence
 
 import com.google.common.io.Files
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileNotFoundException
+import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
@@ -15,6 +17,8 @@ import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.auth.User
 
 import static java.nio.charset.StandardCharsets.*
+
+import static extension java.nio.file.Files.probeContentType
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
@@ -57,7 +61,11 @@ class DocumentProvider {
 
 	def String load(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		return file.read
+		if (!regardAsBinary(resourcePath)) {
+			return file.read
+		} else {
+			throw new IllegalStateException('''File "«file.name»" appears to be binary and cannot be loaded as text.''')
+		}
 	}
 
 	def void save(String resourcePath, String content) {
@@ -76,6 +84,26 @@ class DocumentProvider {
 		} else {
 			throw new FileNotFoundException(resourcePath)
 		}
+	}
+
+	def boolean regardAsBinary(String resourcePath) {
+		val file = getWorkspaceFile(resourcePath)
+		if (file.exists) {
+			return !file.toPath.probeContentType.toLowerCase.startsWith("text")
+		} else {
+			throw new FileNotFoundException('''file "«resourcePath»" does not exist.''')
+		}
+	}
+
+	def String getType(String resourcePath) {
+		val file = getWorkspaceFile(resourcePath)
+		return file.toPath.probeContentType
+	}
+
+	def InputStream loadBinary(String resourcePath) {
+		val file = getWorkspaceFile(resourcePath)
+
+		return new FileInputStream(file)
 	}
 
 	private def void write(File file, String content) {
