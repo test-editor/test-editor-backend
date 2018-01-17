@@ -1,4 +1,4 @@
-package org.testeditor.web.backend.persistence
+package org.testeditor.web.backend.testexecution
 
 import java.lang.ProcessBuilder.Redirect
 import java.time.LocalDateTime
@@ -13,7 +13,6 @@ class TestExecutorProvider {
 
 	public static val LOGFILE_ENV_KEY = 'TE_TESTRUN_LOGFILE' // key into env, holding the actual log file
 	public static val LOG_FOLDER = 'logs' // log files will be created here
-
 	static val JAVA_TEST_SOURCE_PREFIX = 'src/test/java'
 	static val TEST_CASE_FILE_SUFFIX = 'tcl'
 
@@ -48,7 +47,7 @@ class TestExecutorProvider {
 		}
 		return testCase.toTestClassName
 	}
-	
+
 	private def String toTestClassName(String fileName) {
 		return fileName.replaceAll('''«JAVA_TEST_SOURCE_PREFIX»/''', '').replaceAll('''.«TEST_CASE_FILE_SUFFIX»$''', '').replaceAll('/', '.')
 	}
@@ -56,7 +55,7 @@ class TestExecutorProvider {
 	private def String[] constructCommandLine(String testClass, String logFile) {
 		return #['/bin/sh', '-c', testClass.gradleTestCommandLine.andLogInto(logFile)]
 	}
-	
+
 	private def String andLogInto(String testExecution, String logFile) {
 		return '''mkdir -p «LOG_FOLDER» && «testExecution» 2>&1 | tee «logFile»'''
 	}
@@ -68,5 +67,5 @@ class TestExecutorProvider {
 	private def String gradleTestCommandLine(String testClass) {
 		return '''./gradlew test --tests «testClass» --rerun-tasks'''
 	}
-	
+
 }

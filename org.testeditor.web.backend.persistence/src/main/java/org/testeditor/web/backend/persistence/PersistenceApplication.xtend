@@ -3,6 +3,7 @@ package org.testeditor.web.backend.persistence
 import io.dropwizard.setup.Environment
 import org.testeditor.web.backend.persistence.exception.PersistenceExceptionMapper
 import org.testeditor.web.backend.persistence.workspace.WorkspaceResource
+import org.testeditor.web.backend.testexecution.TestExecutorResource
 import org.testeditor.web.dropwizard.DropwizardApplication
 
 class PersistenceApplication extends DropwizardApplication<PersistenceConfiguration> {

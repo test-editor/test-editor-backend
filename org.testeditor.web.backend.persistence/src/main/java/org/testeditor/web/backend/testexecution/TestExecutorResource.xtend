@@ -1,5 +1,6 @@
-package org.testeditor.web.backend.persistence
+package org.testeditor.web.backend.testexecution
 
+import java.net.URI
 import javax.inject.Inject
 import javax.ws.rs.Consumes
 import javax.ws.rs.POST
@@ -9,7 +10,7 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
-import java.net.URI
+import org.testeditor.web.backend.persistence.DocumentResource
 
 @Path("/tests")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)

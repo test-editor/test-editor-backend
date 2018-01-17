@@ -1,13 +1,14 @@
-package org.testeditor.web.backend.persistence
+package org.testeditor.web.backend.testexecution
 
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.HttpHeaders
+import javax.ws.rs.core.MultivaluedMap
 import javax.ws.rs.core.Response.Status
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
+import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
 
 import static org.assertj.core.api.Assertions.*
-import javax.ws.rs.core.MultivaluedMap
 
 class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 

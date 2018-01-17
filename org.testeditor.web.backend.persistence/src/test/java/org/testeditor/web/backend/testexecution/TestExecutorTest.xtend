@@ -1,4 +1,4 @@
-package org.testeditor.web.backend.persistence
+package org.testeditor.web.backend.testexecution
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
@@ -18,6 +18,7 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
 import org.slf4j.LoggerFactory
+import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static org.assertj.core.api.Assertions.*
@@ -103,8 +104,7 @@ class TestExecutorTest extends AbstractPersistenceTest {
 		verifyZeroInteractions(logAppender)
 
 		processBuilder => [
-			assertThat(command).haveAtLeastOne(
-				stringMatching(expectedCommandMatchingRegEx, 'gradle command line with test class'))
+			assertThat(command).haveAtLeastOne(stringMatching(expectedCommandMatchingRegEx, 'gradle command line with test class'))
 
 			assertThat(environment).hasEntrySatisfying(TestExecutorProvider.LOGFILE_ENV_KEY,
 				stringMatching(expectedLogFileMatchingRegEx, 'log file named accordingly'))
@@ -112,7 +112,7 @@ class TestExecutorTest extends AbstractPersistenceTest {
 			assertThat(directory.absolutePath).isEqualTo(temporaryFolder.root.absolutePath)
 		]
 	}
-	
+
 	private def Condition<String> stringMatching(String regEx, String message) {
 		return new Condition<String>([matches(regEx)], message)
 	}
