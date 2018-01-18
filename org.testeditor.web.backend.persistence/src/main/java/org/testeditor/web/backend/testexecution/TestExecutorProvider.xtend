@@ -25,8 +25,6 @@ class TestExecutorProvider {
 		val processBuilder = new ProcessBuilder => [
 			command(constructCommandLine(testClass, logFile))
 			directory(workingDir)
-			redirectOutput(Redirect.INHERIT)
-			redirectError(Redirect.INHERIT)
 			environment.put(LOGFILE_ENV_KEY, logFile)
 		]
 
@@ -53,15 +51,7 @@ class TestExecutorProvider {
 	}
 
 	private def String[] constructCommandLine(String testClass, String logFile) {
-		return #['/bin/sh', '-c', testClass.gradleTestCommandLine.andLogInto(logFile).withPipefail]
-	}
-
-	private def String withPipefail(String command) {
-		return '''set -o pipefail; «command»'''
-	}
-
-	private def String andLogInto(String testExecution, String logFile) {
-		return '''mkdir -p «LOG_FOLDER» && «testExecution» 2>&1 | tee «logFile»'''
+		return #['/bin/sh', '-c', testClass.gradleTestCommandLine]
 	}
 
 	private def String createNewLogFileName(String testClass) {

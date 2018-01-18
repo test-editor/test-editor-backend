@@ -1,7 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executor
 import org.junit.Test
 import org.mockito.InjectMocks
 import org.mockito.Spy
@@ -219,28 +218,6 @@ class TestMonitorProviderTest extends AbstractPersistenceTest {
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.FAILED)
-	}
-
-}
-
-class MockExecutor implements Executor {
-
-	var Runnable command
-	var runImmediately = false
-
-	override execute(Runnable command) {
-		this.command = command
-		if (runImmediately) {
-			runNow
-		}
-	}
-
-	def void runNow() {
-		command.run
-	}
-
-	def void setRunImmediately() {
-		this.runImmediately = true
 	}
 
 }

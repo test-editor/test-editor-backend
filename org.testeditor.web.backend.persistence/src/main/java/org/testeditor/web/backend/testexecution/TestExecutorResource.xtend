@@ -17,6 +17,7 @@ import javax.ws.rs.core.UriBuilder
 import org.glassfish.jersey.server.ManagedAsync
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.DocumentResource
+import java.io.File
 
 @Path("/tests")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
@@ -27,6 +28,7 @@ class TestExecutorResource {
 
 	@Inject TestExecutorProvider executorProvider
 	@Inject TestMonitorProvider monitorProvider
+	@Inject extension TestLogWriter logWriter
 
 	@POST
 	@Path("execute")
@@ -36,6 +38,7 @@ class TestExecutorResource {
 		logger.info('''Starting test for resourcePath='«resourcePath»' logging into logFile='«logFile»'.''')
 		val testProcess = builder.start
 		monitorProvider.addTestRun(resourcePath, testProcess)
+		testProcess.logToStandardOutAndIntoFile(new File(builder.directory, logFile))
 
 		return Response.created(logFile.resultingLogFileUri).build
 	}

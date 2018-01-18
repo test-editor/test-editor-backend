@@ -24,6 +24,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 			executable = true
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
+				echo "Hello stdout!"
 				echo "test was run" > test.ok.txt
 			''')
 		]

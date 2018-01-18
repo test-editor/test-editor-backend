@@ -8,13 +8,13 @@ import io.dropwizard.testing.junit.DropwizardAppRule
 import javax.ws.rs.client.Invocation.Builder
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.junit.JGitTestUtil
+import org.glassfish.jersey.client.ClientProperties
 import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 
 import static io.dropwizard.testing.ConfigOverride.config
-import org.junit.Before
-import org.glassfish.jersey.client.ClientProperties
 
 abstract class AbstractPersistenceIntegrationTest {
 
