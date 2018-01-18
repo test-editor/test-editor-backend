@@ -166,7 +166,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 	}
 
 	private def Builder createAsyncTestStatusRequest(String resourcePath) {
-		return createRequest('''tests/status/wait?resource=«resourcePath»''')
+		return createRequest('''tests/status?wait=true&resource=«resourcePath»''')
 	}
 
 }

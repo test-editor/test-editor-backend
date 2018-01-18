@@ -2,6 +2,21 @@ package org.testeditor.web.backend.testexecution
 
 import static org.testeditor.web.backend.testexecution.TestStatus.*
 
+
+/**
+ * Keeps track of the status of a single test execution.
+ * 
+ * This class should be thread-safe, since
+ * a) its {@link #process process} field is only ever accessed for reading, 
+ *    except when it is set to null by {@link #markCompleted(int) markCompleted),
+ *    which is why all methods first copy the reference into a local variable
+ *    and then perform a null check to be on the safe side; and
+ * b) its {@link #status status} field may be written to by multiple threads
+ *    multiple times, but not with different values, because all threads
+ *    implicitly synchronize over whether the external process is alive: once
+ *    it terminated, the only value that can be written as status is its
+ *    exit value, which is fixed at that point. 
+ */
 class TestProcess {
 
 	public static val DEFAULT_IDLE_TEST_PROCESS = new TestProcess()
@@ -39,14 +54,6 @@ class TestProcess {
 		return this.getStatus
 	}
 
-	private static def TestStatus getStatus(int exitCode) {
-		if (exitCode == 0) {
-			return SUCCESS
-		} else {
-			return FAILED
-		}
-	}
-
 	def void setCompleted() {
 		val processRef = this.process
 		if (processRef !== null && !processRef.alive) {
@@ -56,7 +63,15 @@ class TestProcess {
 
 	private def void markCompleted(int exitCode) {
 		this.process = null
-		this.status = exitCode.status
+		this.status = exitCode.toTestStatus
+	}
+	
+	private def TestStatus toTestStatus(int exitCode) {
+		if (exitCode == 0) {
+			return SUCCESS
+		} else {
+			return FAILED
+		}
 	}
 
 }

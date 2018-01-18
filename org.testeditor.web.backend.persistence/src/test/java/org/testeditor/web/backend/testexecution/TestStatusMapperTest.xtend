@@ -1,9 +1,7 @@
 package org.testeditor.web.backend.testexecution
 
-import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
 import org.junit.Test
-import org.mockito.InjectMocks
-import org.mockito.Spy
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 
 import static org.assertj.core.api.Assertions.assertThat
@@ -12,13 +10,12 @@ import static org.mockito.Mockito.verify
 import static org.mockito.Mockito.when
 import static org.testeditor.web.backend.testexecution.TestStatus.*
 
-class TestMonitorProviderTest extends AbstractPersistenceTest {
+class TestStatusMapperTest extends AbstractPersistenceTest {
 
 	static val EXIT_SUCCESS = 0;
 	static val EXIT_FAILURE = 1;
 
-	@Spy val statusMap = new ConcurrentHashMap<String, TestProcess>()
-	@InjectMocks TestMonitorProvider testMonitorProviderUnderTest
+	@Inject TestStatusMapper testMonitorProviderUnderTest
 
 	@Test
 	def void addTestRunAddsTestInRunningStatus() {
@@ -104,6 +101,7 @@ class TestMonitorProviderTest extends AbstractPersistenceTest {
 
 	@Test
 	def void getStatusReturnsSuccessAfterTestFinishedSuccessfully() {
+		// given
 		val testProcess = mock(Process)
 		val testPath = '/path/to/test.tcl'
 		when(testProcess.exitValue).thenReturn(EXIT_SUCCESS)
@@ -119,6 +117,7 @@ class TestMonitorProviderTest extends AbstractPersistenceTest {
 
 	@Test
 	def void getStatusReturnsFailureAfterTestFailed() {
+		// given
 		val testProcess = mock(Process)
 		val testPath = '/path/to/test.tcl'
 		when(testProcess.exitValue).thenReturn(EXIT_FAILURE)
@@ -134,6 +133,7 @@ class TestMonitorProviderTest extends AbstractPersistenceTest {
 
 	@Test
 	def void getStatusReturnsFailureWhenExternalProcessExitsWithNoneZeroCode() {
+		// given
 		val testProcess = new ProcessBuilder('sh', '-c', '''exit «EXIT_FAILURE»''').start
 		val testPath = '/path/to/test.tcl'
 		testMonitorProviderUnderTest.addTestRun(testPath, testProcess)
@@ -159,7 +159,7 @@ class TestMonitorProviderTest extends AbstractPersistenceTest {
 	}
 
 	@Test
-	def void waitForStatusBlocksUntilTestProcessTerminates() {
+	def void waitForStatusCallsBlockingWaitForMethodOfProcess() {
 		// given
 		val testProcess = mock(Process)
 		val testPath = '/path/to/test.tcl'
@@ -178,6 +178,7 @@ class TestMonitorProviderTest extends AbstractPersistenceTest {
 
 	@Test
 	def void waitForStatusReturnsSuccessAfterTestFinishedSuccessfully() {
+		// given
 		val testProcess = mock(Process)
 		val testPath = '/path/to/test.tcl'
 		when(testProcess.exitValue).thenReturn(EXIT_SUCCESS)
@@ -194,6 +195,7 @@ class TestMonitorProviderTest extends AbstractPersistenceTest {
 
 	@Test
 	def void waitForStatusReturnsFailureAfterTestFailed() {
+		// given
 		val testProcess = mock(Process)
 		val testPath = '/path/to/test.tcl'
 		when(testProcess.exitValue).thenReturn(EXIT_FAILURE)
@@ -209,6 +211,7 @@ class TestMonitorProviderTest extends AbstractPersistenceTest {
 
 	@Test
 	def void waitForStatusReturnsFailureWhenExternalProcessExitsWithNoneZeroCode() {
+		// given
 		val testProcess = new ProcessBuilder('sh', '-c', '''exit «EXIT_FAILURE»''').start
 		val testPath = '/path/to/test.tcl'
 		testMonitorProviderUnderTest.addTestRun(testPath, testProcess)
