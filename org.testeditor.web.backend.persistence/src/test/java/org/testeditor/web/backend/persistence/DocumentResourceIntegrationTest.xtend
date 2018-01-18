@@ -207,6 +207,20 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	}
 
 	@Test
+	def void canDeleteExistingDocumentWithEscapedElements() {
+		// given
+		write('some/file/with?.tsl' , simpleTsl)
+		val request = createDocumentRequest('some/file/with%3F.tsl')
+
+		// when
+		val response = request.delete
+
+		// then
+		response.status.assertEquals(OK.statusCode)
+		getRemoteFile(resourcePath).exists.assertFalse
+	}
+
+	@Test
 	def void canDeleteNonEmptyDirectory() {
 		// given
 		write(resourcePath, simpleTsl)
