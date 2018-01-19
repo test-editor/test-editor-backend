@@ -1,6 +1,10 @@
 package org.testeditor.web.backend.persistence
 
+import com.google.inject.Module
 import io.dropwizard.setup.Environment
+import java.util.List
+import java.util.concurrent.Executor
+import java.util.concurrent.ForkJoinPool
 import org.testeditor.web.backend.persistence.exception.PersistenceExceptionMapper
 import org.testeditor.web.backend.persistence.workspace.WorkspaceResource
 import org.testeditor.web.backend.testexecution.TestExecutorResource
@@ -10,6 +14,13 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 
 	def static void main(String[] args) {
 		new PersistenceApplication().run(args)
+	}
+
+	override protected collectModules(List<Module> modules) {
+		super.collectModules(modules)
+		modules += [ binder |
+			binder.bind(Executor).toInstance(ForkJoinPool.commonPool)
+		]
 	}
 
 	override run(PersistenceConfiguration configuration, Environment environment) throws Exception {

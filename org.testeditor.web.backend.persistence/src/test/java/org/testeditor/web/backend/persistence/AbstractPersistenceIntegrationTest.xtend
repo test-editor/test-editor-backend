@@ -8,7 +8,9 @@ import io.dropwizard.testing.junit.DropwizardAppRule
 import javax.ws.rs.client.Invocation.Builder
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.junit.JGitTestUtil
+import org.glassfish.jersey.client.ClientProperties
 import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 
@@ -67,6 +69,12 @@ abstract class AbstractPersistenceIntegrationTest {
 		val git = Git.open(remoteGitFolder.root)
 		git.add.addFilepattern(pathToCommit).call
 		git.commit.setMessage("pre-existing commit in remote repository").call
+	}
+
+	@Before
+	def void setClientTimeouts() {
+		client.property(ClientProperties.CONNECT_TIMEOUT, 10000);
+		client.property(ClientProperties.READ_TIMEOUT, 10000);
 	}
 
 	@After
