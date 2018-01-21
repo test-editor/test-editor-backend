@@ -1,7 +1,7 @@
 # Mime type to file extension mapping, based on 
 # http://svn.apache.org/viewvc/httpd/httpd/trunk/docs/conf/mime.types
 #
-# In addition to that file, the extensions "tcl", "tml", "tsl", and "aml" are mapped to type "text/plain" here.
+# In addition to that file, the extensions "tcl", "tml", "tsl", "aml", and "config" are mapped to type "text/plain" here.
 
 application/andrew-inset			ez
 application/applixware				aw
@@ -696,7 +696,7 @@ text/css					css
 text/csv					csv
 text/html					html htm
 text/n3						n3
-text/plain					txt text conf def list log in tcl tml tsl aml
+text/plain					txt text conf def list log in tcl tml tsl aml config
 text/prs.lines.tag				dsc
 text/richtext					rtx
 text/sgml					sgml sgm

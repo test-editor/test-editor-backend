@@ -1,12 +1,13 @@
 package org.testeditor.web.backend.persistence.util
 
+import java.nio.file.Path
+import java.nio.file.Paths
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 import org.junit.runners.Parameterized.Parameters
-import java.nio.file.Path
+
 import static org.assertj.core.api.Assertions.assertThat
-import java.nio.file.Paths
 
 @RunWith(Parameterized)
 class ExtensionBasedFiletTypeDetectorParameterizedTest {
@@ -21,11 +22,12 @@ class ExtensionBasedFiletTypeDetectorParameterizedTest {
 			#['noExtension', 'application/octet-stream'],
 			#['plaintext.txt', 'text/plain'],
 			#['data.json', 'application/json'],
-			
+
 			#['testeditor-dsl.tsl', 'text/plain'],
 			#['testeditor-dsl.tcl', 'text/plain'],
 			#['testeditor-dsl.tml', 'text/plain'],
-			#['testeditor-dsl.aml', 'text/plain']
+			#['testeditor-dsl.aml', 'text/plain'],
+			#['testeditor-dsl.config', 'text/plain']
 		]
 	}
 
@@ -43,8 +45,8 @@ class ExtensionBasedFiletTypeDetectorParameterizedTest {
 		// given (givenPath)
 		// when
 		val actualType = unitUnderTest.probeContentType(givenPath)
-		
-		//then
+
+		// then
 		assertThat(actualType).isEqualTo(expectedType)
 	}
 }
