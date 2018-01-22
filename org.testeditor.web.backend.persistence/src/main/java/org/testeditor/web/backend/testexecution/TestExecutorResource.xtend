@@ -54,20 +54,20 @@ class TestExecutorResource {
 			waitForStatus(resourcePath, response)
 		} else {
 			val status = statusMapper.getStatus(resourcePath)
-			response.resume(Response.ok(status).build)
+			response.resume(Response.ok(status.name).build)
 		}
 	}
-	
+
 	private def void waitForStatus(String resourcePath, AsyncResponse response) {
 
 		response.setTimeout(LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 		response.timeoutHandler = [
-			resume(Response.ok(TestStatus.RUNNING).build)
+			resume(Response.ok(TestStatus.RUNNING.name).build)
 		]
 
 		try {
 			val status = statusMapper.waitForStatus(resourcePath)
-			response.resume(Response.ok(status).build)
+			response.resume(Response.ok(status.name).build)
 		} catch (InterruptedException ex) {
 		} // timeout handler takes care of response
 	}
