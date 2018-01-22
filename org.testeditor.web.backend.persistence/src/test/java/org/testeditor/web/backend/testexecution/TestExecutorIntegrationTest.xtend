@@ -64,7 +64,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		val actualTestStatus = createTestStatusRequest(testFile).get
 
 		// then
-		assertThat(actualTestStatus.readEntity(TestStatus)).isEqualTo(TestStatus.RUNNING)
+		assertThat(actualTestStatus.readEntity(String)).isEqualTo('RUNNING')
 
 	}
 
@@ -88,7 +88,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		val actualTestStatus = createAsyncTestStatusRequest(testFile).get
 
 		// then
-		assertThat(actualTestStatus.readEntity(TestStatus)).isEqualTo(TestStatus.SUCCESS)
+		assertThat(actualTestStatus.readEntity(String)).isEqualTo('SUCCESS')
 
 	}
 
@@ -112,7 +112,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		val actualTestStatus = createAsyncTestStatusRequest(testFile).get
 
 		// then
-		assertThat(actualTestStatus.readEntity(TestStatus)).isEqualTo(TestStatus.FAILED)
+		assertThat(actualTestStatus.readEntity(String)).isEqualTo('FAILED')
 
 	}
 
@@ -133,21 +133,21 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
 
 		val longPollingRequest = createAsyncTestStatusRequest(testFile).async
-		val statusList = <TestStatus>newLinkedList(TestStatus.RUNNING)
+		val statusList = <String>newLinkedList('RUNNING')
 
 		// when
-		for (var i = 0; i < 4 && statusList.head.equals(TestStatus.RUNNING); i++) {
+		for (var i = 0; i < 4 && statusList.head.equals('RUNNING'); i++) {
 				val future = longPollingRequest.get
 				val response = future.get(120, TimeUnit.SECONDS)
 				assertThat(response.status).isEqualTo(200)
-				statusList.offerFirst(response.readEntity(TestStatus))
+				statusList.offerFirst(response.readEntity(String))
 				response.close
 		}
 
 		// then
 		assertThat(statusList.size).isGreaterThan(3)
-		assertThat(statusList.tail).allMatch[TestStatus.RUNNING.equals(it)]
-		assertThat(statusList.head).isEqualTo(TestStatus.SUCCESS)
+		assertThat(statusList.tail).allMatch['RUNNING'.equals(it)]
+		assertThat(statusList.head).isEqualTo('SUCCESS')
 
 	}
 
