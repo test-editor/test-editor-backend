@@ -1,12 +1,9 @@
 package org.testeditor.web.backend.testexecution
 
-import java.util.Map
-import javax.inject.Inject
-import javax.inject.Named
-
-import static org.testeditor.web.backend.testexecution.TestStatus.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Singleton
+
+import static org.testeditor.web.backend.testexecution.TestStatus.*
 
 /**
  * Keeps a record of running tests and their current execution status.
@@ -26,9 +23,9 @@ import javax.inject.Singleton
  * external process has terminated.
  * 
  * To keep a record of current and past test executions, this class relies on
- * class {@link org.testeditor.web.backend.testexecution.TestProcess TestProcess}, 
+ * class {@link TestProcess TestProcess}, 
  * which also takes care of removing references to 
- * {@link java.lang.Process Process} classes once they have terminated.
+ * {@link Process Process} classes once they have terminated.
  */
  @Singleton
 class TestStatusMapper {
@@ -60,6 +57,16 @@ class TestStatusMapper {
 			val testProcess = new TestProcess(runningTest)
 			statusMap.put(testPath, testProcess)
 		}
+	}
+	
+	def Iterable<TestStatusInfo> getAll() {
+		// iterating should be thread-safe, see e.g.
+		// https://stackoverflow.com/questions/3768554/is-iterating-concurrenthashmap-values-thread-safe
+
+		return this.statusMap.entrySet.map[entry|new TestStatusInfo => [
+			path = entry.key
+			status = entry.value.status.name
+		]]
 	}
 
 	private def boolean isRunning(String testPath) {

@@ -4,11 +4,13 @@ import javax.inject.Inject
 import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 
-import static org.assertj.core.api.Assertions.assertThat
+import static org.assertj.core.api.Assertions.*
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.verify
 import static org.mockito.Mockito.when
 import static org.testeditor.web.backend.testexecution.TestStatus.*
+
+import static extension org.assertj.core.api.Assertions.assertThat
 
 class TestStatusMapperTest extends AbstractPersistenceTest {
 
@@ -221,6 +223,68 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.FAILED)
+	}
+
+	@Test
+	def void getAllInitiallyReturnsEmptyArray() {
+		// given + when
+		val actualStatuses = statusMapperUnderTest.all
+
+		// then
+		assertThat(actualStatuses).isEmpty()
+	}
+
+	@Test
+	def void getAllReturnsStatusForAllRunningTests() {
+		// given
+		val failedTestPath = '/path/to/failedTest.tcl'
+		val failedProcess = mockedTerminatedProcess(EXIT_FAILURE)
+
+		val successfulTestPath = '/path/to/successfulTest.tcl'
+		val successfulProcess = mockedTerminatedProcess(EXIT_SUCCESS)
+
+		val runningTestPath = '/path/to/runningTest.tcl'
+		val runningProcess = mockedRunningProcess()
+
+		statusMapperUnderTest.addTestRun(failedTestPath, failedProcess)
+		statusMapperUnderTest.addTestRun(successfulTestPath, successfulProcess)
+		statusMapperUnderTest.addTestRun(runningTestPath, runningProcess)
+
+		// when
+		val actualStatuses = statusMapperUnderTest.all
+
+		// then
+		actualStatuses => [
+			assertThat(length).isEqualTo(3)
+			assertThat.anySatisfy [
+				assertThat(path).isEqualTo(failedTestPath)
+				assertThat(status).isEqualTo('FAILED')
+			]
+			assertThat.anySatisfy [
+				assertThat(path).isEqualTo(successfulTestPath)
+				assertThat(status).isEqualTo('SUCCESS')
+			]
+			assertThat.anySatisfy [
+				assertThat(path).isEqualTo(runningTestPath)
+				assertThat(status).isEqualTo('RUNNING')
+			]
+		]
+	}
+
+	def private mockedTerminatedProcess(int exitCode) {
+		val testProcess = mock(Process)
+		when(testProcess.exitValue).thenReturn(exitCode)
+		when(testProcess.waitFor).thenReturn(exitCode)
+		when(testProcess.alive).thenReturn(false)
+		return testProcess
+	}
+
+	def private mockedRunningProcess() {
+		val testProcess = mock(Process)
+		when(testProcess.exitValue).thenThrow(new IllegalStateException("Process is still running"))
+		when(testProcess.waitFor).thenReturn(0)
+		when(testProcess.alive).thenReturn(true)
+		return testProcess
 	}
 
 }

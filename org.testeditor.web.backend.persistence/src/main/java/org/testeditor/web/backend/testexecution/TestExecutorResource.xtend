@@ -58,6 +58,13 @@ class TestExecutorResource {
 		}
 	}
 
+	@GET
+	@Path("status/all")
+	@Produces(MediaType.APPLICATION_JSON)
+	def Iterable<TestStatusInfo> getStatusAll(@QueryParam("resource") String resourcePath) {
+		return statusMapper.all
+	}
+
 	private def void waitForStatus(String resourcePath, AsyncResponse response) {
 
 		response.setTimeout(LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)

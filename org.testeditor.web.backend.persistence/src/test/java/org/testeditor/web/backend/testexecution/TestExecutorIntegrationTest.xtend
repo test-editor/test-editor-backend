@@ -3,6 +3,7 @@ package org.testeditor.web.backend.testexecution
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 import javax.ws.rs.client.Invocation.Builder
+import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MultivaluedMap
 import javax.ws.rs.core.Response.Status
@@ -10,7 +11,7 @@ import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
 
-import static org.assertj.core.api.Assertions.*
+import static extension org.assertj.core.api.Assertions.*
 
 class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
@@ -166,18 +167,64 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 		// when
 		for (var i = 0; i < 4 && statusList.head.equals('RUNNING'); i++) {
-				val future = longPollingRequest.get
-				val response = future.get(120, TimeUnit.SECONDS)
-				assertThat(response.status).isEqualTo(200)
-				statusList.offerFirst(response.readEntity(String))
-				response.close
+			val future = longPollingRequest.get
+			val response = future.get(120, TimeUnit.SECONDS)
+			assertThat(response.status).isEqualTo(200)
+			statusList.offerFirst(response.readEntity(String))
+			response.close
 		}
 
 		// then
 		assertThat(statusList.size).isGreaterThan(3)
 		assertThat(statusList.tail).allMatch['RUNNING'.equals(it)]
 		assertThat(statusList.head).isEqualTo('SUCCESS')
+	}
 
+	@Test
+	def void testThatStatusOfAllRunningAndTerminatedTestsIsReturned() {
+		// given
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile('''«userId»/gradlew''') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				if [ "$3" = "runningTest" ]; then
+				  time=5
+				elif [ "$3" = "successfulTest" ]; then
+				  time=0
+				elif [ "$3" = "failedTest" ]; then
+				  time=-1
+				fi
+				sleep ${time}
+			''')
+		]
+		#['failed', 'successful', 'running'].map [ name |
+			workspaceRoot.newFile('''«userId»/«name»Test.tcl''')
+			'''«name»Test.tcl'''
+		].forEach [
+			val executionResponse = createTestExecutionRequest(it).post(null)
+			assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+		]
+
+		// when
+		val actualStatuses = createRequest('''tests/status/all''').get(new GenericType<Iterable<TestStatusInfo>>() {})
+
+		// then
+		actualStatuses => [
+			assertThat(length).isEqualTo(3)
+			assertThat.anySatisfy [
+				assertThat(path).isEqualTo('failedTest.tcl')
+				assertThat(status).isEqualTo('FAILED')
+			]
+			assertThat.anySatisfy [
+				assertThat(path).isEqualTo('successfulTest.tcl')
+				assertThat(status).isEqualTo('SUCCESS')
+			]
+			assertThat.anySatisfy [
+				assertThat(path).isEqualTo('runningTest.tcl')
+				assertThat(status).isEqualTo('RUNNING')
+			]
+		]
 	}
 
 	private def String relativeLogFileNameFrom(MultivaluedMap<String, Object> headers) {
