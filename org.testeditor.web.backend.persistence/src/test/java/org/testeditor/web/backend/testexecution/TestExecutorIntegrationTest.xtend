@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
+import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.HttpHeaders
@@ -114,6 +115,34 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		// then
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('FAILED')
 
+	}
+	@Test
+	def void testThatLogContainsStdErrOutput() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo "Test message to standard out"
+				(>&2 echo "Test message to standard error")
+			''')
+		]
+		
+		// when
+		val response = createTestExecutionRequest(testFile).post(null)
+		createAsyncTestStatusRequest(testFile).get // wait for completion
+		
+		// then
+		val logfile = workspaceRoot.root.toPath.resolve(userId + '/' + relativeLogFileNameFrom(response.headers))
+		val actualLogContent = new String(Files.readAllBytes(logfile))
+		
+		assertThat(actualLogContent).isEqualTo('''
+		Test message to standard out
+		Test message to standard error
+		'''.toString)
 	}
 
 	@Test
