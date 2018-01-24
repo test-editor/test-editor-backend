@@ -26,6 +26,7 @@ class TestExecutorProvider {
 			command(constructCommandLine(testClass, logFile))
 			directory(workingDir)
 			environment.put(LOGFILE_ENV_KEY, logFile)
+			redirectErrorStream(true)
 		]
 
 		return processBuilder
