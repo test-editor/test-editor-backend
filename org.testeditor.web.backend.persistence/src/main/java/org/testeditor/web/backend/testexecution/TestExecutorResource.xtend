@@ -61,7 +61,7 @@ class TestExecutorResource {
 	@GET
 	@Path("status/all")
 	@Produces(MediaType.APPLICATION_JSON)
-	def Iterable<TestStatusInfo> getStatusAll(@QueryParam("resource") String resourcePath) {
+	def Iterable<TestStatusInfo> getStatusAll() {
 		return statusMapper.all
 	}
 

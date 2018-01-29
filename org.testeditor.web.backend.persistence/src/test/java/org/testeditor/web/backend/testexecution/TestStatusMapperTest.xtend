@@ -10,8 +10,6 @@ import static org.mockito.Mockito.verify
 import static org.mockito.Mockito.when
 import static org.testeditor.web.backend.testexecution.TestStatus.*
 
-import static extension org.assertj.core.api.Assertions.assertThat
-
 class TestStatusMapperTest extends AbstractPersistenceTest {
 
 	static val EXIT_SUCCESS = 0;
@@ -235,7 +233,7 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	}
 
 	@Test
-	def void getAllReturnsStatusForAllRunningTests() {
+	def void getAllReturnsStatusOfAllTestsWithKnownStatus() {
 		// given
 		val failedTestPath = '/path/to/failedTest.tcl'
 		val failedProcess = mockedTerminatedProcess(EXIT_FAILURE)
@@ -254,21 +252,20 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		val actualStatuses = statusMapperUnderTest.all
 
 		// then
-		actualStatuses => [
-			assertThat(length).isEqualTo(3)
-			assertThat.anySatisfy [
-				assertThat(path).isEqualTo(failedTestPath)
-				assertThat(status).isEqualTo('FAILED')
+		assertThat(actualStatuses).containsOnly(#[
+			new TestStatusInfo => [
+				path = failedTestPath
+				status = 'FAILED'
+			],
+			new TestStatusInfo => [
+				path = successfulTestPath
+				status = 'SUCCESS'
+			],
+			new TestStatusInfo => [
+				path = runningTestPath
+				status = 'RUNNING'
 			]
-			assertThat.anySatisfy [
-				assertThat(path).isEqualTo(successfulTestPath)
-				assertThat(status).isEqualTo('SUCCESS')
-			]
-			assertThat.anySatisfy [
-				assertThat(path).isEqualTo(runningTestPath)
-				assertThat(status).isEqualTo('RUNNING')
-			]
-		]
+		])
 	}
 
 	def private mockedTerminatedProcess(int exitCode) {

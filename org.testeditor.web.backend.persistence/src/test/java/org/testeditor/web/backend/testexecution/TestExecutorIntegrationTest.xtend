@@ -2,6 +2,7 @@ package org.testeditor.web.backend.testexecution
 
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.HttpHeaders
@@ -11,7 +12,7 @@ import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
 
-import static extension org.assertj.core.api.Assertions.*
+import static org.assertj.core.api.Assertions.*
 
 class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
@@ -117,6 +118,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('FAILED')
 
 	}
+
 	@Test
 	def void testThatLogContainsStdErrOutput() {
 		// given
@@ -131,18 +133,17 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 				(>&2 echo "Test message to standard error")
 			''')
 		]
-		
+
 		// when
 		val response = createTestExecutionRequest(testFile).post(null)
 		createAsyncTestStatusRequest(testFile).get // wait for completion
-		
 		// then
 		val logfile = workspaceRoot.root.toPath.resolve(userId + '/' + relativeLogFileNameFrom(response.headers))
 		val actualLogContent = new String(Files.readAllBytes(logfile))
-		
+
 		assertThat(actualLogContent).isEqualTo('''
-		Test message to standard out
-		Test message to standard error
+			Test message to standard out
+			Test message to standard error
 		'''.toString)
 	}
 
@@ -169,7 +170,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		for (var i = 0; i < 4 && statusList.head.equals('RUNNING'); i++) {
 			val future = longPollingRequest.get
 			val response = future.get(120, TimeUnit.SECONDS)
-			assertThat(response.status).isEqualTo(200)
+			assertThat(response.status).isEqualTo(Status.OK.statusCode)
 			statusList.offerFirst(response.readEntity(String))
 			response.close
 		}
@@ -189,42 +190,37 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
 				if [ "$3" = "runningTest" ]; then
-				  time=5
+				  sleep 10; exit 0
 				elif [ "$3" = "successfulTest" ]; then
-				  time=0
+				  exit 0
 				elif [ "$3" = "failedTest" ]; then
-				  time=-1
+				  exit -1
 				fi
-				sleep ${time}
 			''')
 		]
-		#['failed', 'successful', 'running'].map [ name |
+		val expectedStatusMap = #{'failed' -> 'FAILED', 'successful' -> 'SUCCESS', 'running' -> 'RUNNING'}
+		expectedStatusMap.keySet.map [ name |
 			workspaceRoot.newFile('''«userId»/«name»Test.tcl''')
-			'''«name»Test.tcl'''
+			return '''«name»Test.tcl'''
 		].forEach [
 			val executionResponse = createTestExecutionRequest(it).post(null)
 			assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
 		]
 
 		// when
-		val actualStatuses = createRequest('''tests/status/all''').get(new GenericType<Iterable<TestStatusInfo>>() {})
+		val response = createRequest('''tests/status/all''').get
+		response.bufferEntity
 
 		// then
-		actualStatuses => [
-			assertThat(length).isEqualTo(3)
-			assertThat.anySatisfy [
-				assertThat(path).isEqualTo('failedTest.tcl')
-				assertThat(status).isEqualTo('FAILED')
-			]
-			assertThat.anySatisfy [
-				assertThat(path).isEqualTo('successfulTest.tcl')
-				assertThat(status).isEqualTo('SUCCESS')
-			]
-			assertThat.anySatisfy [
-				assertThat(path).isEqualTo('runningTest.tcl')
-				assertThat(status).isEqualTo('RUNNING')
-			]
+		val json = response.readEntity(String)
+		expectedStatusMap.forEach [ prefix, status |
+			assertThat(json).matches(Pattern.compile(
+			'''\s*\[.*\{\s*"path"\s*:\s*"«prefix»Test.tcl"\s*,\s*"status"\s*:\s*"«status»"\s*\}.*\]\s*''', Pattern.DOTALL))
 		]
+
+		val actualStatuses = response.readEntity(new GenericType<Iterable<TestStatusInfo>>() {
+		})
+		assertThat(actualStatuses).size.isEqualTo(3)
 	}
 
 	private def String relativeLogFileNameFrom(MultivaluedMap<String, Object> headers) {
