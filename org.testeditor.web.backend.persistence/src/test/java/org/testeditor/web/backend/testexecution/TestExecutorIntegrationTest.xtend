@@ -2,7 +2,9 @@ package org.testeditor.web.backend.testexecution
 
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 import javax.ws.rs.client.Invocation.Builder
+import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MultivaluedMap
 import javax.ws.rs.core.Response.Status
@@ -116,6 +118,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('FAILED')
 
 	}
+
 	@Test
 	def void testThatLogContainsStdErrOutput() {
 		// given
@@ -130,18 +133,17 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 				(>&2 echo "Test message to standard error")
 			''')
 		]
-		
+
 		// when
 		val response = createTestExecutionRequest(testFile).post(null)
 		createAsyncTestStatusRequest(testFile).get // wait for completion
-		
 		// then
 		val logfile = workspaceRoot.root.toPath.resolve(userId + '/' + relativeLogFileNameFrom(response.headers))
 		val actualLogContent = new String(Files.readAllBytes(logfile))
-		
+
 		assertThat(actualLogContent).isEqualTo('''
-		Test message to standard out
-		Test message to standard error
+			Test message to standard out
+			Test message to standard error
 		'''.toString)
 	}
 
@@ -166,18 +168,59 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 		// when
 		for (var i = 0; i < 4 && statusList.head.equals('RUNNING'); i++) {
-				val future = longPollingRequest.get
-				val response = future.get(120, TimeUnit.SECONDS)
-				assertThat(response.status).isEqualTo(200)
-				statusList.offerFirst(response.readEntity(String))
-				response.close
+			val future = longPollingRequest.get
+			val response = future.get(120, TimeUnit.SECONDS)
+			assertThat(response.status).isEqualTo(Status.OK.statusCode)
+			statusList.offerFirst(response.readEntity(String))
+			response.close
 		}
 
 		// then
 		assertThat(statusList.size).isGreaterThan(3)
 		assertThat(statusList.tail).allMatch['RUNNING'.equals(it)]
 		assertThat(statusList.head).isEqualTo('SUCCESS')
+	}
 
+	@Test
+	def void testThatStatusOfAllRunningAndTerminatedTestsIsReturned() {
+		// given
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile('''«userId»/gradlew''') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				if [ "$3" = "runningTest" ]; then
+				  sleep 10; exit 0
+				elif [ "$3" = "successfulTest" ]; then
+				  exit 0
+				elif [ "$3" = "failedTest" ]; then
+				  exit -1
+				fi
+			''')
+		]
+		val expectedStatusMap = #{'failed' -> 'FAILED', 'successful' -> 'SUCCESS', 'running' -> 'RUNNING'}
+		expectedStatusMap.keySet.map [ name |
+			workspaceRoot.newFile('''«userId»/«name»Test.tcl''')
+			return '''«name»Test.tcl'''
+		].forEach [
+			val executionResponse = createTestExecutionRequest(it).post(null)
+			assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+		]
+
+		// when
+		val response = createRequest('''tests/status/all''').get
+		response.bufferEntity
+
+		// then
+		val json = response.readEntity(String)
+		expectedStatusMap.forEach [ prefix, status |
+			assertThat(json).matches(Pattern.compile(
+			'''\s*\[.*\{\s*"path"\s*:\s*"«prefix»Test.tcl"\s*,\s*"status"\s*:\s*"«status»"\s*\}.*\]\s*''', Pattern.DOTALL))
+		]
+
+		val actualStatuses = response.readEntity(new GenericType<Iterable<TestStatusInfo>>() {
+		})
+		assertThat(actualStatuses).size.isEqualTo(3)
 	}
 
 	private def String relativeLogFileNameFrom(MultivaluedMap<String, Object> headers) {
