@@ -12,6 +12,7 @@ dependencies {
     compile "org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.tcl.dsl.ide:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.aml.dsl:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.aml.dsl.ide:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.aml.model:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.dsl.common:$versions.testEditorLanguage"
 

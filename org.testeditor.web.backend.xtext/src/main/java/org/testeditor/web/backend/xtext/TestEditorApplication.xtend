@@ -6,6 +6,7 @@ import org.eclipse.xtext.util.Modules2
 import org.eclipse.xtext.web.server.DefaultWebModule
 import org.testeditor.aml.dsl.AmlRuntimeModule
 import org.testeditor.aml.dsl.AmlStandaloneSetup
+import org.testeditor.aml.dsl.ide.AmlIdeModule
 import org.testeditor.tcl.dsl.TclRuntimeModule
 import org.testeditor.tcl.dsl.TclStandaloneSetup
 import org.testeditor.tcl.dsl.ide.TclIdeModule
@@ -32,7 +33,7 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 	private def ISetup createAmlSetup(XtextIndexModule indexModule) {
 		return new AmlStandaloneSetup {
 			override createInjector() {
-				val module = Modules2.mixin(new AmlRuntimeModule, new DefaultWebModule, indexModule)
+				val module = Modules2.mixin(new AmlRuntimeModule, new AmlIdeModule, new DefaultWebModule, indexModule)
 				return Guice.createInjector(module)
 			}
 		}
