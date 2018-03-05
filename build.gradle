@@ -40,7 +40,7 @@ subprojects {
 
     ext.versions = [
         dropwizard: '1.2.2',
-        testEditorDropwizard: '0.9.0',
+        testEditorDropwizard: '0.10.0',
         xtext: '2.13.0',
         testEditorLanguage: '1.10.0'
     ]
