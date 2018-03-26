@@ -10,7 +10,7 @@ class XtextIndexIntegrationTest extends AbstractTestEditorIntegrationTest {
 
 	override protected initializeRemoteRepository(Git git, File parent) {
 		super.initializeRemoteRepository(git, parent)
-		writeToRemote('dummy.aml', '''
+		writeToRemote('src/test/java/dummy.aml', '''
 			component type DummyType
 			component DummyComponent is DummyType
 		''')
