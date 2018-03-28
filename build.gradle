@@ -38,15 +38,22 @@ subprojects {
 
     group = 'org.testeditor.web'
 
-    ext.versions = [
+    ext.configPath = "./"
+    if (project.hasProperty('localconfig')) {
+        ext.configFile = 'config.local.yml'
+    } else {
+        ext.configFile = 'config.yml'
+    }
+    
+    ext.versions = new HashMap<String,String>()
+    
+    setVersionDefaults(ext, [
         dropwizard: '1.2.2',
         testEditorDropwizard: '0.10.0',
         xtext: '2.13.0',
         testEditorLanguage: '1.11.0'
-    ]
-    ext.configPath = "./"
-    
-    
+    ])
+
     sourceCompatibility = '1.8'
     targetCompatibility = '1.8'
     
@@ -61,10 +68,10 @@ subprojects {
         }
     }
 
-	sourceSets {
-  		main.xtendOutputDir = 'src/main/xtend-gen'
-  		test.xtendOutputDir = 'src/test/xtend-gen'
-	}
+    sourceSets {
+          main.xtendOutputDir = 'src/main/xtend-gen'
+          test.xtendOutputDir = 'src/test/xtend-gen'
+    }
 
     dependencies {
         compile "org.eclipse.xtend:org.eclipse.xtend.lib:$versions.xtext"
@@ -77,9 +84,16 @@ subprojects {
         testCompile "io.dropwizard:dropwizard-testing:$versions.dropwizard"
     }
    
-	test {
-		testLogging.showStandardStreams = true
-	}
+    test {
+        testLogging.showStandardStreams = true
+    }
+
+    afterEvaluate {
+        println "Configuration for ($project.name):"
+        println "  dependencies: $versions"
+        println "  dropwizard configuration file: $configFile"
+    }
+
 }
 
 /*
@@ -99,4 +113,16 @@ afterReleaseBuild.dependsOn bintrayUpload
 
 task build {
     dependsOn = subprojects.collect{it.tasks['build']}
+}
+
+def setVersionDefaults(ext, props) {
+    props.each{ k,v -> setVersionDefault(ext, k, v) }
+}
+
+def setVersionDefault(ext, artifactName, defaultVersion) {
+    if (!project.hasProperty('versions') || !project['versions'][artifactName] || project['versions'][artifactName] == null) {
+        ext['versions'][artifactName] = defaultVersion
+    } else {
+        ext['versions'][artifactName] = project['versions'][artifactName]
+    }
 }

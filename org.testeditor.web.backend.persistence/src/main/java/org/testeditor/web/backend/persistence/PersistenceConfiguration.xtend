@@ -13,6 +13,9 @@ class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 	private String remoteRepoUrl
 	
 	@Accessors
+	private String repoConnectionMode = 'pullPush' // 'pullOnly' 
+	
+	@Accessors
 	private Boolean separateUserWorkspaces = true
 
 	@NotEmpty

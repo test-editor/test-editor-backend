@@ -1,13 +1,19 @@
 dependencies {
-	compile "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
-	testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.10.0.201712302008-r"
+    compile "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
+    testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.10.0.201712302008-r"
 }
 
 mainClassName = 'org.testeditor.web.backend.persistence.PersistenceApplication'
 
 run {
-	main mainClassName
-	args 'server', configPath + 'config.yml'
+    main mainClassName
+    args 'server', configPath + configFile
+}
+
+tasks.withType(JavaExec) {
+    if (System.getProperty('run.debug')) {
+        jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005'
+    }
 }
 
 dependencyCheck {
