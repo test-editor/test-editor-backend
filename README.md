@@ -11,7 +11,7 @@ alternatively, start both in parallel: `./gradlew run --parallel`
 
 # Development
 
-In order to allow building with non published, locally built artifacts, gradle can be executed with the `-I` option.
+In order to allow building with non-published, locally built artifacts, gradle can be executed with the `-I` option.
 
 E.g. building and running the backend services with a snapshot version of the test editor language (built locally and installed into maven local) and with a yet unpublished xtext-dropwizard version (built locally and installed into maven local) the following needs to be set up:
 1. `init.gradle` with the following content:
@@ -22,7 +22,7 @@ allprojects {
         mavenLocal()
     }
     ext.versions = [
-        testEditorDropwizard: '0.11.0',       // use locally built version published not yet
+        testEditorDropwizard: '0.11.0',       // use locally built, not yet published version
         testEditorLanguage: '1.12.0-SNAPSHOT' // use locally built language version
     ]
     ext.localconfig = true // make sure to use config.local.yml as dropwizard configuration
