@@ -49,7 +49,7 @@ subprojects {
     
     setVersionDefaults(ext, [
         dropwizard: '1.2.2',
-        testEditorDropwizard: '0.11.0',
+        testEditorDropwizard: '0.12.0',
         xtext: '2.13.0',
         testEditorLanguage: '1.11.0'
     ])
