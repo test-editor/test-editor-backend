@@ -139,8 +139,10 @@ class DocumentProvider {
 	}
 
 	private def void repoSync() {
+		logger.info('''running git pull against «configuration.remoteRepoUrl»''')
 		git.pull.configureTransport.call
-		if (configuration.repoConnectionMode.equals('pullPush')) {
+		if (configuration.repoConnectionMode.equals(PersistenceConfiguration.RepositoryConnectionMode.pullPush)) {
+			logger.info('''running git push against «configuration.remoteRepoUrl»''')
 			git.push.configureTransport.call
 		}
 	}
