@@ -31,6 +31,7 @@ class DocumentProvider {
 	@Inject Provider<User> userProvider
 	@Inject extension GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
+	@Inject PersistenceConfiguration configuration
 
 	def boolean create(String resourcePath, String content) {
 		val file = getWorkspaceFile(resourcePath)
@@ -123,7 +124,7 @@ class DocumentProvider {
 		.setAuthor(personIdent) //
 		.setCommitter(personIdent) //
 		.call
-		pullAndPush
+		repoSync
 	}
 
 	private def void stage(Git git, File file) {
@@ -137,9 +138,13 @@ class DocumentProvider {
 
 	}
 
-	private def void pullAndPush() {
+	private def void repoSync() {
+		logger.info('''running git pull against «configuration.remoteRepoUrl»''')
 		git.pull.configureTransport.call
-		git.push.configureTransport.call
+		if (configuration.repoConnectionMode.equals(PersistenceConfiguration.RepositoryConnectionMode.pullPush)) {
+			logger.info('''running git push against «configuration.remoteRepoUrl»''')
+			git.push.configureTransport.call
+		}
 	}
 
 	private def String read(File file) {
@@ -150,7 +155,7 @@ class DocumentProvider {
 		val workspace = workspaceProvider.workspace
 		val file = new File(workspace, resourcePath)
 		verifyFileIsWithinWorkspace(workspace, file)
-		pullAndPush
+		repoSync
 		return file
 	}
 

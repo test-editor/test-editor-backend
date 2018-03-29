@@ -7,10 +7,14 @@ import org.testeditor.web.dropwizard.DropwizardApplicationConfiguration
 
 @Singleton
 class PersistenceConfiguration extends DropwizardApplicationConfiguration {
+	enum RepositoryConnectionMode { pullPush, pullOnly }
 
 	@NotEmpty
 	@Accessors
 	private String remoteRepoUrl
+	
+	@Accessors
+	private RepositoryConnectionMode repoConnectionMode = RepositoryConnectionMode.pullPush
 	
 	@Accessors
 	private Boolean separateUserWorkspaces = true
