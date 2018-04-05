@@ -1,8 +1,10 @@
 package org.testeditor.web.backend.persistence
 
+import java.io.File
 import java.io.FileInputStream
 import java.util.Arrays
 import javax.inject.Inject
+import org.assertj.core.api.SoftAssertions
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
@@ -12,11 +14,12 @@ import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
 
 import static extension com.google.common.io.ByteStreams.*
 
+
 class DocumentProviderTest extends AbstractGitTest {
 
 	@Inject DocumentProvider documentProvider
 
-	@Rule public val exception = ExpectedException.none()
+	@Rule public val ExpectedException exception = ExpectedException.none()
 
 	@Test
 	def void createCommitsNewFile() {
@@ -151,7 +154,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
 		val numberOfCommitsBefore = localGit.log.call.size
-
+		
 		// when
 		documentProvider.delete(existingFileName)
 
@@ -203,6 +206,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void saveProducesProperCommitMessage() {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
+		gitProvider.git.pull.call
 
 		// when
 		documentProvider.save(existingFileName, "New contents of pre-existing file")
@@ -272,5 +276,80 @@ class DocumentProviderTest extends AbstractGitTest {
 		// when
 		documentProvider.load(existingImageFile)
 	}
+
+	@Test
+	def void saveWithRemoteChangesCreatesUnversionedBackupFileAndRaisesException() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository
+		val localGit = gitProvider.git
+		val localChange = 'Contents of file after local change'
+		
+		val remoteChange = 'Contents of file after remote change'
+		remoteGitFolder.root.write(existingFileName, remoteChange)
+		remoteGit.addAndCommit(existingFileName, "change on remote")
+
+		// when
+		try {
+			documentProvider.save(existingFileName, localChange)
+
+			// then			
+			fail('Expected ConflictingModificationsException, but none was thrown.')
+		} catch (ConflictingModificationsException exception) {
+			val backupFileName = existingFileName + '.local-backup'
+			val backupFile = new File(localGitRoot.root, backupFileName)
+
+			new SoftAssertions => [
+				assertThat(exception.message).isEqualTo(
+					'''The file '«existingFileName»' could not be saved due to concurrent modifications. ''' +
+					'''Local changes were instead backed up to '«backupFileName»'.''')
+				assertThat(backupFile).exists.hasContent(localChange)
+				assertThat(localGit.status.call.untracked).contains(backupFileName)
+				assertAll
+			]
+		}
+	}
+
+	@Test
+	def void saveRemotelyDeletedFileCreatesBackupFileAndRaisesException() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository
+		val localGit = gitProvider.git
+		val localChange = 'Contents of file after local change'
+		
+		remoteGit.rm.addFilepattern(existingFileName).call
+		remoteGit.commit.setMessage('delete on remote').call
+
+		// when
+		try {
+			documentProvider.save(existingFileName, localChange)
+
+			// then			
+			fail('Expected ConflictingModificationsException, but none was thrown.')
+		} catch (ConflictingModificationsException exception) {
+			val backupFileName = existingFileName + '.local-backup'
+			val backupFile = new File(localGitRoot.root, backupFileName)
+
+			new SoftAssertions => [
+				assertThat(exception.message).isEqualTo(
+					'''The file '«existingFileName»' could not be saved as it was concurrently being deleted. ''' +
+					'''Local changes were instead backed up to '«backupFileName»'.''')
+				assertThat(backupFile).exists.hasContent(localChange)
+				assertThat(localGit.status.call.untracked).contains(backupFileName)
+				assertAll
+			]
+		}
+	}
+
+	@Test
+	def void createRemotelyAlreadyCreatedFileRaisesException() {}
+
+	@Test
+	def void loadRemotelyDeletedFileRaisesException() {}
+
+	@Test
+	def void deleteRemotelyModifiedFileRaisesException() {}
+
+	@Test
+	def void deleteRemotelyAlreadyDeletedFileRaisesException() {}
 
 }
