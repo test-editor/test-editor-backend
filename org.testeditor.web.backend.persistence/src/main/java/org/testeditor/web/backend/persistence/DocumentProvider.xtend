@@ -37,11 +37,32 @@ class DocumentProvider {
 	@Inject PersistenceConfiguration configuration
 
 	def boolean create(String resourcePath, String content) {
-		val file = getWorkspaceFile(resourcePath)
+		val file = getWorkspaceFileWithoutSync(resourcePath)
+
 		val created = create(file)
 		if (created) {
-			file.write(content, '''add file: «file.name»''')
+			if (content !== null && !content.empty) {
+				Files.asCharSink(file, UTF_8).write(content)
+			}
+			file.commit('''add file: «file.name»''')
 		}
+
+		val mergeConflictState = pull
+
+		if (!mergeConflictState.isPresent) {
+			push
+		} else {
+			resetToRemoteState
+			var exceptionMessage = mergeConflictState.get.getConflictMessage(resourcePath)
+			if (content !== null && !content.empty) {
+				val workspace = workspaceProvider.workspace
+				val backupFile = new File(workspace, resourcePath + '.local-backup')
+				Files.asCharSink(backupFile, UTF_8).write(content)
+				exceptionMessage = exceptionMessage.appendBackupNote(resourcePath)
+			}
+			throw new ConflictingModificationsException(exceptionMessage)
+		}
+
 		return created
 	}
 
@@ -73,7 +94,11 @@ class DocumentProvider {
 	}
 
 	def void save(String resourcePath, String content) {
-		resourcePath.writeToWorkspace(content) => [commit('''update file: «it.name»''')]
+		resourcePath.getWorkspaceFileWithoutSync => [
+			Files.asCharSink(it, UTF_8).write(content)
+			commit('''update file: «it.name»''')
+		]
+
 		val mergeConflictState = pull
 
 		if (!mergeConflictState.isPresent) {
@@ -84,26 +109,29 @@ class DocumentProvider {
 			val backupFile = new File(workspace, resourcePath + '.local-backup')
 			Files.asCharSink(backupFile, UTF_8).write(content)
 			throw new ConflictingModificationsException(
-				mergeConflictState.get.getConflictMessage(resourcePath)
+				mergeConflictState.get.getConflictMessage(resourcePath).appendBackupNote(resourcePath)
 			)
 		}
 	}
 
 	private def String getConflictMessage(StageState conflictState, String resourcePath) {
 		return switch (conflictState) {
-			case BOTH_MODIFIED: '''The file '«resourcePath»' could not be saved due to concurrent modifications. Local changes were instead backed up to '«resourcePath».local-backup'.'''
-			case DELETED_BY_THEM: '''The file '«resourcePath»' could not be saved as it was concurrently being deleted. Local changes were instead backed up to '«resourcePath».local-backup'.'''
+			case BOTH_MODIFIED: '''The file '«resourcePath»' could not be saved due to concurrent modifications.'''
+			case DELETED_BY_THEM: '''The file '«resourcePath»' could not be saved as it was concurrently being deleted.'''
 			case ADDED_BY_THEM: {
 			}
 			case ADDED_BY_US: {
 			}
-			case BOTH_ADDED: {
-			}
+			case BOTH_ADDED: '''The file '«resourcePath»' already exists.'''
 			case BOTH_DELETED: {
 			}
 			case DELETED_BY_US: {
 			}
 		}
+	}
+
+	private def String appendBackupNote(String conflictMessage, String resourcePath) {
+		return conflictMessage + ''' Local changes were instead backed up to '«resourcePath».local-backup'.'''
 	}
 
 	private def void resetToRemoteState() {
@@ -114,11 +142,11 @@ class DocumentProvider {
 		]
 	}
 
-	private def writeToWorkspace(String resourcePath, String content) {
+	private def getWorkspaceFileWithoutSync(String resourcePath) {
 		val workspace = workspaceProvider.workspace
 		val file = new File(workspace, resourcePath)
 		verifyFileIsWithinWorkspace(workspace, file)
-		Files.asCharSink(file, UTF_8).write(content)
+
 		return file
 	}
 

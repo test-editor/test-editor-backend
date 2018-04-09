@@ -10,16 +10,22 @@ import org.junit.Test
 import org.junit.rules.ExpectedException
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
+import static org.assertj.core.api.Assertions.assertThat
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
 
 import static extension com.google.common.io.ByteStreams.*
-
+import org.junit.Before
 
 class DocumentProviderTest extends AbstractGitTest {
 
 	@Inject DocumentProvider documentProvider
 
 	@Rule public val ExpectedException exception = ExpectedException.none()
+	
+	@Before
+	def void initLocalGit() {
+		gitProvider.git
+	}
 
 	@Test
 	def void createCommitsNewFile() {
@@ -111,6 +117,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		// given
 		val preExistingFile = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
+		localGit.pull.call
 		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
@@ -125,6 +132,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
+		localGit.pull.call
 		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
@@ -139,6 +147,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
+		localGit.pull.call
 		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
@@ -153,6 +162,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
+		localGit.pull.call
 		val numberOfCommitsBefore = localGit.log.call.size
 		
 		// when
@@ -167,6 +177,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
+		localGit.pull.call
 		val numberOfCommitsBefore = localGit.log.call.size
 
 		// when
@@ -282,6 +293,8 @@ class DocumentProviderTest extends AbstractGitTest {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
 		val localGit = gitProvider.git
+		localGit.pull.call
+		
 		val localChange = 'Contents of file after local change'
 		
 		val remoteChange = 'Contents of file after remote change'
@@ -313,8 +326,9 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void saveRemotelyDeletedFileCreatesBackupFileAndRaisesException() {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
-		val localGit = gitProvider.git
 		val localChange = 'Contents of file after local change'
+		val localGit = gitProvider.git
+		localGit.pull.call
 		
 		remoteGit.rm.addFilepattern(existingFileName).call
 		remoteGit.commit.setMessage('delete on remote').call
@@ -341,7 +355,119 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 
 	@Test
-	def void createRemotelyAlreadyCreatedFileRaisesException() {}
+	def void createRemotelyAlreadyCreatedFileRaisesException() {		
+		// given
+		val localGit = gitProvider.git
+		
+		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', 'Lorem Ipsum')
+		val localContent = 'Lorem Ipsum dolor sit amet'
+
+		// when
+		try {
+			documentProvider.create(existingFileName, localContent)
+
+			// then			
+			fail('Expected ConflictingModificationsException, but none was thrown.')
+		} catch (ConflictingModificationsException exception) {
+			val backupFileName = existingFileName + '.local-backup'
+			val backupFile = new File(localGitRoot.root, backupFileName)
+			
+			new SoftAssertions => [
+				assertThat(exception.message).isEqualTo(
+					'''The file '«existingFileName»' already exists. ''' +
+					'''Local changes were instead backed up to '«backupFileName»'.''')
+				assertThat(backupFile).exists.hasContent(localContent)
+				assertThat(localGit.status.call.untracked).contains(backupFileName)
+				assertAll
+			]
+		}
+	}
+	
+	@Test
+	def void createNewEmptyFileAlreadyExistingOnRemoteRaisesException() {		
+		// given
+		gitProvider.git
+		
+		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', '')
+		val remoteChange = 'Contents of file after remote change'
+		remoteGitFolder.root.write(existingFileName, remoteChange)
+		remoteGit.addAndCommit(existingFileName, "change on remote")
+
+
+		// when
+		try {
+			documentProvider.create(existingFileName, null)
+
+			// then			
+			fail('Expected ConflictingModificationsException, but none was thrown.')
+		} catch (ConflictingModificationsException exception) {
+			val backupFileName = existingFileName + '.local-backup'
+			val backupFile = new File(localGitRoot.root, backupFileName)
+			
+			new SoftAssertions => [
+				assertThat(exception.message).isEqualTo(
+					'''The file '«existingFileName»' already exists.'''.toString)
+				assertThat(backupFile).doesNotExist
+				assertAll
+			]
+		}
+	}
+
+	@Test
+	def void createEmptyFileOnBothSucceedsWithoutConflict() {		
+		// given
+		gitProvider.git
+		
+		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', '')
+
+		// when
+		documentProvider.create(existingFileName, null)
+
+		// then
+		val localFile = new File(localGitRoot.root, existingFileName)
+		val remoteFile = new File(remoteGitFolder.root, existingFileName)
+		val backupFileName = existingFileName + '.local-backup'
+		val backupFile = new File(localGitRoot.root, backupFileName)
+			
+		new SoftAssertions => [
+			assertThat(backupFile).doesNotExist
+			assertThat(localFile).exists
+			assertThat(remoteFile).exists
+			assertAll
+		]
+	}
+	
+	@Test
+	def void createFileWithContentWhenRemoteFileExistsButIsEmptyRaisesException() {		
+		// given
+		gitProvider.git
+		
+		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', '')
+		val localContent = 'Lorem ipsum dolor sit amet'
+
+		// when	
+		try {
+			documentProvider.create(existingFileName, localContent)
+
+			// then			
+			fail('Expected ConflictingModificationsException, but none was thrown.')
+		} catch (ConflictingModificationsException exception) {
+			val localFile = new File(localGitRoot.root, existingFileName)
+			val backupFileName = existingFileName + '.local-backup'
+			val backupFile = new File(localGitRoot.root, backupFileName)
+			
+			new SoftAssertions => [
+				assertThat(exception.message).isEqualTo(
+					'''The file '«existingFileName»' already exists. ''' +
+					'''Local changes were instead backed up to '«backupFileName»'.''')
+				assertThat(backupFile).exists.hasContent(localContent)
+				assertThat(localFile).exists.hasContent('')
+				assertAll
+			]
+		}
+	}
+
+//assertThat(exception.message).isEqualTo('''The file '«existingFileName»' already exists.'''.toString)
 
 	@Test
 	def void loadRemotelyDeletedFileRaisesException() {}
