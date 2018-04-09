@@ -22,6 +22,7 @@ import org.testeditor.web.dropwizard.auth.User
 import static java.nio.charset.StandardCharsets.*
 
 import static extension java.nio.file.Files.probeContentType
+import java.util.function.Consumer
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
@@ -37,7 +38,7 @@ class DocumentProvider {
 	@Inject PersistenceConfiguration configuration
 
 	def boolean create(String resourcePath, String content) {
-		val file = getWorkspaceFileWithoutSync(resourcePath)
+		val file = getWorkspaceFile(resourcePath)
 
 		val created = create(file)
 		if (created) {
@@ -47,21 +48,7 @@ class DocumentProvider {
 			file.commit('''add file: «file.name»''')
 		}
 
-		val mergeConflictState = pull
-
-		if (!mergeConflictState.isPresent) {
-			push
-		} else {
-			resetToRemoteState
-			var exceptionMessage = mergeConflictState.get.getConflictMessage(resourcePath)
-			if (content !== null && !content.empty) {
-				val workspace = workspaceProvider.workspace
-				val backupFile = new File(workspace, resourcePath + '.local-backup')
-				Files.asCharSink(backupFile, UTF_8).write(content)
-				exceptionMessage = exceptionMessage.appendBackupNote(resourcePath)
-			}
-			throw new ConflictingModificationsException(exceptionMessage)
-		}
+		repoSync[onConflict|onConflict.resetToRemoteAndCreateBackup(resourcePath, content)]
 
 		return created
 	}
@@ -78,14 +65,16 @@ class DocumentProvider {
 		val file = getWorkspaceFile(resourcePath)
 		var created = false
 		if (!file.exists) {
-			created = create(file)
+			created = resourcePath.create(content)
+		} else {
+			resourcePath.save(content)
 		}
-		file.write(content)
 		return created
 	}
 
 	def String load(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
+		pull
 
 		if (file.exists) {
 			if (!regardAsBinary(resourcePath)) {
@@ -99,24 +88,12 @@ class DocumentProvider {
 	}
 
 	def void save(String resourcePath, String content) {
-		resourcePath.getWorkspaceFileWithoutSync => [
+		resourcePath.getWorkspaceFile => [
 			Files.asCharSink(it, UTF_8).write(content)
 			commit('''update file: «it.name»''')
 		]
 
-		val mergeConflictState = pull
-
-		if (!mergeConflictState.isPresent) {
-			push
-		} else {
-			resetToRemoteState
-			val workspace = workspaceProvider.workspace
-			val backupFile = new File(workspace, resourcePath + '.local-backup')
-			Files.asCharSink(backupFile, UTF_8).write(content)
-			throw new ConflictingModificationsException(
-				mergeConflictState.get.getConflictMessage(resourcePath).appendBackupNote(resourcePath)
-			)
-		}
+		repoSync[onConflict|onConflict.resetToRemoteAndCreateBackup(resourcePath, content)]
 	}
 
 	private def String getConflictMessage(StageState conflictState, String resourcePath) {
@@ -125,7 +102,9 @@ class DocumentProvider {
 			case DELETED_BY_THEM: '''The file '«resourcePath»' could not be saved as it was concurrently being deleted.'''
 			case BOTH_ADDED: '''The file '«resourcePath»' already exists.'''
 			case DELETED_BY_US: '''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''
-			case BOTH_DELETED, case ADDED_BY_THEM, case ADDED_BY_US: '''Don't know how to handle conflict: «conflictState.toString»'''
+			case BOTH_DELETED,
+			case ADDED_BY_THEM,
+			case ADDED_BY_US: '''Don't know how to handle conflict: «conflictState.toString»'''
 		}
 	}
 
@@ -141,7 +120,7 @@ class DocumentProvider {
 		]
 	}
 
-	private def getWorkspaceFileWithoutSync(String resourcePath) {
+	private def getWorkspaceFile(String resourcePath) {
 		val workspace = workspaceProvider.workspace
 		val file = new File(workspace, resourcePath)
 		verifyFileIsWithinWorkspace(workspace, file)
@@ -150,24 +129,15 @@ class DocumentProvider {
 	}
 
 	def boolean delete(String resourcePath) {
-		val file = getWorkspaceFileWithoutSync(resourcePath)
+		val file = getWorkspaceFile(resourcePath)
 		if (!file.exists) {
 			pull
 		}
-		if (file.exists) {	
+		if (file.exists) {
 			val deleted = FileUtils.deleteQuietly(file)
 			if (deleted) {
 				file.commit('''delete file: «file.name»''')
-				val mergeConflictState = pull
-
-				if (!mergeConflictState.isPresent) {
-					push
-				} else {
-					resetToRemoteState
-					throw new ConflictingModificationsException(
-						mergeConflictState.get.getConflictMessage(resourcePath)
-					)
-				}
+				repoSync[onConflict|onConflict.resetToRemoteAndCreateBackup(resourcePath, null)]
 			}
 			return deleted
 		} else {
@@ -177,6 +147,7 @@ class DocumentProvider {
 
 	def boolean regardAsBinary(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
+		pull
 		if (file.exists) {
 			return !file.toPath.probeContentType.toLowerCase.startsWith("text")
 		} else {
@@ -191,17 +162,9 @@ class DocumentProvider {
 
 	def InputStream loadBinary(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
+		pull
 
 		return new FileInputStream(file)
-	}
-
-	private def void write(File file, String content) {
-		write(file, content, '''update file: «file.name»''')
-	}
-
-	private def void write(File file, String content, String commitMessage) {
-		Files.asCharSink(file, UTF_8).write(content)
-		file.commitAndPush(commitMessage)
 	}
 
 	private def void commit(File file, String message) {
@@ -214,11 +177,6 @@ class DocumentProvider {
 		.call
 	}
 
-	private def void commitAndPush(File file, String message) {
-		file.commit(message)
-		repoSync
-	}
-
 	private def void stage(Git git, File file) {
 		val workspace = workspaceProvider.workspace
 		val filePattern = workspace.toPath.relativize(file.toPath).toString
@@ -229,10 +187,27 @@ class DocumentProvider {
 		}
 
 	}
+	
+	private def void repoSync(Consumer<StageState> handler) {
+		val mergeConflictState = pull
 
-	private def void repoSync() {
-		pull
-		push
+		if (!mergeConflictState.isPresent) {
+			push
+		} else {
+			handler.accept(mergeConflictState.get)
+		}
+	}
+
+	private def void resetToRemoteAndCreateBackup(StageState mergeConflictState, String resourcePath, String content) {
+		resetToRemoteState
+		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
+		if (content !== null && !content.empty) {
+			val workspace = workspaceProvider.workspace
+			val backupFile = new File(workspace, resourcePath + '.local-backup')
+			Files.asCharSink(backupFile, UTF_8).write(content)
+			exceptionMessage = exceptionMessage.appendBackupNote(resourcePath)
+		}
+		throw new ConflictingModificationsException(exceptionMessage)
 	}
 
 	private def Optional<StageState> pull() {
@@ -253,14 +228,6 @@ class DocumentProvider {
 
 	private def String read(File file) {
 		return Files.asCharSource(file, UTF_8).read
-	}
-
-	private def File getWorkspaceFile(String resourcePath) {
-		val workspace = workspaceProvider.workspace
-		val file = new File(workspace, resourcePath)
-		verifyFileIsWithinWorkspace(workspace, file)
-		repoSync
-		return file
 	}
 
 	private def void verifyFileIsWithinWorkspace(File workspace, File workspaceFile) {
