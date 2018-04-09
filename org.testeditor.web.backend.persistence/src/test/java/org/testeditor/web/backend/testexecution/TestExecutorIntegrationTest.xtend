@@ -188,7 +188,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		workspaceRoot.newFile('''«userId»/gradlew''') => [
 			executable = true
 			JGitTestUtil.write(it, '''
-				#!/bin/sh
+				#!/bin/bash
 				if [ "$3" = "runningTest" ]; then
 				  sleep 10; exit 0
 				elif [ "$3" = "successfulTest" ]; then
