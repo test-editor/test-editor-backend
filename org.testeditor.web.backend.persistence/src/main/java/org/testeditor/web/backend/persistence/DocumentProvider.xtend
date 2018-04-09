@@ -86,10 +86,15 @@ class DocumentProvider {
 
 	def String load(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
-		if (!regardAsBinary(resourcePath)) {
-			return file.read
+
+		if (file.exists) {
+			if (!regardAsBinary(resourcePath)) {
+				return file.read
+			} else {
+				throw new IllegalStateException('''File "«file.name»" appears to be binary and cannot be loaded as text.''')
+			}
 		} else {
-			throw new IllegalStateException('''File "«file.name»" appears to be binary and cannot be loaded as text.''')
+			throw new FileNotFoundException('''The file '«resourcePath»' does not exist. It may have been concurrently deleted.''')
 		}
 	}
 

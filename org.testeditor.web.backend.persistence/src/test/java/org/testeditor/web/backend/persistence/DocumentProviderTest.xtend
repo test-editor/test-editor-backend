@@ -15,6 +15,7 @@ import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
 
 import static extension com.google.common.io.ByteStreams.*
 import org.junit.Before
+import java.io.FileNotFoundException
 
 class DocumentProviderTest extends AbstractGitTest {
 
@@ -467,10 +468,25 @@ class DocumentProviderTest extends AbstractGitTest {
 		}
 	}
 
-//assertThat(exception.message).isEqualTo('''The file '«existingFileName»' already exists.'''.toString)
-
 	@Test
-	def void loadRemotelyDeletedFileRaisesException() {}
+	def void loadRemotelyDeletedFileRaisesException() {
+		// given
+		
+		val existingFileName = createPreExistingFileInRemoteRepository
+		gitProvider.git.pull.call
+		remoteGit.rm.addFilepattern(existingFileName).call
+		remoteGit.commit.setMessage('Delete file').call	
+
+		//when
+		try {
+			documentProvider.load(existingFileName)	
+		//then
+		fail('Expected FileNotFoundException, but none was thrown.')
+		} catch (FileNotFoundException exception) {
+			assertThat(exception.message).isEqualTo(
+					'''The file '«existingFileName»' does not exist. It may have been concurrently deleted.'''.toString)
+		}
+	}
 
 	@Test
 	def void deleteRemotelyModifiedFileRaisesException() {}
