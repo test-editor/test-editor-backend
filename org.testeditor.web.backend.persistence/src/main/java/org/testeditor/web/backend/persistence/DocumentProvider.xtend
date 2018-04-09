@@ -123,15 +123,9 @@ class DocumentProvider {
 		return switch (conflictState) {
 			case BOTH_MODIFIED: '''The file '«resourcePath»' could not be saved due to concurrent modifications.'''
 			case DELETED_BY_THEM: '''The file '«resourcePath»' could not be saved as it was concurrently being deleted.'''
-			case ADDED_BY_THEM: {
-			}
-			case ADDED_BY_US: {
-			}
 			case BOTH_ADDED: '''The file '«resourcePath»' already exists.'''
-			case BOTH_DELETED: {
-			}
-			case DELETED_BY_US: {
-			}
+			case DELETED_BY_US: '''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''
+			case BOTH_DELETED, case ADDED_BY_THEM, case ADDED_BY_US: '''Don't know how to handle conflict: «conflictState.toString»'''
 		}
 	}
 
@@ -156,11 +150,24 @@ class DocumentProvider {
 	}
 
 	def boolean delete(String resourcePath) {
-		val file = getWorkspaceFile(resourcePath)
-		if (file.exists) {
+		val file = getWorkspaceFileWithoutSync(resourcePath)
+		if (!file.exists) {
+			pull
+		}
+		if (file.exists) {	
 			val deleted = FileUtils.deleteQuietly(file)
 			if (deleted) {
-				file.commitAndPush('''delete file: «file.name»''')
+				file.commit('''delete file: «file.name»''')
+				val mergeConflictState = pull
+
+				if (!mergeConflictState.isPresent) {
+					push
+				} else {
+					resetToRemoteState
+					throw new ConflictingModificationsException(
+						mergeConflictState.get.getConflictMessage(resourcePath)
+					)
+				}
 			}
 			return deleted
 		} else {

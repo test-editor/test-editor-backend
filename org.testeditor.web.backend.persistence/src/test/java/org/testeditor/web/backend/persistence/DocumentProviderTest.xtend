@@ -489,9 +489,47 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 
 	@Test
-	def void deleteRemotelyModifiedFileRaisesException() {}
+	def void deleteRemotelyModifiedFileRaisesException() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', '')
+		gitProvider.git.pull.call
+		
+		val remoteChange = 'Contents of file after remote change'
+		remoteGitFolder.root.write(existingFileName, remoteChange)
+		remoteGit.addAndCommit(existingFileName, "change on remote")
+
+		// when
+		try {
+			documentProvider.delete(existingFileName)
+
+			// then			
+			fail('Expected ConflictingModificationsException, but none was thrown.')
+		} catch (ConflictingModificationsException exception) {
+			assertThat(exception.message).isEqualTo('''The file '«existingFileName»' could not be deleted as it was concurrently modified.'''.toString)
+		}
+	}
 
 	@Test
-	def void deleteRemotelyAlreadyDeletedFileRaisesException() {}
+	def void deleteRemotelyAlreadyDeletedFileSucceedsWithoutConflict() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', '')
+		gitProvider.git.pull.call
+		
+		remoteGit.rm.addFilepattern(existingFileName).call
+		remoteGit.commit.setMessage('Delete file').call
+
+		// when
+		documentProvider.delete(existingFileName)
+
+		// then			
+		val localFile = new File(localGitRoot.root, existingFileName)
+		val remoteFile = new File(remoteGitFolder.root, existingFileName)
+			
+		new SoftAssertions => [
+			assertThat(localFile).doesNotExist
+			assertThat(remoteFile).doesNotExist
+			assertAll
+		]
+	}
 
 }
