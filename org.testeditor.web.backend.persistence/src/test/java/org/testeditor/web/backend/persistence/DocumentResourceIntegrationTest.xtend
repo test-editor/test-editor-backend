@@ -122,22 +122,10 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	}
 
 	@Test
-	def void canCreateDocumentUsingPut() {
-		// given
-		val request = createDocumentRequest(resourcePath).buildPut(stringEntity(simpleTsl))
-
-		// when
-		val response = request.submit.get
-
-		// then
-		response.status.assertEquals(CREATED.statusCode)
-		read(resourcePath).assertEquals(simpleTsl)
-	}
-
-	@Test
 	def void canUpdateDocumentUsingPut() {
 		// given
 		write(resourcePath, simpleTsl)
+		createRequest('workspace/list-files').buildGet.submit.get
 		val updateText = "updated"
 		val request = createDocumentRequest(resourcePath).buildPut(stringEntity(updateText))
 

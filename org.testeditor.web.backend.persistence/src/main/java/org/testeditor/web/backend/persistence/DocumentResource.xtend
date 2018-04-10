@@ -45,13 +45,9 @@ class DocumentResource {
 	}
 
 	@PUT
-	def Response createOrUpdate(@PathParam("resourcePath") String resourcePath, String content, @Context HttpHeaders headers) {
-		val created = documentProvider.createOrUpdate(resourcePath, content)
-		if (created) {
-			return status(CREATED).build
-		} else {
-			return status(NO_CONTENT).build
-		}
+	def Response update(@PathParam("resourcePath") String resourcePath, String content, @Context HttpHeaders headers) {
+		documentProvider.save(resourcePath, content)
+		return status(NO_CONTENT).build
 	}
 
 	@GET

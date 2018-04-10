@@ -101,34 +101,6 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 
 	@Test
-	def void createOrUpdateNonExistingFileAddsAndCommits() {
-		// given
-		val nonExistingFile = "aFileThatHasNotYetBeenCreated.txt"
-		val numberOfCommitsBefore = remoteGit.log.call.size
-
-		// when
-		documentProvider.createOrUpdate(nonExistingFile, "Contents of new file")
-
-		// then
-		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, nonExistingFile)
-	}
-
-	@Test
-	def void createOrUpdatePreExistingFileCommitsModifications() {
-		// given
-		val preExistingFile = createPreExistingFileInRemoteRepository
-		val localGit = gitProvider.git
-		localGit.pull.call
-		val numberOfCommitsBefore = localGit.log.call.size
-
-		// when
-		documentProvider.createOrUpdate(preExistingFile, "New contents of pre-existing file")
-
-		// then
-		localGit.assertSingleCommit(numberOfCommitsBefore, MODIFY, preExistingFile)
-	}
-
-	@Test
 	def void saveCommitsChanges() {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
@@ -383,6 +355,7 @@ class DocumentProviderTest extends AbstractGitTest {
 			]
 		}
 	}
+	
 	
 	@Test
 	def void createNewEmptyFileAlreadyExistingOnRemoteRaisesException() {		
