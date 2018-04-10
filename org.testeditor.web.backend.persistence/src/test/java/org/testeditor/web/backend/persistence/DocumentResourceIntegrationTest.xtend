@@ -254,7 +254,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		response.status.assertEquals(CONFLICT.statusCode)
 		readRemote(resourcePath).assertEquals(simpleTsl)
 		readLocal(resourcePath).assertEquals(simpleTsl)
-		new File(workspaceRoot.root, resourcePath + DocumentProvider.backupExtension).exists.assertFalse
+		new File(workspaceRoot.root, resourcePath + '.local-backup').exists.assertFalse
 	}
 	
 	@Test

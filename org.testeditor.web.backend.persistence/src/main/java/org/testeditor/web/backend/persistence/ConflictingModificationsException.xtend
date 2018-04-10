@@ -7,6 +7,10 @@ class ConflictingModificationsException extends PersistenceException {
 
 	@Accessors(PUBLIC_GETTER)
 	val String backupFilePath
+	
+	new(String message) {
+		this(message, null)
+	}
 
 	new(String message, String backupFilePath) {
 		super(message)
