@@ -242,6 +242,22 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	}
 	
 	@Test
+	def void conflictIsReturnedWhenCreatingDocumentThatAlreadyExistsRemotely() {
+		// given
+		write(resourcePath, simpleTsl)
+		val request = createDocumentRequest(resourcePath).buildPost(null)
+
+		// when
+		val response = request.submit.get
+
+		// then
+		response.status.assertEquals(CONFLICT.statusCode)
+		readRemote(resourcePath).assertEquals(simpleTsl)
+		readLocal(resourcePath).assertEquals(simpleTsl)
+		new File(workspaceRoot.root, resourcePath + DocumentProvider.backupExtension).exists.assertFalse
+	}
+	
+	@Test
 	def void conflictIsReturnedWhenUpdatingWithRemoteChanges() {
 		// given
 		write(resourcePath, simpleTsl)
@@ -291,8 +307,48 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		response.headers.get('content-location').head.assertEquals(backupPath)
 		new File(workspaceRoot.root, resourcePath).exists.assertFalse
 		readLocal(backupPath).assertEquals(simpleTsl + '\nLocal Change')
-	}	
+	}
 	
+		@Test
+	def void conflictIsReturnedWhenDeletingWithRemoteChanges() {
+		// given
+		write(resourcePath, simpleTsl)
+		createRequest('workspace/list-files').buildGet.submit.get
+		write(resourcePath, simpleTsl + '\nRemote Change')
+		
+		val request = createDocumentRequest(resourcePath)
+
+		// when
+		val response = request.delete
+
+		// then
+		val backupPath = resourcePath + '.local-backup'
+		response.status.assertEquals(CONFLICT.statusCode)
+		response.readEntity(String).assertEquals('''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''.toString)
+		response.headers.containsKey('content-location').assertFalse
+		new File(workspaceRoot.root, backupPath).exists.assertFalse
+		readLocal(resourcePath).assertEquals(simpleTsl + '\nRemote Change')
+	}
+	
+	@Test
+	def void notFoundIsReturnedWhenGettingRemotelyDeletedDocument() {
+		// given
+		write(resourcePath, simpleTsl)
+		createRequest('workspace/list-files').buildGet.submit.get
+		
+		val remoteGit = Git.open(remoteGitFolder.root)
+		remoteGit.rm.addFilepattern(resourcePath).call
+		remoteGit.commit.setMessage('file deleted').call
+
+		val request = createDocumentRequest(resourcePath)
+
+		// when
+		val response = request.get
+
+		// then
+		response.status.assertEquals(NOT_FOUND.statusCode)
+	}
+
 
 	private def Entity<String> stringEntity(CharSequence charSequence) {
 		return Entity.entity(charSequence.toString, MediaType.TEXT_PLAIN)
