@@ -237,7 +237,8 @@ class DocumentProviderTest extends AbstractGitTest {
 				assertThat(exception.message).isEqualTo(
 					'''The file '«existingFileName»' could not be saved due to concurrent modifications. ''' +
 					'''Local changes were instead backed up to '«backupFileName»'.''')
-				assertThat(backupFile).exists.hasContent(localChange)
+				assertThat(backupFile).exists
+				assertThat(backupFile).hasContent(localChange)
 				assertThat(localGit.status.call.untracked).contains(backupFileName)
 				assertThat(existingFile).exists.hasContent(remoteChange)
 				assertAll
@@ -288,7 +289,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void saveRemotelyDeletedFileCreatesBackupFileAndRaisesException() {
 		// given
-		val existingFileName = createPreExistingFileInRemoteRepository
+		val existingFileName = createPreExistingFileInRemoteRepository('tmp/test.txt')
 		val localChange = 'Contents of file after local change'
 		val localGit = gitProvider.git
 		localGit.pull.call
@@ -310,7 +311,8 @@ class DocumentProviderTest extends AbstractGitTest {
 				assertThat(exception.message).isEqualTo(
 					'''The file '«existingFileName»' could not be saved as it was concurrently being deleted. ''' +
 					'''Local changes were instead backed up to '«backupFileName»'.''')
-				assertThat(backupFile).exists.hasContent(localChange)
+				assertThat(backupFile).exists
+				assertThat(backupFile).hasContent(localChange)
 				assertThat(localGit.status.call.untracked).contains(backupFileName)
 				assertAll
 			]

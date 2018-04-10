@@ -167,15 +167,16 @@ class DocumentProvider {
 	private def void resetToRemoteAndCreateBackup(StageState mergeConflictState, String resourcePath, String content) {
 		resetToRemoteState
 		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
+		var String backupFilePath = null
 		if (!content.isNullOrEmpty) {
 			try {
-				val backupFileName = createLocalBackup(resourcePath, content)
-				exceptionMessage = exceptionMessage.appendBackupNote(backupFileName)
+				backupFilePath = createLocalBackup(resourcePath, content)
+				exceptionMessage = exceptionMessage.appendBackupNote(backupFilePath)
 			} catch (IllegalStateException exception) {
 				exceptionMessage += ' ' + exception.message
 			}
 		}
-		throw new ConflictingModificationsException(exceptionMessage)
+		throw new ConflictingModificationsException(exceptionMessage, backupFilePath)
 	}
 
 	private def createLocalBackup(String resourcePath, String content) {
