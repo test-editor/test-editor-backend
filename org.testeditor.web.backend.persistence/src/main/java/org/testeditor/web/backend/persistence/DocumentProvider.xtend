@@ -6,6 +6,7 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.util.Optional
+import java.util.function.Consumer
 import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
@@ -22,7 +23,6 @@ import org.testeditor.web.dropwizard.auth.User
 import static java.nio.charset.StandardCharsets.*
 
 import static extension java.nio.file.Files.probeContentType
-import java.util.function.Consumer
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
@@ -31,24 +31,25 @@ import java.util.function.Consumer
 class DocumentProvider {
 
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
+	private static val BACKUP_FILE_SUFFIX = '.local-backup'
 
 	@Inject Provider<User> userProvider
 	@Inject extension GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
 	@Inject PersistenceConfiguration configuration
 
-	def boolean create(String resourcePath, String content) {
+	def boolean create(String resourcePath, String content) throws ConflictingModificationsException {
 		val file = getWorkspaceFile(resourcePath)
 
 		val created = create(file)
 		if (created) {
-			if (content !== null && !content.empty) {
+			if (!content.isNullOrEmpty) {
 				Files.asCharSink(file, UTF_8).write(content)
 			}
 			file.commit('''add file: «file.name»''')
-		}
 
-		repoSync[onConflict|onConflict.resetToRemoteAndCreateBackup(resourcePath, content)]
+			repoSync[onConflict|onConflict.resetToRemoteAndCreateBackup(resourcePath, content)]
+		}
 
 		return created
 	}
@@ -58,7 +59,7 @@ class DocumentProvider {
 		return folder.mkdirs
 	}
 
-	def String load(String resourcePath) {
+	def String load(String resourcePath) throws FileNotFoundException {
 		val file = getWorkspaceFile(resourcePath)
 		pull
 
@@ -88,19 +89,17 @@ class DocumentProvider {
 			case DELETED_BY_THEM: '''The file '«resourcePath»' could not be saved as it was concurrently being deleted.'''
 			case BOTH_ADDED: '''The file '«resourcePath»' already exists.'''
 			case DELETED_BY_US: '''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''
-			case BOTH_DELETED,
-			case ADDED_BY_THEM,
-			case ADDED_BY_US: '''Don't know how to handle conflict: «conflictState.toString»'''
+			default: '''Don't know how to handle conflict: «conflictState.toString».'''
 		}
 	}
 
-	private def String appendBackupNote(String conflictMessage, String resourcePath) {
-		return conflictMessage + ''' Local changes were instead backed up to '«resourcePath».local-backup'.'''
+	private def String appendBackupNote(String conflictMessage, String backupFileName) {
+		return '''«conflictMessage» Local changes were instead backed up to '«backupFileName»'.'''
 	}
 
 	private def void resetToRemoteState() {
 		git.reset => [
-			ref = 'origin/master'
+			ref = '@{upstream}'
 			mode = ResetType.HARD
 			call
 		]
@@ -187,22 +186,35 @@ class DocumentProvider {
 	private def void resetToRemoteAndCreateBackup(StageState mergeConflictState, String resourcePath, String content) {
 		resetToRemoteState
 		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
-		if (content !== null && !content.empty) {
-			val workspace = workspaceProvider.workspace
-			val backupFile = new File(workspace, resourcePath + '.local-backup')
-			Files.asCharSink(backupFile, UTF_8).write(content)
-			exceptionMessage = exceptionMessage.appendBackupNote(resourcePath)
+		if (!content.isNullOrEmpty) {
+			val backupFileName = createLocalBackup(resourcePath, content)
+			
+			exceptionMessage = exceptionMessage.appendBackupNote(backupFileName)
 		}
 		throw new ConflictingModificationsException(exceptionMessage)
+	}
+	
+	private def createLocalBackup(String resourcePath, String content) {
+		val workspace = workspaceProvider.workspace
+		var fileSuffix = BACKUP_FILE_SUFFIX
+		var backupFile = new File(workspace, resourcePath + fileSuffix)
+		var numberSuffix = 0
+		while (backupFile.exists) {
+			fileSuffix = '''«BACKUP_FILE_SUFFIX»-«numberSuffix++»'''
+			backupFile = new File(workspace, resourcePath + fileSuffix)
+		}
+		Files.asCharSink(backupFile, UTF_8).write(content)
+		return resourcePath + fileSuffix
 	}
 
 	private def Optional<StageState> pull() {
 		logger.info('''running git pull against «configuration.remoteRepoUrl»''')
 		val mergeSuccessful = git.pull.configureTransport.call.mergeResult.mergeStatus.successful
-		if (!mergeSuccessful) {
-			return Optional.of(git.status.call.conflictingStageState.values.head)
+		return if (!mergeSuccessful) {
+			Optional.of(git.status.call.conflictingStageState.values.head)
+		} else {
+			Optional.empty		
 		}
-		return Optional.empty
 	}
 
 	private def void push() {

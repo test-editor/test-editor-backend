@@ -283,6 +283,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		} catch (ConflictingModificationsException exception) {
 			val backupFileName = existingFileName + '.local-backup'
 			val backupFile = new File(localGitRoot.root, backupFileName)
+			val existingFile = new File(localGitRoot.root, existingFileName)
 
 			new SoftAssertions => [
 				assertThat(exception.message).isEqualTo(
@@ -290,6 +291,47 @@ class DocumentProviderTest extends AbstractGitTest {
 					'''Local changes were instead backed up to '«backupFileName»'.''')
 				assertThat(backupFile).exists.hasContent(localChange)
 				assertThat(localGit.status.call.untracked).contains(backupFileName)
+				assertThat(existingFile).exists.hasContent(remoteChange)
+				assertAll
+			]
+		}
+	}
+	
+	@Test
+	def void saveWithRemoteChangesFindsNextFreeFileNameForBackupFile() {
+		// given
+		val existingFileName = createPreExistingFileInRemoteRepository
+		val localGit = gitProvider.git
+		localGit.pull.call
+		val previousBackupFiles = #[
+			existingFileName + '.local-backup',
+			existingFileName + '.local-backup-0',
+			existingFileName + '.local-backup-2']
+		previousBackupFiles.forEach[localGitRoot.newFile(it)]
+		
+		
+		val localChange = 'Contents of file after local change'
+		
+		val remoteChange = 'Contents of file after remote change'
+		remoteGitFolder.root.write(existingFileName, remoteChange)
+		remoteGit.addAndCommit(existingFileName, "change on remote")
+
+		// when
+		try {
+			documentProvider.save(existingFileName, localChange)
+
+			// then			
+			fail('Expected ConflictingModificationsException, but none was thrown.')
+		} catch (ConflictingModificationsException exception) {
+			val expectedBackupFileName = existingFileName + '.local-backup-1'
+			val expectedBackupFile = new File(localGitRoot.root, expectedBackupFileName)
+
+			new SoftAssertions => [
+				assertThat(exception.message).isEqualTo(
+					'''The file '«existingFileName»' could not be saved due to concurrent modifications. ''' +
+					'''Local changes were instead backed up to '«expectedBackupFileName»'.''')
+				assertThat(expectedBackupFile).exists.hasContent(localChange)
+				assertThat(localGit.status.call.untracked).containsAll(previousBackupFiles + #[expectedBackupFileName])
 				assertAll
 			]
 		}
