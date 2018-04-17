@@ -53,17 +53,9 @@ class DocumentResource {
 	@GET
 	def Response load(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
 		try {
-			return resourcePath.loadIntoResponse.build
+			return status(OK).entity(documentProvider.load(resourcePath)).type(documentProvider.getType(resourcePath)).build
 		} catch (FileNotFoundException e) {
 			return status(NOT_FOUND).build
-		}
-	}
-
-	private def loadIntoResponse(String resourcePath) {
-		if (documentProvider.regardAsBinary(resourcePath)) {
-			status(OK).entity(documentProvider.loadBinary(resourcePath)).type(documentProvider.getType(resourcePath))
-		} else {
-			status(OK).entity(documentProvider.load(resourcePath)).type(MediaType.TEXT_PLAIN)
 		}
 	}
 

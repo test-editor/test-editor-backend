@@ -59,16 +59,12 @@ class DocumentProvider {
 		return folder.mkdirs
 	}
 
-	def String load(String resourcePath) throws FileNotFoundException {
+	def InputStream load(String resourcePath) throws FileNotFoundException {
 		val file = getWorkspaceFile(resourcePath)
 		pull
 
 		if (file.exists) {
-			if (!regardAsBinary(resourcePath)) {
-				return file.read
-			} else {
-				throw new IllegalStateException('''File "«file.name»" appears to be binary and cannot be loaded as text.''')
-			}
+			return new FileInputStream(file)
 		} else {
 			throw new FileNotFoundException('''The file '«resourcePath»' does not exist. It may have been concurrently deleted.''')
 		}
@@ -130,26 +126,9 @@ class DocumentProvider {
 		}
 	}
 
-	def boolean regardAsBinary(String resourcePath) {
-		val file = getWorkspaceFile(resourcePath)
-		pull
-		if (file.exists) {
-			return !file.toPath.probeContentType.toLowerCase.startsWith("text")
-		} else {
-			throw new FileNotFoundException('''file "«resourcePath»" does not exist.''')
-		}
-	}
-
 	def String getType(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
 		return file.toPath.probeContentType
-	}
-
-	def InputStream loadBinary(String resourcePath) {
-		val file = getWorkspaceFile(resourcePath)
-		pull
-
-		return new FileInputStream(file)
 	}
 
 	private def void commit(File file, String message) {
@@ -172,7 +151,7 @@ class DocumentProvider {
 		}
 
 	}
-	
+
 	private def void repoSync(Consumer<StageState> handler) {
 		val mergeConflictState = pull
 
@@ -213,7 +192,7 @@ class DocumentProvider {
 		return if (!mergeSuccessful) {
 			Optional.of(git.status.call.conflictingStageState.values.head)
 		} else {
-			Optional.empty		
+			Optional.empty
 		}
 	}
 
@@ -222,10 +201,6 @@ class DocumentProvider {
 			logger.info('''running git push against «configuration.remoteRepoUrl»''')
 			git.push.configureTransport.call
 		}
-	}
-
-	private def String read(File file) {
-		return Files.asCharSource(file, UTF_8).read
 	}
 
 	private def void verifyFileIsWithinWorkspace(File workspace, File workspaceFile) {

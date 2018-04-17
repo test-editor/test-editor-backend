@@ -1,10 +1,12 @@
 package org.testeditor.web.backend.persistence
 
 import java.io.File
-import java.io.FileInputStream
-import java.util.Arrays
+import java.io.FileNotFoundException
+import java.nio.charset.StandardCharsets
 import javax.inject.Inject
+import org.apache.commons.io.IOUtils
 import org.assertj.core.api.SoftAssertions
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
@@ -12,10 +14,6 @@ import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
 import static org.assertj.core.api.Assertions.assertThat
 import static org.eclipse.jgit.diff.DiffEntry.ChangeType.*
-
-import static extension com.google.common.io.ByteStreams.*
-import org.junit.Before
-import java.io.FileNotFoundException
 
 class DocumentProviderTest extends AbstractGitTest {
 
@@ -171,7 +169,7 @@ class DocumentProviderTest extends AbstractGitTest {
 
 		// then
 		localGitRoot.root.assertFileExists(existingFileName)
-		actualFileContents.assertEquals(expectedFileContents)
+		IOUtils.toString(actualFileContents, StandardCharsets.UTF_8).assertEquals(expectedFileContents)
 	}
 
 	@Test
@@ -209,56 +207,6 @@ class DocumentProviderTest extends AbstractGitTest {
 
 		// then
 		gitProvider.git.lastCommit.fullMessage.assertEquals('''delete file: «existingFileName»'''.toString)
-	}
-
-	@Test
-	def void recognizesBinaryFile() {
-		// given
-		val existingImageFile = createPreExistingBinaryFileInRemoteRepository("image.png")
-
-		// when
-		val boolean actual = documentProvider.regardAsBinary(existingImageFile)
-
-		// then
-		assertTrue(actual)
-	}
-
-	@Test
-	def void recognizesTextFile() {
-		// given
-		val existingFileName = createPreExistingFileInRemoteRepository("file.tcl", "Plain-text content")
-
-		// when
-		val actual = documentProvider.regardAsBinary(existingFileName)
-
-		// then
-		assertFalse(actual)
-	}
-
-	@Test
-	def void loadBinaryReturnsContentAsStream() {
-		// given
-		val expectedContents = new FileInputStream(BINARY_FILE).toByteArray
-		val existingImageFile = createPreExistingBinaryFileInRemoteRepository("image.png")
-
-		// when
-		val actualContents = documentProvider.loadBinary(existingImageFile)
-
-		// then
-		assertTrue(Arrays.equals(actualContents.toByteArray, expectedContents))
-	}
-
-	@Test
-	def void loadOnBinaryFileRaisesException() {
-		// given
-		val existingImageFile = createPreExistingBinaryFileInRemoteRepository("image.png")
-
-		// then (!)
-		exception.expect(IllegalStateException)
-		exception.expectMessage('''File "«existingImageFile»" appears to be binary and cannot be loaded as text.''')
-
-		// when
-		documentProvider.load(existingImageFile)
 	}
 
 	@Test
