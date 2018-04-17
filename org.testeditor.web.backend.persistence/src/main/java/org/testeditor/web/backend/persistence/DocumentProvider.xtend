@@ -183,16 +183,16 @@ class DocumentProvider {
 		val workspace = workspaceProvider.workspace
 		var fileSuffix = BACKUP_FILE_SUFFIX
 		var backupFile = new File(workspace, resourcePath + fileSuffix)
-		if (backupFile.exists) {
+		if (!backupFile.create) {
 			val numberSuffix = (0..MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst[ i |
-				!new File(workspace, '''«resourcePath»«BACKUP_FILE_SUFFIX»-«i»''').exists
+				new File(workspace, '''«resourcePath»«BACKUP_FILE_SUFFIX»-«i»''').create
 			]
 			if (numberSuffix !== null) {
 				fileSuffix = '''«BACKUP_FILE_SUFFIX»-«numberSuffix»'''
 				backupFile = new File(workspace, '''«resourcePath»«fileSuffix»''')
 			} else {
 				throw new IllegalStateException('''Could not create a backup file for '«resourcePath»': backup file limit reached.''')
-			}			
+			}
 		}
 		Files.asCharSink(backupFile, UTF_8).write(content)
 		return resourcePath + fileSuffix
