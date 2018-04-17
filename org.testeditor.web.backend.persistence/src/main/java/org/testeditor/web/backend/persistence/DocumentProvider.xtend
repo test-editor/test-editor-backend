@@ -31,7 +31,9 @@ import static extension java.nio.file.Files.probeContentType
 class DocumentProvider {
 
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
+	
 	private static val BACKUP_FILE_SUFFIX = '.local-backup'
+	private static val MAX_BACKUP_FILE_NUMBER_SUFFIX = 9
 
 	@Inject Provider<User> userProvider
 	@Inject extension GitProvider gitProvider
@@ -166,21 +168,30 @@ class DocumentProvider {
 		resetToRemoteState
 		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
 		if (!content.isNullOrEmpty) {
-			val backupFileName = createLocalBackup(resourcePath, content)
-			
-			exceptionMessage = exceptionMessage.appendBackupNote(backupFileName)
+			try {
+				val backupFileName = createLocalBackup(resourcePath, content)
+				exceptionMessage = exceptionMessage.appendBackupNote(backupFileName)
+			} catch (IllegalStateException exception) {
+				exceptionMessage += ' ' + exception.message
+			}
 		}
 		throw new ConflictingModificationsException(exceptionMessage)
 	}
-	
+
 	private def createLocalBackup(String resourcePath, String content) {
 		val workspace = workspaceProvider.workspace
 		var fileSuffix = BACKUP_FILE_SUFFIX
 		var backupFile = new File(workspace, resourcePath + fileSuffix)
-		var numberSuffix = 0
-		while (backupFile.exists) {
-			fileSuffix = '''«BACKUP_FILE_SUFFIX»-«numberSuffix++»'''
-			backupFile = new File(workspace, resourcePath + fileSuffix)
+		if (backupFile.exists) {
+			val numberSuffix = (0..MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst[ i |
+				!new File(workspace, '''«resourcePath»«BACKUP_FILE_SUFFIX»-«i»''').exists
+			]
+			if (numberSuffix !== null) {
+				fileSuffix = '''«BACKUP_FILE_SUFFIX»-«numberSuffix»'''
+				backupFile = new File(workspace, '''«resourcePath»«fileSuffix»''')
+			} else {
+				throw new IllegalStateException('''Could not create a backup file for '«resourcePath»': backup file limit reached.''')
+			}			
 		}
 		Files.asCharSink(backupFile, UTF_8).write(content)
 		return resourcePath + fileSuffix
