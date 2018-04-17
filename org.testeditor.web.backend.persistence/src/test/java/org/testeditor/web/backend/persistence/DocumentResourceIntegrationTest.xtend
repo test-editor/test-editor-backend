@@ -44,7 +44,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(CREATED.statusCode)
-		read(resourcePath).assertEquals(simpleTsl)
+		readRemote(resourcePath).assertEquals(simpleTsl)
 	}
 
 	@Test
@@ -72,7 +72,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(BAD_REQUEST.statusCode)
-		read(resourcePath).assertEquals(simpleTsl)
+		readRemote(resourcePath).assertEquals(simpleTsl)
 	}
 
 	@Test
@@ -134,7 +134,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(NO_CONTENT.statusCode)
-		read(resourcePath).assertEquals(updateText)
+		readRemote(resourcePath).assertEquals(updateText)
 	}
 
 	@Test
@@ -240,6 +240,115 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		response.status.assertEquals(NOT_FOUND.statusCode)
 	}
+	
+	@Test
+	def void conflictIsReturnedWhenCreatingDocumentThatAlreadyExistsRemotely() {
+		// given
+		write(resourcePath, simpleTsl)
+		val request = createDocumentRequest(resourcePath).buildPost(null)
+
+		// when
+		val response = request.submit.get
+
+		// then
+		response.status.assertEquals(CONFLICT.statusCode)
+		readRemote(resourcePath).assertEquals(simpleTsl)
+		readLocal(resourcePath).assertEquals(simpleTsl)
+		new File(workspaceRoot.root, resourcePath + '.local-backup').exists.assertFalse
+	}
+	
+	@Test
+	def void conflictIsReturnedWhenUpdatingWithRemoteChanges() {
+		// given
+		write(resourcePath, simpleTsl)
+		createRequest('workspace/list-files').buildGet.submit.get
+		write(resourcePath, simpleTsl + '\nRemote Change')
+		
+		val updateText = simpleTsl + '\nLocal Change'
+		val request = createDocumentRequest(resourcePath).buildPut(stringEntity(updateText))
+
+		// when
+		val response = request.submit.get
+
+		// then
+		val backupPath = resourcePath + '.local-backup'
+		response.status.assertEquals(CONFLICT.statusCode)
+		response.readEntity(String).assertEquals(
+			'''The file '«resourcePath»' could not be saved due to concurrent modifications. ''' +
+			'''Local changes were instead backed up to '«backupPath»'.''')
+		response.headers.get('content-location').head.assertEquals(backupPath)
+		readLocal(resourcePath).assertEquals(simpleTsl + '\nRemote Change')
+		readLocal(backupPath).assertEquals(simpleTsl + '\nLocal Change')
+	}	
+	
+		@Test
+	def void conflictIsReturnedWhenUpdatingWithRemoteDeleted() {
+		// given
+		write(resourcePath, simpleTsl)
+		createRequest('workspace/list-files').buildGet.submit.get
+		
+		val remoteGit = Git.open(remoteGitFolder.root)
+		remoteGit.rm.addFilepattern(resourcePath).call
+		remoteGit.commit.setMessage('file deleted').call
+		
+		
+		val updateText = simpleTsl + '\nLocal Change'
+		val request = createDocumentRequest(resourcePath).buildPut(stringEntity(updateText))
+
+		// when
+		val response = request.submit.get
+
+		// then
+		val backupPath = resourcePath + '.local-backup'
+		response.status.assertEquals(CONFLICT.statusCode)
+		response.readEntity(String).assertEquals(
+			'''The file '«resourcePath»' could not be saved as it was concurrently being deleted.''' + 
+			''' Local changes were instead backed up to '«backupPath»'.'''.toString)
+		response.headers.get('content-location').head.assertEquals(backupPath)
+		new File(workspaceRoot.root, resourcePath).exists.assertFalse
+		readLocal(backupPath).assertEquals(simpleTsl + '\nLocal Change')
+	}
+	
+		@Test
+	def void conflictIsReturnedWhenDeletingWithRemoteChanges() {
+		// given
+		write(resourcePath, simpleTsl)
+		createRequest('workspace/list-files').buildGet.submit.get
+		write(resourcePath, simpleTsl + '\nRemote Change')
+		
+		val request = createDocumentRequest(resourcePath)
+
+		// when
+		val response = request.delete
+
+		// then
+		val backupPath = resourcePath + '.local-backup'
+		response.status.assertEquals(CONFLICT.statusCode)
+		response.readEntity(String).assertEquals('''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''.toString)
+		response.headers.containsKey('content-location').assertFalse
+		new File(workspaceRoot.root, backupPath).exists.assertFalse
+		readLocal(resourcePath).assertEquals(simpleTsl + '\nRemote Change')
+	}
+	
+	@Test
+	def void notFoundIsReturnedWhenGettingRemotelyDeletedDocument() {
+		// given
+		write(resourcePath, simpleTsl)
+		createRequest('workspace/list-files').buildGet.submit.get
+		
+		val remoteGit = Git.open(remoteGitFolder.root)
+		remoteGit.rm.addFilepattern(resourcePath).call
+		remoteGit.commit.setMessage('file deleted').call
+
+		val request = createDocumentRequest(resourcePath)
+
+		// when
+		val response = request.get
+
+		// then
+		response.status.assertEquals(NOT_FOUND.statusCode)
+	}
+
 
 	private def Entity<String> stringEntity(CharSequence charSequence) {
 		return Entity.entity(charSequence.toString, MediaType.TEXT_PLAIN)
@@ -259,8 +368,14 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		return file
 	}
 
-	private def String read(String resourcePath) {
+	private def String readRemote(String resourcePath) {
 		val file = getRemoteFile(resourcePath)
+		file.exists.assertTrue('''File with path='«resourcePath»' does not exist.''')
+		return FileUtils.readFileToString(file, StandardCharsets.UTF_8)
+	}
+	
+	private def String readLocal(String resourcePath) {
+		val file = getLocalFile(resourcePath)
 		file.exists.assertTrue('''File with path='«resourcePath»' does not exist.''')
 		return FileUtils.readFileToString(file, StandardCharsets.UTF_8)
 	}
