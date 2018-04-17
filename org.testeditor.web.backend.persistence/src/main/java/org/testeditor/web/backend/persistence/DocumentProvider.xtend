@@ -5,10 +5,14 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.InputStream
+import java.util.Optional
+import java.util.function.Consumer
 import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.ResetCommand.ResetType
+import org.eclipse.jgit.lib.IndexDiff.StageState
 import org.eclipse.jgit.lib.PersonIdent
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
@@ -27,18 +31,28 @@ import static extension java.nio.file.Files.probeContentType
 class DocumentProvider {
 
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
+	
+	private static val BACKUP_FILE_SUFFIX = '.local-backup'
+	private static val MAX_BACKUP_FILE_NUMBER_SUFFIX = 9
 
 	@Inject Provider<User> userProvider
 	@Inject extension GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
 	@Inject PersistenceConfiguration configuration
 
-	def boolean create(String resourcePath, String content) {
+	def boolean create(String resourcePath, String content) throws ConflictingModificationsException {
 		val file = getWorkspaceFile(resourcePath)
+
 		val created = create(file)
 		if (created) {
-			file.write(content, '''add file: «file.name»''')
+			if (!content.isNullOrEmpty) {
+				Files.asCharSink(file, UTF_8).write(content)
+			}
+			file.commit('''add file: «file.name»''')
+
+			repoSync[onConflict|onConflict.resetToRemoteAndCreateBackup(resourcePath, content)]
 		}
+
 		return created
 	}
 
@@ -47,39 +61,66 @@ class DocumentProvider {
 		return folder.mkdirs
 	}
 
-	/**
-	 * @return true when the file has been created
-	 */
-	def boolean createOrUpdate(String resourcePath, String content) {
+	def InputStream load(String resourcePath) throws FileNotFoundException {
 		val file = getWorkspaceFile(resourcePath)
-		var created = false
-		if (!file.exists) {
-			created = create(file)
-		}
-		file.write(content)
-		return created
-	}
+		pull
 
-	def String load(String resourcePath) {
-		val file = getWorkspaceFile(resourcePath)
-		if (!regardAsBinary(resourcePath)) {
-			return file.read
+		if (file.exists) {
+			return new FileInputStream(file)
 		} else {
-			throw new IllegalStateException('''File "«file.name»" appears to be binary and cannot be loaded as text.''')
+			throw new FileNotFoundException('''The file '«resourcePath»' does not exist. It may have been concurrently deleted.''')
 		}
 	}
 
 	def void save(String resourcePath, String content) {
-		val file = getWorkspaceFile(resourcePath)
-		file.write(content)
+		resourcePath.getWorkspaceFile => [
+			Files.asCharSink(it, UTF_8).write(content)
+			commit('''update file: «it.name»''')
+		]
+
+		repoSync[onConflict|onConflict.resetToRemoteAndCreateBackup(resourcePath, content)]
+	}
+
+	private def String getConflictMessage(StageState conflictState, String resourcePath) {
+		return switch (conflictState) {
+			case BOTH_MODIFIED: '''The file '«resourcePath»' could not be saved due to concurrent modifications.'''
+			case DELETED_BY_THEM: '''The file '«resourcePath»' could not be saved as it was concurrently being deleted.'''
+			case BOTH_ADDED: '''The file '«resourcePath»' already exists.'''
+			case DELETED_BY_US: '''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''
+			default: '''Don't know how to handle conflict: «conflictState.toString».'''
+		}
+	}
+
+	private def String appendBackupNote(String conflictMessage, String backupFileName) {
+		return '''«conflictMessage» Local changes were instead backed up to '«backupFileName»'.'''
+	}
+
+	private def void resetToRemoteState() {
+		git.reset => [
+			ref = '@{upstream}'
+			mode = ResetType.HARD
+			call
+		]
+	}
+
+	private def getWorkspaceFile(String resourcePath) {
+		val workspace = workspaceProvider.workspace
+		val file = new File(workspace, resourcePath)
+		verifyFileIsWithinWorkspace(workspace, file)
+
+		return file
 	}
 
 	def boolean delete(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
+		if (!file.exists) {
+			pull
+		}
 		if (file.exists) {
 			val deleted = FileUtils.deleteQuietly(file)
 			if (deleted) {
 				file.commit('''delete file: «file.name»''')
+				repoSync[onConflict|onConflict.resetToRemoteAndCreateBackup(resourcePath, null)]
 			}
 			return deleted
 		} else {
@@ -87,33 +128,9 @@ class DocumentProvider {
 		}
 	}
 
-	def boolean regardAsBinary(String resourcePath) {
-		val file = getWorkspaceFile(resourcePath)
-		if (file.exists) {
-			return !file.toPath.probeContentType.toLowerCase.startsWith("text")
-		} else {
-			throw new FileNotFoundException('''file "«resourcePath»" does not exist.''')
-		}
-	}
-
 	def String getType(String resourcePath) {
 		val file = getWorkspaceFile(resourcePath)
 		return file.toPath.probeContentType
-	}
-
-	def InputStream loadBinary(String resourcePath) {
-		val file = getWorkspaceFile(resourcePath)
-
-		return new FileInputStream(file)
-	}
-
-	private def void write(File file, String content) {
-		write(file, content, '''update file: «file.name»''')
-	}
-
-	private def void write(File file, String content, String commitMessage) {
-		Files.asCharSink(file, UTF_8).write(content)
-		file.commit(commitMessage)
 	}
 
 	private def void commit(File file, String message) {
@@ -124,7 +141,6 @@ class DocumentProvider {
 		.setAuthor(personIdent) //
 		.setCommitter(personIdent) //
 		.call
-		repoSync
 	}
 
 	private def void stage(Git git, File file) {
@@ -138,25 +154,64 @@ class DocumentProvider {
 
 	}
 
-	private def void repoSync() {
+	private def void repoSync(Consumer<StageState> handler) {
+		val mergeConflictState = pull
+
+		if (!mergeConflictState.isPresent) {
+			push
+		} else {
+			handler.accept(mergeConflictState.get)
+		}
+	}
+
+	private def void resetToRemoteAndCreateBackup(StageState mergeConflictState, String resourcePath, String content) {
+		resetToRemoteState
+		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
+		if (!content.isNullOrEmpty) {
+			try {
+				val backupFileName = createLocalBackup(resourcePath, content)
+				exceptionMessage = exceptionMessage.appendBackupNote(backupFileName)
+			} catch (IllegalStateException exception) {
+				exceptionMessage += ' ' + exception.message
+			}
+		}
+		throw new ConflictingModificationsException(exceptionMessage)
+	}
+
+	private def createLocalBackup(String resourcePath, String content) {
+		val workspace = workspaceProvider.workspace
+		var fileSuffix = BACKUP_FILE_SUFFIX
+		var backupFile = new File(workspace, resourcePath + fileSuffix)
+		if (backupFile.exists) {
+			val numberSuffix = (0..MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst[ i |
+				!new File(workspace, '''«resourcePath»«BACKUP_FILE_SUFFIX»-«i»''').exists
+			]
+			if (numberSuffix !== null) {
+				fileSuffix = '''«BACKUP_FILE_SUFFIX»-«numberSuffix»'''
+				backupFile = new File(workspace, '''«resourcePath»«fileSuffix»''')
+			} else {
+				throw new IllegalStateException('''Could not create a backup file for '«resourcePath»': backup file limit reached.''')
+			}			
+		}
+		Files.asCharSink(backupFile, UTF_8).write(content)
+		return resourcePath + fileSuffix
+	}
+
+	private def Optional<StageState> pull() {
 		logger.info('''running git pull against «configuration.remoteRepoUrl»''')
-		git.pull.configureTransport.call
+		val mergeSuccessful = git.pull.configureTransport.call.mergeResult.mergeStatus.successful
+		return if (!mergeSuccessful) {
+			Optional.of(git.status.call.conflictingStageState.values.head)
+		} else {
+			Optional.empty
+		}
+	}
+
+	private def void push() {
 		if (configuration.repoConnectionMode.equals(PersistenceConfiguration.RepositoryConnectionMode.pullPush)) {
 			logger.info('''running git push against «configuration.remoteRepoUrl»''')
 			git.push.configureTransport.call
 		}
-	}
-
-	private def String read(File file) {
-		Files.asCharSource(file, UTF_8).read
-	}
-
-	private def File getWorkspaceFile(String resourcePath) {
-		val workspace = workspaceProvider.workspace
-		val file = new File(workspace, resourcePath)
-		verifyFileIsWithinWorkspace(workspace, file)
-		repoSync
-		return file
 	}
 
 	private def void verifyFileIsWithinWorkspace(File workspace, File workspaceFile) {

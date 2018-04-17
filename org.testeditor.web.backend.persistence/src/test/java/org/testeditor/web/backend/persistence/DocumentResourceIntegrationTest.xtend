@@ -10,6 +10,7 @@ import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.MediaType
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
+import org.junit.Before
 import org.junit.Test
 
 import static javax.ws.rs.core.Response.Status.*
@@ -27,6 +28,11 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	'''
 	val binaryResourcePath = "some/parent/folder/image.png"
 	val binaryContentsFile = new File("src/test/resources/sample-binary-file.png")
+	
+	@Before
+	def void initGitInLocalWorkspace() {
+		createRequest('workspace/list-files').buildGet.submit.get
+	}
 
 	@Test
 	def void canCreateDocumentUsingPost() {
@@ -116,22 +122,10 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	}
 
 	@Test
-	def void canCreateDocumentUsingPut() {
-		// given
-		val request = createDocumentRequest(resourcePath).buildPut(stringEntity(simpleTsl))
-
-		// when
-		val response = request.submit.get
-
-		// then
-		response.status.assertEquals(CREATED.statusCode)
-		read(resourcePath).assertEquals(simpleTsl)
-	}
-
-	@Test
 	def void canUpdateDocumentUsingPut() {
 		// given
 		write(resourcePath, simpleTsl)
+		createRequest('workspace/list-files').buildGet.submit.get
 		val updateText = "updated"
 		val request = createDocumentRequest(resourcePath).buildPut(stringEntity(updateText))
 
