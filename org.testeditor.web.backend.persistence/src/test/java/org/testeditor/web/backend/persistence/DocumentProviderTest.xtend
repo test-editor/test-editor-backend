@@ -1,7 +1,6 @@
 package org.testeditor.web.backend.persistence
 
 import java.io.File
-import java.io.FileNotFoundException
 import java.nio.charset.StandardCharsets
 import javax.inject.Inject
 import org.apache.commons.io.IOUtils
@@ -11,6 +10,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
 import org.testeditor.web.backend.persistence.exception.ConflictingModificationsException
+import org.testeditor.web.backend.persistence.exception.MissingFileException
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
 import static org.assertj.core.api.Assertions.assertThat
@@ -447,8 +447,8 @@ class DocumentProviderTest extends AbstractGitTest {
 		try {
 			documentProvider.load(existingFileName)	
 		//then
-		fail('Expected FileNotFoundException, but none was thrown.')
-		} catch (FileNotFoundException exception) {
+		fail('Expected MissingFileException, but none was thrown.')
+		} catch (MissingFileException exception) {
 			assertThat(exception.message).isEqualTo(
 					'''The file '«existingFileName»' does not exist. It may have been concurrently deleted.'''.toString)
 		}

@@ -1,6 +1,5 @@
 package org.testeditor.web.backend.persistence
 
-import java.io.FileNotFoundException
 import javax.inject.Inject
 import javax.ws.rs.DELETE
 import javax.ws.rs.GET
@@ -51,25 +50,17 @@ class DocumentResource {
 	}
 
 	@GET
-	def Response load(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
-		try {
-			return status(OK).entity(documentProvider.load(resourcePath)).type(documentProvider.getType(resourcePath)).build
-		} catch (FileNotFoundException e) {
-			return status(NOT_FOUND).build
-		}
+	def Response load(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {		
+		return status(OK).entity(documentProvider.load(resourcePath)).type(documentProvider.getType(resourcePath)).build
 	}
 
 	@DELETE
 	def Response delete(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
-		try {
-			val actuallyDeleted = documentProvider.delete(resourcePath)
-			if (actuallyDeleted) {
-				return status(OK).build
-			} else {
-				return status(INTERNAL_SERVER_ERROR).build
-			}
-		} catch (FileNotFoundException e) {
-			return status(NOT_FOUND).build
+		val actuallyDeleted = documentProvider.delete(resourcePath)
+		if (actuallyDeleted) {
+			return status(OK).build
+		} else {
+			return status(INTERNAL_SERVER_ERROR).build
 		}
 	}
 

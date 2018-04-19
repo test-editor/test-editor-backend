@@ -29,5 +29,11 @@ class PersistenceExceptionMapper extends LoggingExceptionMapper<PersistenceExcep
 	def dispatch Response toResponse(PersistenceException e) {
 		return Response.serverError.build
 	}
+	
+	def dispatch Response toResponse(MissingFileException missingFileException) {
+		logException(missingFileException)
+
+		return Response.status(Response.Status.NOT_FOUND).entity(missingFileException.message).build
+	}
 
 }
