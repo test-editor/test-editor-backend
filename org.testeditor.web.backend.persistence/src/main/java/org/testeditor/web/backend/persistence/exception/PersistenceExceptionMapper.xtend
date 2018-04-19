@@ -4,7 +4,6 @@ import io.dropwizard.jersey.errors.LoggingExceptionMapper
 import java.net.URI
 import javax.ws.rs.core.Response
 import javax.ws.rs.ext.Provider
-import org.testeditor.web.backend.persistence.ConflictingModificationsException
 
 @Provider
 class PersistenceExceptionMapper extends LoggingExceptionMapper<PersistenceException> {
@@ -29,6 +28,12 @@ class PersistenceExceptionMapper extends LoggingExceptionMapper<PersistenceExcep
 
 	def dispatch Response toResponse(PersistenceException e) {
 		return Response.serverError.build
+	}
+	
+	def dispatch Response toResponse(MissingFileException missingFileException) {
+		logException(missingFileException)
+
+		return Response.status(Response.Status.NOT_FOUND).entity(missingFileException.message).build
 	}
 
 }

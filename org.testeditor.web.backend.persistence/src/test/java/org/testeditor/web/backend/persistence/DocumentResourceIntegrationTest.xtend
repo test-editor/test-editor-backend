@@ -239,6 +239,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(NOT_FOUND.statusCode)
+		response.readEntity(String).assertEquals('''The file '«resourcePath»' does not exist.'''.toString)
 	}
 	
 	@Test
@@ -347,6 +348,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(NOT_FOUND.statusCode)
+		response.readEntity(String).assertEquals('''The file '«resourcePath»' does not exist. It may have been concurrently deleted.'''.toString)
 	}
 
 

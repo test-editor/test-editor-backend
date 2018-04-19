@@ -15,7 +15,9 @@ import org.eclipse.jgit.api.ResetCommand.ResetType
 import org.eclipse.jgit.lib.IndexDiff.StageState
 import org.eclipse.jgit.lib.PersonIdent
 import org.slf4j.LoggerFactory
+import org.testeditor.web.backend.persistence.exception.ConflictingModificationsException
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
+import org.testeditor.web.backend.persistence.exception.MissingFileException
 import org.testeditor.web.backend.persistence.git.GitProvider
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.auth.User
@@ -68,7 +70,7 @@ class DocumentProvider {
 		if (file.exists) {
 			return new FileInputStream(file)
 		} else {
-			throw new FileNotFoundException('''The file '«resourcePath»' does not exist. It may have been concurrently deleted.''')
+			throw new MissingFileException('''The file '«resourcePath»' does not exist. It may have been concurrently deleted.''')
 		}
 	}
 
@@ -124,7 +126,7 @@ class DocumentProvider {
 			}
 			return deleted
 		} else {
-			throw new FileNotFoundException(resourcePath)
+			throw new MissingFileException('''The file '«resourcePath»' does not exist.''')
 		}
 	}
 
