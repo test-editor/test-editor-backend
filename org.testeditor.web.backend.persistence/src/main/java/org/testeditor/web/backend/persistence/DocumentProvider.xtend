@@ -23,6 +23,7 @@ import org.testeditor.web.dropwizard.auth.User
 import static java.nio.charset.StandardCharsets.*
 
 import static extension java.nio.file.Files.probeContentType
+import org.testeditor.web.backend.persistence.exception.ConflictingModificationsException
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to

@@ -4,7 +4,6 @@ import io.dropwizard.jersey.errors.LoggingExceptionMapper
 import java.net.URI
 import javax.ws.rs.core.Response
 import javax.ws.rs.ext.Provider
-import org.testeditor.web.backend.persistence.ConflictingModificationsException
 
 @Provider
 class PersistenceExceptionMapper extends LoggingExceptionMapper<PersistenceException> {

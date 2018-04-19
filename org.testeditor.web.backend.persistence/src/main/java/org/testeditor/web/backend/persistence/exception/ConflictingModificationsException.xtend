@@ -1,4 +1,4 @@
-package org.testeditor.web.backend.persistence
+package org.testeditor.web.backend.persistence.exception
 
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.testeditor.web.backend.persistence.exception.PersistenceException

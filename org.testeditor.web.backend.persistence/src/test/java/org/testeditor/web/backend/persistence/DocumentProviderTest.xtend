@@ -10,6 +10,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
+import org.testeditor.web.backend.persistence.exception.ConflictingModificationsException
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
 
 import static org.assertj.core.api.Assertions.assertThat
