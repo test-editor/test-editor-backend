@@ -28,5 +28,7 @@ class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 
 	@Accessors
 	private String knownHostsLocation
-
+	
+	@Accessors
+	private Boolean useDiffMarkersInBackups = false
 }
