@@ -13,6 +13,7 @@ import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
 
 import static org.assertj.core.api.Assertions.*
+import org.assertj.core.api.SoftAssertions
 
 class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
@@ -213,11 +214,13 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 		// then
 		val json = response.readEntity(String)
-		expectedStatusMap.forEach [ prefix, status |
-			assertThat(json).matches(Pattern.compile(
-			'''\s*\[.*\{\s*"path"\s*:\s*"«prefix»Test.tcl"\s*,\s*"status"\s*:\s*"«status»"\s*\}.*\]\s*''', Pattern.DOTALL))
+		new SoftAssertions => [
+			expectedStatusMap.forEach [ prefix, status |
+				assertThat(json).matches(Pattern.compile(
+				'''\s*\[.*\{\s*"path"\s*:\s*"«prefix»Test.tcl"\s*,\s*"status"\s*:\s*"«status»"\s*\}.*\]\s*''', Pattern.DOTALL))
+			]
+			assertAll
 		]
-
 		val actualStatuses = response.readEntity(new GenericType<Iterable<TestStatusInfo>>() {
 		})
 		assertThat(actualStatuses).size.isEqualTo(3)
