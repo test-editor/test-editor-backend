@@ -1,3 +1,5 @@
+[![License](http://img.shields.io/badge/license-EPL-blue.svg?style=flat)](https://www.eclipse.org/legal/epl-v10.html)
+
 # Run
 
 This repository contains two backend services. One for the persistence and one for the Xtext services.
