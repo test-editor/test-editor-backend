@@ -53,9 +53,16 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 		JGitTestUtil.writeTrashFile(remoteGit.repository, 'README.md', '# Readme')
 		remoteGit.add.addFilepattern("README.md").call
 		remoteGit.commit.setMessage("Initial commit").call
+		additionalRemoteBranchesToSetup.forEach[
+			remoteGit.branchCreate.setName(it).call
+		]
 		config.remoteRepoUrl = "file://" + remoteGitFolder.root.absolutePath
 	}
-
+	
+	protected def Iterable<String> additionalRemoteBranchesToSetup() {
+		return #[];
+	}
+	
 	@Before
 	def void setupConfiguration() {
 		config.localRepoFileRoot = localGitRoot.root.absolutePath

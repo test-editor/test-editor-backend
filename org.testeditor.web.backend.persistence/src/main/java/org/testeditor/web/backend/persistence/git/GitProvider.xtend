@@ -7,6 +7,7 @@ import com.jcraft.jsch.Session
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import org.eclipse.jgit.api.CreateBranchCommand
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.GitCommand
 import org.eclipse.jgit.api.TransportCommand
@@ -72,7 +73,20 @@ class GitProvider {
 			setSshSessionFactory
 			setDirectory(workspace)
 		]
-		return command.call
+		val git = command.call
+		git.checkout => [
+			if (!git.branchList.call.exists[
+				val existingBranchName = name.replaceFirst('^refs/heads/', '') 
+				return existingBranchName == config.branchName
+			]) {
+ 	       		setCreateBranch(true)
+        		setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+        	}
+ 			setName(config.branchName)
+ 			call
+ 		]
+
+		return git
 	}
 
 	private def <T, C extends GitCommand<T>> void setSshSessionFactory(TransportCommand<C, ?> command) {

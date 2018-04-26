@@ -23,6 +23,10 @@ class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 	@Accessors
 	private String localRepoFileRoot = 'repo'
 	
+	@NotEmpty 
+	@Accessors
+	private String branchName = 'master'
+	
 	@Accessors
 	private String privateKeyLocation
 
