@@ -8,6 +8,7 @@ import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MultivaluedMap
 import javax.ws.rs.core.Response.Status
+import org.assertj.core.api.SoftAssertions
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
@@ -213,11 +214,13 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 		// then
 		val json = response.readEntity(String)
-		expectedStatusMap.forEach [ prefix, status |
-			assertThat(json).matches(Pattern.compile(
-			'''\s*\[.*\{\s*"path"\s*:\s*"«prefix»Test.tcl"\s*,\s*"status"\s*:\s*"«status»"\s*\}.*\]\s*''', Pattern.DOTALL))
+		new SoftAssertions => [
+			expectedStatusMap.forEach [ prefix, status |
+				assertThat(json).matches(Pattern.compile(
+				'''\s*\[.*\{\s*"path"\s*:\s*"«prefix»Test.tcl"\s*,\s*"status"\s*:\s*"«status»"\s*\}.*\]\s*''', Pattern.DOTALL))
+			]
+			assertAll
 		]
-
 		val actualStatuses = response.readEntity(new GenericType<Iterable<TestStatusInfo>>() {
 		})
 		assertThat(actualStatuses).size.isEqualTo(3)

@@ -167,12 +167,17 @@ class DocumentProvider {
 	}
 
 	private def void resetToRemoteAndCreateBackup(StageState mergeConflictState, String resourcePath, String content) {
+		val backupFileContent = if (configuration.useDiffMarkersInBackups) {
+			Files.asCharSource(getWorkspaceFile(resourcePath), UTF_8).read
+		} else {
+			content
+		}
 		resetToRemoteState
 		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
 		var String backupFilePath = null
 		if (!content.isNullOrEmpty) {
 			try {
-				backupFilePath = createLocalBackup(resourcePath, content)
+				backupFilePath = createLocalBackup(resourcePath, backupFileContent)
 				exceptionMessage = exceptionMessage.appendBackupNote(backupFilePath)
 			} catch (IllegalStateException exception) {
 				exceptionMessage += ' ' + exception.message

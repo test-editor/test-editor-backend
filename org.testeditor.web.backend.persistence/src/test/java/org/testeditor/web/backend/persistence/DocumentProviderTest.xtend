@@ -248,6 +248,48 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 	
 	@Test
+	def void backupFileContainsDiffMarkersIfSettingIsEnabled() {
+		// given
+		config.useDiffMarkersInBackups = true
+		val existingFileName = createPreExistingFileInRemoteRepository
+		val localGit = gitProvider.git
+		localGit.pull.call
+		
+		val localChange = '''
+		Contents of file after
+		local
+		change'''
+		
+		val remoteChange = '''
+		Contents of file after
+		remote
+		change'''
+		remoteGitFolder.root.write(existingFileName, remoteChange)
+		remoteGit.addAndCommit(existingFileName, "change on remote")
+
+		// when
+		try {
+			documentProvider.save(existingFileName, localChange)
+
+			// then			
+			fail('Expected ConflictingModificationsException, but none was thrown.')
+		} catch (ConflictingModificationsException exception) {
+			val backupFileName = existingFileName + '.local-backup'
+			val backupFile = new File(localGitRoot.root, backupFileName)
+
+			assertThat(backupFile).hasContent('''
+			Contents of file after
+			<<<<<<< HEAD
+			local
+			=======
+			remote
+			>>>>>>> branch 'master' of «localGit.repository.config.getString('remote', 'origin', 'url')»
+			change
+			''')
+		}
+	}
+	
+	@Test
 	def void saveWithRemoteChangesFindsNextFreeFileNameForBackupFile() {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
