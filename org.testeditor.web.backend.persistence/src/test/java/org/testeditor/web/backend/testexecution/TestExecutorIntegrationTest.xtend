@@ -8,12 +8,12 @@ import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MultivaluedMap
 import javax.ws.rs.core.Response.Status
+import org.assertj.core.api.SoftAssertions
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
 
 import static org.assertj.core.api.Assertions.*
-import org.assertj.core.api.SoftAssertions
 
 class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
