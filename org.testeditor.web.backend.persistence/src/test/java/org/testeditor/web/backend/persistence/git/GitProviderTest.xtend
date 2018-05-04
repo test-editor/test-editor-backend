@@ -10,17 +10,24 @@ import static org.eclipse.jgit.lib.Constants.DEFAULT_REMOTE_NAME
 import static extension org.mockito.Mockito.*
 
 class GitProviderTest extends AbstractGitTest {
+	
+	override protected additionalRemoteBranchesToSetup() {
+		#['feature/some_magic_feature']
+	}
 
 	@Test
-	def void clonesRemoteRepository() {
+	def void clonesRemoteRepositoryCheckingOutExpectedBranch() {
+		config.branchName = 'feature/some_magic_feature'
+		
 		// when
 		val git = gitProvider.git
-
+		
 		// then
 		getRemoteUrl(git).assertEquals('file://' + remoteGitFolder.root.absolutePath)
 		new File(localGitRoot.root, "README.md").exists.assertTrue
 		verify(workspaceProvider).workspace
-	}
+		git.repository.branch.assertEquals(config.branchName)
+	}	
 
 	@Test
 	def void doesNotOverwriteExistingRepository() {
