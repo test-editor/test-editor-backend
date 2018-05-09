@@ -16,9 +16,17 @@ import org.testeditor.tcl.CallTreeNode
 import org.testeditor.tcl.TclModel
 import org.testeditor.tcl.dsl.jvmmodel.CallTreeBuilder
 import org.testeditor.web.xtext.index.ChunkedResourceDescriptionsProvider
+import com.google.inject.Provider
+import org.slf4j.LoggerFactory
+import java.io.File
 
 @Path('/test-case')
 class TestCaseResource {
+	
+	@Inject Provider<TestEditorConfiguration> config
+	
+	static val logger = LoggerFactory.getLogger(TestCaseResource)
+	
 
 	/*
 	 * API: CallTree that is easily serialized into json 
@@ -44,11 +52,17 @@ class TestCaseResource {
 	def Response getStaticCallTree(@QueryParam('resource') String resourcePath) {
 		val resourceFileUriS = #[resourcePath].filterNull //
 		.filter[endsWith('.tcl')] //
-		.map[URI.createFileURI(it)]
-
+		.map[URI.createFileURI(new File(config.get.localRepoFileRoot+'/'+it).absolutePath)]
+		
+		resourceFileUriS.forEach[logger.trace('''call tree for resource uri '«it»'.''')]
+		
 		val tclModelS = resourceFileUriS //
 		.filter[knownToIndex] //
 		.map[tclModelByResource].filterNull
+		
+		if (tclModelS.empty) {
+			logger.warn('''resource uri(s) not known to index.''')
+		}
 
 		val callTree = Optional.ofNullable(tclModelS //
 		.map[test].filterNull //
@@ -64,7 +78,8 @@ class TestCaseResource {
 	}
 
 	private def boolean knownToIndex(URI resourceURI) {
-		return resourceDescriptionsProvider.indexResourceSet.URIResourceMap.containsKey(resourceURI)
+		val resourceMap = resourceDescriptionsProvider.indexResourceSet.URIResourceMap
+		return resourceMap.containsKey(resourceURI)
 	}
 
 	private def TclModel getTclModelByResource(URI resourceURI) {

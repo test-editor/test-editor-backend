@@ -79,11 +79,9 @@ class TestCaseResourceIntegrationTest extends AbstractTestEditorIntegrationTest 
 		callTree.children.assertSize(3) => [
 			get(0) => [
 				displayName.assertEquals('Setup')
-				children.assertSize(1) => [
-					get(0) => [
-						displayName.assertEquals('DummyComponent')
-						children.assertSingleElement.displayName.assertEquals('setup step')
-					]
+				children.assertSingleElement => [
+					displayName.assertEquals('DummyComponent')
+					children.assertSingleElement.displayName.assertEquals('setup step')
 				]
 			]
 			get(1) => [
@@ -98,11 +96,9 @@ class TestCaseResourceIntegrationTest extends AbstractTestEditorIntegrationTest 
 			]
 			get(2) => [
 				displayName.assertEquals('Cleanup')
-				children.assertSize(1) => [
-					get(0) => [
-						displayName.assertEquals('DummyComponent')
-						children.assertSingleElement.displayName.assertEquals('cleanup step')
-					]
+				children.assertSingleElement => [
+					displayName.assertEquals('DummyComponent')
+					children.assertSingleElement.displayName.assertEquals('cleanup step')
 				]
 			]
 		]
