@@ -1,5 +1,7 @@
 package org.testeditor.web.backend.xtext
 
+import com.google.inject.Provider
+import java.io.File
 import java.util.List
 import java.util.Optional
 import javax.inject.Inject
@@ -12,13 +14,11 @@ import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status
 import org.eclipse.emf.common.util.URI
 import org.eclipse.xtend.lib.annotations.Accessors
+import org.slf4j.LoggerFactory
 import org.testeditor.tcl.CallTreeNode
 import org.testeditor.tcl.TclModel
 import org.testeditor.tcl.dsl.jvmmodel.CallTreeBuilder
 import org.testeditor.web.xtext.index.ChunkedResourceDescriptionsProvider
-import com.google.inject.Provider
-import org.slf4j.LoggerFactory
-import java.io.File
 
 @Path('/test-case')
 class TestCaseResource {
@@ -31,7 +31,7 @@ class TestCaseResource {
 	/*
 	 * API: CallTree that is easily serialized into json 
 	 */
-	@Accessors // needed for tests
+	@Accessors(PUBLIC_GETTER) // needed for tests
 	static class SerializableCallTreeNode {
 
 		var String displayName
@@ -39,7 +39,7 @@ class TestCaseResource {
 
 	}
 
-	@Inject CallTreeBuilder callTreeBuilder
+	@Inject Provider<CallTreeBuilder> callTreeBuilderProvider
 	@Inject ChunkedResourceDescriptionsProvider resourceDescriptionsProvider
 
 	/*
@@ -66,7 +66,7 @@ class TestCaseResource {
 
 		val callTree = Optional.ofNullable(tclModelS //
 		.map[test].filterNull //
-		.map[callTreeBuilder.buildCallTree(it)] //
+		.map[callTreeBuilderProvider.get.buildCallTree(it)] //
 		.map[transformToSerializableCallTree] //
 		.head)
 

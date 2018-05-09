@@ -57,7 +57,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 			executable = true
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
-				sleep 10 # ensure test reads process's status while still running
+				sleep 7 # ensure test reads process's status while still running
 				echo "test was run" > test.ok.txt
 			''')
 		]
@@ -191,7 +191,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
 				if [ "$3" = "runningTest" ]; then
-				  sleep 10; exit 0
+				  sleep 7; exit 0
 				elif [ "$3" = "successfulTest" ]; then
 				  exit 0
 				elif [ "$3" = "failedTest" ]; then

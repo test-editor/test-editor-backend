@@ -85,7 +85,7 @@ class TestCaseResourceIntegrationTest extends AbstractTestEditorIntegrationTest 
 				]
 			]
 			get(1) => [
-				displayName.assertEquals('SpecStep')
+				displayName.trim.assertEquals('SpecStep')
 				children.assertSingleElement => [
 					displayName.assertEquals('DummyComponent')
 					children.assertSize(2) => [
@@ -105,7 +105,7 @@ class TestCaseResourceIntegrationTest extends AbstractTestEditorIntegrationTest 
 	}
 
 	private def String buildUrlStringForResource(String resourcePath) {
-		return '''test-case/call-tree?resource=«localRepoTemporaryFolder.root.absolutePath»/«resourcePath»'''
+		return '''test-case/call-tree?resource=«resourcePath»'''
 	}
 
 }
