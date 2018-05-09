@@ -1,6 +1,7 @@
 package org.testeditor.web.backend.xtext
 
 import com.google.inject.Guice
+import io.dropwizard.setup.Environment
 import org.eclipse.xtext.ISetup
 import org.eclipse.xtext.util.Modules2
 import org.eclipse.xtext.web.server.DefaultWebModule
@@ -57,4 +58,9 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 		}
 	}
 
+	override run(TestEditorConfiguration configuration, Environment environment) throws Exception {
+		super.run(configuration, environment)
+		
+		environment.jersey.register(TestCaseResource)
+	}
 }
