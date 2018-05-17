@@ -31,9 +31,21 @@ class TestExecutorResource {
 	@Inject TestStatusMapper statusMapper
 	@Inject extension TestLogWriter logWriter
 
+	@GET
+	@Path("last-run")
+	def Response lastRun(@QueryParam("resource") String resourcePath) {
+		// list testrun-«resource»-«timestamp».yaml" descending
+		// head
+		// read and put tree into response
+	}
+
 	@POST
 	@Path("execute")
-	def Response executeTests(@QueryParam("resource") String resourcePath) {
+	def Response executeTests(@QueryParam("resource") String resourcePath) { // add query parameter that notifies backend, that frontend is listening
+		// if frontend is listening, the test executor should receive an environment variable so that
+		// all reported call tree relevant information is send to some uri (e.g. localhost:80/tests/executionCallback?resource=... with some payload?)
+		// should reporting be synchronous (e.g. for debugging) or asynchronous (without loss, though)
+		// should reporting be filtered (and only after the test all information is available?)
 		val builder = executorProvider.testExecutionBuilder(resourcePath)
 		val logFile = builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)
 		logger.info('''Starting test for resourcePath='«resourcePath»' logging into logFile='«logFile»'.''')

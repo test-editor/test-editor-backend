@@ -12,6 +12,9 @@ class TestExecutorProvider {
 	static val logger = LoggerFactory.getLogger(TestExecutorProvider)
 
 	public static val LOGFILE_ENV_KEY = 'TE_TESTRUN_LOGFILE' // key into env, holding the actual log file
+	public static val CALL_TREE_YAML_FILE = 'TE_CALL_TREE_YAML_FILE'
+	public static val CALL_TREE_YAML_TEST_CASE = 'TE_CALL_TREE_YAML_TEST_CASE'
+	public static val CALL_TREE_YAML_COMMIT_ID = 'TE_CALL_TREE_YAML_COMMIT_ID'
 	public static val LOG_FOLDER = 'logs' // log files will be created here
 	static val JAVA_TEST_SOURCE_PREFIX = 'src/test/java'
 	static val TEST_CASE_FILE_SUFFIX = 'tcl'
@@ -20,12 +23,17 @@ class TestExecutorProvider {
 
 	def ProcessBuilder testExecutionBuilder(String testCase) {
 		val testClass = testCase.testClass
-		val logFile = testClass.createNewLogFileName
+		val testRunDateString = createTestRunDateString
+		val logFile = testClass.createNewLogFileName(testRunDateString)
+		val callTreeYamlFile = testClass.createNewCallTreeYamlFileName(testRunDateString)
 		val workingDir = workspaceProvider.workspace.absoluteFile
 		val processBuilder = new ProcessBuilder => [
 			command(constructCommandLine(testClass, logFile))
 			directory(workingDir)
 			environment.put(LOGFILE_ENV_KEY, logFile)
+			environment.put(CALL_TREE_YAML_FILE, callTreeYamlFile)
+			environment.put(CALL_TREE_YAML_TEST_CASE, testClass)
+			environment.put(CALL_TREE_YAML_COMMIT_ID, '')
 			redirectErrorStream(true)
 		]
 
@@ -46,6 +54,10 @@ class TestExecutorProvider {
 		}
 		return testCase.toTestClassName
 	}
+	
+	private def String createTestRunDateString() {
+		return LocalDateTime.now.format(DateTimeFormatter.ofPattern('yyyyMMddHHmmSSS'))
+	}
 
 	private def String toTestClassName(String fileName) {
 		return fileName.replaceAll('''«JAVA_TEST_SOURCE_PREFIX»/''', '').replaceAll('''.«TEST_CASE_FILE_SUFFIX»$''', '').replaceAll('/', '.')
@@ -55,8 +67,12 @@ class TestExecutorProvider {
 		return #['/bin/sh', '-c', testClass.gradleTestCommandLine]
 	}
 
-	private def String createNewLogFileName(String testClass) {
-		return '''«LOG_FOLDER»/testrun-«testClass»-«LocalDateTime.now.format(DateTimeFormatter.ofPattern('yyyyMMddHHmmSSS'))».log'''
+	private def String createNewCallTreeYamlFileName(String testClass, String dateString) {
+		return '''«LOG_FOLDER»/testrun-«testClass»-«dateString».yaml'''
+	}
+
+	private def String createNewLogFileName(String testClass, String dateString) {
+		return '''«LOG_FOLDER»/testrun-«testClass»-«dateString».log'''
 	}
 
 	private def String gradleTestCommandLine(String testClass) {
