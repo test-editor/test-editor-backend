@@ -1,5 +1,8 @@
 package org.testeditor.web.backend.testexecution
 
+import com.fasterxml.jackson.core.JsonFactory
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.JsonNodeType
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -8,6 +11,7 @@ import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MultivaluedMap
 import javax.ws.rs.core.Response.Status
+import org.apache.commons.lang3.StringUtils
 import org.assertj.core.api.SoftAssertions
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
@@ -16,6 +20,113 @@ import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
 import static org.assertj.core.api.Assertions.*
 
 class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
+
+	@Test
+	def void testThatCallTreeIsNotFoundIfNotExistent() {
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/SomeTest.tcl')
+		workspaceRoot.newFolder(userId, TestExecutorProvider.LOG_FOLDER)
+		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTestX-200001011200123.yaml') // SomeTestX != SomeTest
+		
+		// when
+		val request = createCallTreeRequest('SomeTest.tcl').buildGet
+		val response = request.submit.get
+
+		// then
+		assertThat(response.status).isEqualTo(Status.NOT_FOUND.statusCode)
+	}
+
+	@Test
+	def void testThatCallTreeOfLastRunReturnsLatestJson() {
+		// given
+		val mapper = new ObjectMapper(new JsonFactory)
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/SomeTest.tcl')
+		workspaceRoot.newFolder(userId, TestExecutorProvider.LOG_FOLDER)
+		// latest (12 o'clock)
+		val latestCommitID = 'abcd'
+		val previousCommitID = '1234'
+		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011200123.yaml') => [
+			JGitTestUtil.write(it, '''
+				Source: "SomeTest"
+				CommitID: "«latestCommitID»"
+				Children:
+			'''.indent(1))
+		]
+		// previous (11 o'clock)
+		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011100123.yaml') => [
+			JGitTestUtil.write(it, '''
+				Source: "SomeTest"
+				CommitID: "«previousCommitID»"
+				Children:
+			'''.indent(1))
+		]
+
+		// when
+		val request = createCallTreeRequest('SomeTest.tcl').buildGet
+		val response = request.submit.get
+
+		// then
+		assertThat(response.status).isEqualTo(Status.OK.statusCode)
+
+		val jsonString = response.readEntity(String)
+		val jsonNode = mapper.readTree(jsonString)
+		assertThat(jsonNode.get('Source').asText).isEqualTo('SomeTest')
+		assertThat(jsonNode.get('CommitID').asText).isEqualTo(latestCommitID)
+	}
+
+	@Test
+	def void testThatCallTreeOfLastRunReturnsExpectedJSON() {
+		// given
+		val mapper = new ObjectMapper(new JsonFactory)
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/SomeTest.tcl')
+		workspaceRoot.newFolder(userId, TestExecutorProvider.LOG_FOLDER)
+		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011200123.yaml') => [
+			JGitTestUtil.write(it, '''
+				Source: "SomeTest"
+				CommitID: 
+				Children:
+				- Node: "Test"
+				  Message: "test"
+				  ID: 4711
+				  PreVariables:
+				  - Key: "b"
+				    Value: "7"
+				  - Key: "c[1].\"key with spaces\""
+				    Value: "5"
+				  Children:
+				  Status: "OK"
+				  PostVariables:
+				  - Key: "a"
+				    Value: "some"
+			'''.indent(1))
+		]
+
+		// when
+		val request = createCallTreeRequest('SomeTest.tcl').buildGet
+		val response = request.submit.get
+
+		// then
+		assertThat(response.status).isEqualTo(Status.OK.statusCode)
+
+		val jsonString = response.readEntity(String)
+		val jsonNode = mapper.readTree(jsonString)
+		assertThat(jsonNode.get('Source').asText).isEqualTo('SomeTest')
+		jsonNode.get('Children') => [
+			assertThat(nodeType).isEqualTo(JsonNodeType.ARRAY)
+			assertThat(size).isEqualTo(1)
+			get(0) => [
+				assertThat(get('Status').asText).isEqualTo('OK')
+				get('PreVariables') => [
+					assertThat(nodeType).isEqualTo(JsonNodeType.ARRAY)
+					assertThat(size).isEqualTo(2)
+					assertThat(get(1).get('Key').asText).isEqualTo('c[1]."key with spaces"')
+					assertThat(get(1).get('Value').asText).isEqualTo('5')
+				]
+			]
+		]
+	}
 
 	@Test
 	def void testThatTestexecutionIsInvoked() {
@@ -232,6 +343,10 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		return logAsRelativeFile
 	}
 
+	private def Builder createCallTreeRequest(String resourcePath) {
+		return createRequest('''tests/call-tree?resource=«resourcePath»''')
+	}
+
 	private def Builder createTestExecutionRequest(String resourcePath) {
 		return createRequest('''tests/execute?resource=«resourcePath»''')
 	}
@@ -242,6 +357,10 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	private def Builder createAsyncTestStatusRequest(String resourcePath) {
 		return createRequest('''tests/status?wait=true&resource=«resourcePath»''')
+	}
+
+	private def String indent(CharSequence sequence, int level) {
+		return StringUtils.repeat(' ', level * 2) + sequence.toString.split('\n\r?').join('\n' + StringUtils.repeat(' ', level * 2)) + '\n'
 	}
 
 }

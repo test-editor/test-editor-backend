@@ -1,5 +1,7 @@
 package org.testeditor.web.backend.testexecution
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
 import java.net.URI
 import java.util.concurrent.TimeUnit
@@ -15,6 +17,7 @@ import javax.ws.rs.container.AsyncResponse
 import javax.ws.rs.container.Suspended
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
+import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.UriBuilder
 import org.glassfish.jersey.server.ManagedAsync
 import org.slf4j.LoggerFactory
@@ -31,12 +34,32 @@ class TestExecutorResource {
 	@Inject TestStatusMapper statusMapper
 	@Inject extension TestLogWriter logWriter
 
+	@GET
+	@Path("call-tree")
+	@Produces(MediaType.APPLICATION_JSON) 
+	def Response callTreeOfLastRun(@QueryParam("resource") String resourcePath) {
+		// get the latest call tree of the given resource
+		val latestCallTree=executorProvider.getTestFiles(resourcePath).filter[name.endsWith('.yaml')].sortBy[name].reverse.head
+		if (latestCallTree !== null) {
+			val mapper = new ObjectMapper(new YAMLFactory)
+			val jsonTree = mapper.readTree(latestCallTree)
+			return Response.ok(jsonTree.toString).build
+		} else {
+			return Response.status(Status.NOT_FOUND).build
+		}
+	}
+
 	@POST
 	@Path("execute")
-	def Response executeTests(@QueryParam("resource") String resourcePath) {
+	def Response executeTests(@QueryParam("resource") String resourcePath) { // add query parameter that notifies backend, that frontend is listening
+		// if frontend is listening, the test executor should receive an environment variable so that
+		// all reported call tree relevant information is send to some uri (e.g. localhost:80/tests/executionCallback?resource=... with some payload?)
+		// should reporting be synchronous (e.g. for debugging) or asynchronous (without loss, though)
+		// should reporting be filtered (and only after the test all information is available?)
 		val builder = executorProvider.testExecutionBuilder(resourcePath)
 		val logFile = builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)
-		logger.info('''Starting test for resourcePath='«resourcePath»' logging into logFile='«logFile»'.''')
+		val callTreeFile = builder.environment.get(TestExecutorProvider.CALL_TREE_YAML_FILE)
+		logger.info('''Starting test for resourcePath='«resourcePath»' logging into logFile='«logFile»', callTreeFile='«callTreeFile»'.''')
 		val testProcess = builder.start
 		statusMapper.addTestRun(resourcePath, testProcess)
 		testProcess.logToStandardOutAndIntoFile(new File(builder.directory, logFile))
