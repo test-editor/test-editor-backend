@@ -73,8 +73,8 @@ abstract class AbstractPersistenceIntegrationTest {
 
 	@Before
 	def void setClientTimeouts() {
-		client.property(ClientProperties.CONNECT_TIMEOUT, 10000);
-		client.property(ClientProperties.READ_TIMEOUT, 10000);
+		client.property(ClientProperties.CONNECT_TIMEOUT, 100000);
+		client.property(ClientProperties.READ_TIMEOUT, 100000);
 	}
 
 	@After

@@ -1,6 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
-import java.lang.ProcessBuilder.Redirect
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -38,6 +38,14 @@ class TestExecutorProvider {
 		]
 
 		return processBuilder
+	}
+	
+	def Iterable<File> getTestFiles(String testCase) {
+		val testClass = testCase.testClass
+		val testPath = workspaceProvider.workspace.toPath.resolve(LOG_FOLDER)
+		val unfilteredtestFiles =  testPath.toFile.listFiles
+		val testFiles = unfilteredtestFiles.filter[name.startsWith('''testrun-«testClass»-''')]
+		return testFiles
 	}
 
 	private def String getTestClass(String testCase) {
