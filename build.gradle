@@ -49,9 +49,9 @@ subprojects {
     
     setVersionDefaults(ext, [
         dropwizard: '1.2.2',
-        testEditorDropwizard: '0.13.0',
+        testEditorDropwizard: '0.14.0',
         xtext: '2.13.0',
-        testEditorLanguage: '1.14.0'
+        testEditorLanguage: '1.15.0'
     ])
 
     sourceCompatibility = '1.8'
