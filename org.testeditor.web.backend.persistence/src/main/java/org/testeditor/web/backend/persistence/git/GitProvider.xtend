@@ -83,6 +83,7 @@ class GitProvider {
         		setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
         	}
  			setName(config.branchName)
+ 			setStartPoint("origin/" + config.branchName)
  			call
  		]
 
