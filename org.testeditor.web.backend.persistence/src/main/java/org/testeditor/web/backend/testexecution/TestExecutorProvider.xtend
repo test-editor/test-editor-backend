@@ -64,7 +64,7 @@ class TestExecutorProvider {
 	}
 	
 	private def String createTestRunDateString() {
-		return LocalDateTime.now.format(DateTimeFormatter.ofPattern('yyyyMMddHHmmSSS'))
+		return LocalDateTime.now.format(DateTimeFormatter.ofPattern('yyyyMMddHHmmssSSS'))
 	}
 
 	private def String toTestClassName(String fileName) {

@@ -94,7 +94,7 @@ class TestExecutorTest extends AbstractPersistenceTest {
 		temporaryFolder.newFolder(exampleTestFile.split('/').takeWhile[!endsWith('.tcl')])
 		temporaryFolder.newFile(exampleTestFile)
 		val expectedCommandMatchingRegEx = regExContainingInOrder('./gradlew', 'test', '--tests org.example.ExampleTest')
-		val expectedLogFileMatchingRegEx = '\\Q' + TestExecutorProvider.LOG_FOLDER + '/testrun-org.example.ExampleTest-\\E[0-9]{15}\\.log'
+		val expectedLogFileMatchingRegEx = '\\Q' + TestExecutorProvider.LOG_FOLDER + '/testrun-org.example.ExampleTest-\\E[0-9]{17}\\.log'
 
 		// when
 		val processBuilder = testExecutorProviderUnderTest.testExecutionBuilder(exampleTestFile)
