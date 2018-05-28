@@ -42,3 +42,18 @@ dependencyCheck {
     failBuildOnCVSS=11
     suppressionFile=file("suppressions.xml").getCanonicalPath()
 }
+
+task docker(type:Exec) {
+    dependsOn(build)
+    executable 'sh'
+    args '-c', """
+      (([ -d testeditor ] && rm -Rf testeditor) || true) &&
+      cd build/distributions && (rm xtext.tar || true) &&
+      rm org.testeditor.*.zip &&
+      mv *.tar xtext.tar &&
+      tar -xf xtext.tar &&
+      mv org.testeditor.web.backend.xtext* ../../testeditor &&
+      cd ../.. &&
+      docker build -t testeditor/xtext .
+    """
+}

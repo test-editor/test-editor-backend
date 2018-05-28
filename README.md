@@ -33,6 +33,7 @@ allprojects {
 2. config.local.yml (within `test-editor-backend/org.testeditor.web.backend.persistence`):
 ``` yaml
 remoteRepoUrl: http://any.repo.of.your.choice
+branchName: feature/gonk
 repoConnectionMode: pullOnly
 
 server:
@@ -46,6 +47,7 @@ server:
 3. config.local.yml (within `test-editor-backend/org.testeditor.web.backend.xtext`):
 ``` yaml
 remoteRepoUrl: http://any.repo.of.your.choice
+branchName: feature/gonk
 apiToken: secret
 server:
   applicationConnectors:
@@ -86,3 +88,15 @@ Connect:
 
 Starting this `Debug configuration` will then connect to the process started via gradle, allowing you to use the eclipse debugging to introspect the running program.
 
+
+### docker section
+
+Execute `../gradlew docker` within org.testeditor.web.xtext.persistence
+
+``` shell
+docker run -p 8080:8080 -e TARGET_REPO=https://github.com/test-editor/language-examples.git -e BRANCH_NAME=feature/gonk test-editor/xtext &
+docker run -p 9080:8080 -e GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" -e KNOWN_HOSTS="$(cat ~/.ssh/known_hosts)" -e TARGET_REPO=git@github.com:test-editor/language-examples.git -e BRANCH_NAME=feature/gonk test-editor/persistence &
+
+GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" KNOWN_HOSTS="$(cat ~/.ssh/known_hosts)" docker-compse up
+
+```
