@@ -97,6 +97,6 @@ Execute `../gradlew docker` within org.testeditor.web.xtext.persistence
 docker run -p 8080:8080 -e TARGET_REPO=https://github.com/test-editor/language-examples.git -e BRANCH_NAME=feature/gonk test-editor/xtext &
 docker run -p 9080:8080 -e GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" -e KNOWN_HOSTS="$(cat ~/.ssh/known_hosts)" -e TARGET_REPO=git@github.com:test-editor/language-examples.git -e BRANCH_NAME=feature/gonk test-editor/persistence &
 
-GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" KNOWN_HOSTS="$(cat ~/.ssh/known_hosts)" docker-compse up
+GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" KNOWN_HOSTS="$(cat ~/.ssh/known_hosts)" docker-compose up
 
 ```

@@ -116,12 +116,8 @@ task build {
 }
 
 task docker {
-    dependsOn("org.testeditor.web.backend.persistence:docker", "org.testeditor.web.backend.xtext:docker")
+    dependsOn = subprojects.collect{"${it.name}:docker"}
 }
-
-// task docker {
-//     dependsOn = subprojects.collect{it.tasks['docker']}
-// }
 
 def setVersionDefaults(ext, props) {
     props.each{ k,v -> setVersionDefault(ext, k, v) }

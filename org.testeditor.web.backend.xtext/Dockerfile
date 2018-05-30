@@ -10,7 +10,7 @@ LABEL license="EPL 1.0" \
 ENV PROG_DIR=/opt/testeditor \
     GRADLE_USER_HOME=/opt/testeditor/.gradle \
     REPO_ROOT=/repo \
-    _JAVA_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes="
+    JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes="
 
 COPY testeditor/ \
      config.template.yml \

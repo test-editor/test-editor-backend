@@ -10,7 +10,7 @@ LABEL license="EPL 1.0" \
 ENV PROG_DIR=/opt/testeditor \
     GRADLE_USER_HOME=/opt/testeditor/.gradle \
     REPO_ROOT=/repo \
-    _JAVA_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes=" \
+    JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes=" \
     FIREFOX_VERSION="latest" \
     FIREFOX_SOURCE_URL="https://download.mozilla.org/?product=firefox-latest&lang=en-US&os=linux64" \
     DISPLAY=:99.0

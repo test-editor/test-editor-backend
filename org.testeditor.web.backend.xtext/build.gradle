@@ -50,7 +50,7 @@ task docker(type:Exec) {
       (([ -d testeditor ] && rm -Rf testeditor) || true) &&
       cd build/distributions && (rm xtext.tar || true) &&
       rm org.testeditor.*.zip &&
-      mv *.tar xtext.tar &&
+      mv org.testeditor.web.backend.xtext-*.tar xtext.tar &&
       tar -xf xtext.tar &&
       mv org.testeditor.web.backend.xtext* ../../testeditor &&
       cd ../.. &&
