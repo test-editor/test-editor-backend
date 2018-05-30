@@ -115,6 +115,10 @@ task build {
     dependsOn = subprojects.collect{it.tasks['build']}
 }
 
+task docker {
+    dependsOn = subprojects.collect{"${it.name}:docker"}
+}
+
 def setVersionDefaults(ext, props) {
     props.each{ k,v -> setVersionDefault(ext, k, v) }
 }

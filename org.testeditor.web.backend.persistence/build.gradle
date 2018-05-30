@@ -20,3 +20,18 @@ dependencyCheck {
     failBuildOnCVSS=11
     suppressionFile=file("suppressions.xml").getCanonicalPath()
 }
+
+task docker(type:Exec) {
+    dependsOn(build)
+    executable 'sh'
+    args '-c', """
+      (([ -d testeditor ] && rm -Rf testeditor) || true) &&
+      cd build/distributions && (rm persistence.tar || true) &&
+      rm org.testeditor.*.zip &&
+      mv org.testeditor.web.backend.persistence-*.tar persistence.tar &&
+      tar -xf persistence.tar &&
+      mv org.testeditor.web.backend.persistence* ../../testeditor &&
+      cd ../.. &&
+      docker build -t testeditor/persistence .
+    """
+}

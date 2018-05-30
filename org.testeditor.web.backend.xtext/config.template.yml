@@ -1,0 +1,10 @@
+remoteRepoUrl: %TARGET_REPO%
+branchName: %BRANCH_NAME%
+apiToken: %API_TOKEN_SECRET%
+server:
+  applicationConnectors:
+  - type: http 
+    port: 8080
+  adminConnectors:
+  - type: http
+    port: 8081
