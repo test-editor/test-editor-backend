@@ -8,6 +8,8 @@ import java.util.regex.Pattern
 @Data
 class TestExecutionKey {
 
+	static val PATTERN = Pattern.compile('([^-\\s]+)(-([^-\\s]*)(-([^-\\s]*)(-([^-\\s]*))?)?)?')
+	
 	val String suiteId
 	val String suiteRunId
 	val String caseRunId
@@ -63,20 +65,18 @@ class TestExecutionKey {
 	}
 	
 	def static TestExecutionKey valueOf(String keyAsString) {
-		val pattern = '([^-]*)(-([^-]*)(-([^-]*)(-([^-]*))?)?)?'
-		if ((keyAsString === null) 
-			|| !keyAsString.matches(pattern)) {
-			throw new IllegalArgumentException('''key = '«keyAsString»' does not match expected pattern = '«pattern»'. ''')
+		if (keyAsString === null) {
+			throw new IllegalArgumentException('key may not be NULL')
 		}
-		val matcher = Pattern.compile(pattern).matcher(keyAsString)
-		if (matcher.matches) {
-			return new TestExecutionKey(matcher.group(1), 
-				matcher.group(3)?:"", 
-				matcher.group(5)?:"", 
-				matcher.group(7)?:"")
-		} else {
-			throw new RuntimeException("matcher does not match")
+		val matcher = PATTERN.matcher(keyAsString)
+		val matched = matcher.matches
+		if (!matched) {
+			throw new IllegalArgumentException('''key = '«keyAsString»' does not match expected pattern = '«PATTERN.pattern»'. ''')
 		}
+		return new TestExecutionKey(matcher.group(1),
+			matcher.group(3)?:"",
+			matcher.group(5)?:"",
+			matcher.group(7)?:"")
 	}
 	
 }

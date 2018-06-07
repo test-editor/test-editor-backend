@@ -48,18 +48,24 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		val previousCommitID = '1234'
 		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011200123.yaml') => [
 			JGitTestUtil.write(it, '''
-				Source: "SomeTest"
-				CommitID: "«latestCommitID»"
-				Children:
-			'''.indent(1))
+				"started": "on some instant"
+				"resourcePaths": [ "one", "two" ]
+				"testRuns":
+				- "source": "SomeTest"
+				  "commitId": "«latestCommitID»"
+				  "children":
+			''')
 		]
 		// previous (11 o'clock)
 		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011100123.yaml') => [
 			JGitTestUtil.write(it, '''
-				Source: "SomeTest"
-				CommitID: "«previousCommitID»"
-				Children:
-			'''.indent(1))
+				"started": "on some instant"
+				"resourcePaths": [ "one", "two" ]
+				"testRuns":
+				- "source": "SomeTest"
+				  "commitId": "«previousCommitID»"
+				  "children":
+			''')
 		]
 
 		// when
@@ -70,9 +76,9 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		assertThat(response.status).isEqualTo(Status.OK.statusCode)
 
 		val jsonString = response.readEntity(String)
-		val jsonNode = mapper.readTree(jsonString)
-		assertThat(jsonNode.get('Source').asText).isEqualTo('SomeTest')
-		assertThat(jsonNode.get('CommitID').asText).isEqualTo(latestCommitID)
+		val jsonNode = mapper.readTree(jsonString).get('testRuns').get(0)
+		assertThat(jsonNode.get('source').asText).isEqualTo('SomeTest')
+		assertThat(jsonNode.get('commitId').asText).isEqualTo(latestCommitID)
 	}
 
 	@Test
@@ -84,23 +90,23 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		workspaceRoot.newFolder(userId, TestExecutorProvider.LOG_FOLDER)
 		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011200123.yaml') => [
 			JGitTestUtil.write(it, '''
-				Source: "SomeTest"
-				CommitID: 
-				Children:
-				- Node: "Test"
-				  Message: "test"
-				  ID: 4711
-				  PreVariables:
-				  - Key: "b"
-				    Value: "7"
-				  - Key: "c[1].\"key with spaces\""
-				    Value: "5"
-				  Children:
-				  Status: "OK"
-				  PostVariables:
-				  - Key: "a"
-				    Value: "some"
-			'''.indent(1))
+				"started": "on some instant"
+				"resourcePaths": [ "one", "two" ]
+				"testRuns":
+				- "source": "SomeTest"
+				  "commitId": 
+				  "children":
+				  - "node": "Test"
+				    "message": "test"
+				    "id": 4711
+				    "preVariables":
+				    - { "b": "7" }
+				    - { "c[1].\"key with spaces\"": "5" }
+				    "children":
+				    "status": "OK"
+				    "postVariables":
+				    - { "a": "some" }
+			''')
 		]
 
 		// when
@@ -111,18 +117,18 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		assertThat(response.status).isEqualTo(Status.OK.statusCode)
 
 		val jsonString = response.readEntity(String)
-		val jsonNode = mapper.readTree(jsonString)
-		assertThat(jsonNode.get('Source').asText).isEqualTo('SomeTest')
-		jsonNode.get('Children') => [
+		val jsonNode = mapper.readTree(jsonString).get('testRuns').get(0)
+		assertThat(jsonNode.get('source').asText).isEqualTo('SomeTest')
+		jsonNode.get('children') => [
 			assertThat(nodeType).isEqualTo(JsonNodeType.ARRAY)
 			assertThat(size).isEqualTo(1)
 			get(0) => [
-				assertThat(get('Status').asText).isEqualTo('OK')
-				get('PreVariables') => [
+				assertThat(get('status').asText).isEqualTo('OK')
+				get('preVariables') => [
 					assertThat(nodeType).isEqualTo(JsonNodeType.ARRAY)
 					assertThat(size).isEqualTo(2)
-					assertThat(get(1).get('Key').asText).isEqualTo('c[1]."key with spaces"')
-					assertThat(get(1).get('Value').asText).isEqualTo('5')
+					assertThat(get(1).fields.head.key).isEqualTo('c[1]."key with spaces"')
+					assertThat(get(1).fields.head.value.asText).isEqualTo('5')
 				]
 			]
 		]
