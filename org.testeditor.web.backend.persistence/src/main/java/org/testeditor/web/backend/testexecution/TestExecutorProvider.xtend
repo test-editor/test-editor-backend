@@ -28,7 +28,7 @@ class TestExecutorProvider {
 		val callTreeYamlFile = testClass.createNewCallTreeYamlFileName(testRunDateString)
 		val workingDir = workspaceProvider.workspace.absoluteFile
 		val processBuilder = new ProcessBuilder => [
-			command(constructCommandLine(testClass, logFile))
+			command(constructCommandLine(testClass))
 			directory(workingDir)
 			environment.put(LOGFILE_ENV_KEY, logFile)
 			environment.put(CALL_TREE_YAML_FILE, callTreeYamlFile)
@@ -40,6 +40,22 @@ class TestExecutorProvider {
 		return processBuilder
 	}
 	
+	def ProcessBuilder testExecutionBuilder(TestExecutionKey key, Iterable<String> testCases) {
+		val logFile = key.createNewLogFileName
+		val callTreeYamlFile = key.createNewCallTreeYamlFileName
+		val workingDir = workspaceProvider.workspace.absoluteFile
+		val processBuilder = new ProcessBuilder => [
+			command(constructCommandLine(key, testCases))
+			directory(workingDir)
+			environment.put(LOGFILE_ENV_KEY, logFile)
+			environment.put(CALL_TREE_YAML_FILE, callTreeYamlFile)
+			environment.put(CALL_TREE_YAML_COMMIT_ID, '')
+			redirectErrorStream(true)
+		]
+
+		return processBuilder
+	}
+
 	def Iterable<File> getTestFiles(String testCase) {
 		val testClass = testCase.testClass
 		val testPath = workspaceProvider.workspace.toPath.resolve(LOG_FOLDER)
@@ -71,8 +87,24 @@ class TestExecutorProvider {
 		return fileName.replaceAll('''«JAVA_TEST_SOURCE_PREFIX»/''', '').replaceAll('''.«TEST_CASE_FILE_SUFFIX»$''', '').replaceAll('/', '.')
 	}
 
-	private def String[] constructCommandLine(String testClass, String logFile) {
+	private def String[] constructCommandLine(String testClass) {
 		return #['/bin/sh', '-c', testClass.gradleTestCommandLine]
+	}
+
+	private def String[] constructCommandLine(TestExecutionKey key, Iterable<String> testCases) {
+		return #['/bin/sh', '-c', key.gradleTestCommandLine(testCases)]
+	}
+
+	private def String createNewLogFileName(TestExecutionKey key) {
+		return '''«LOG_FOLDER»/testrun-«key.toString».log'''
+	}
+	
+	private def String createNewCallTreeYamlFileName(TestExecutionKey key) {
+		return '''«LOG_FOLDER»/testrun-«key.toString».yaml'''
+	}
+	
+	private def String gradleTestCommandLine(TestExecutionKey key, Iterable<String> testCases) {
+		return '''./gradlew -I test.init.gradle testSuite -Dtests="«testCases.join(';')»" -DTE_SUITEID=«key.suiteId» -DTE_SUITERUNID=«key.suiteRunId»'''
 	}
 
 	private def String createNewCallTreeYamlFileName(String testClass, String dateString) {

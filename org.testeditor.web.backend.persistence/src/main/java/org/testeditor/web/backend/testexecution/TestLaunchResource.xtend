@@ -22,10 +22,12 @@ import javax.ws.rs.core.UriBuilder
 import org.glassfish.jersey.server.ManagedAsync
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.DocumentResource
+import java.util.List
+import javax.ws.rs.PathParam
 
-@Path("/tests")
+@Path("/test-suite")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
-class TestExecutorResource {
+class TestLaunchResource {
 
 	private static val LONG_POLLING_TIMEOUT_SECONDS = 5
 	static val logger = LoggerFactory.getLogger(TestExecutorResource)
@@ -37,46 +39,50 @@ class TestExecutorResource {
 	@GET
 	@Path("call-tree")
 	@Produces(MediaType.APPLICATION_JSON) 
-	def Response callTreeOfLastRun(@QueryParam("resource") String resourcePath) {
+	def Response callTreeOfLastRun(@QueryParam("suite-id") String suiteId, @QueryParam("suite-run-id") String suiteRunId) {
 		// get the latest call tree of the given resource
-		val latestCallTree=executorProvider.getTestFiles(resourcePath).filter[name.endsWith('.yaml')].sortBy[name].reverse.head
-		if (latestCallTree !== null) {
-			val mapper = new ObjectMapper(new YAMLFactory)
-			val jsonTree = mapper.readTree(latestCallTree)
-			return Response.ok(jsonTree.toString).build
-		} else {
+//		val latestCallTree=executorProvider.getTestFiles(resourcePath).filter[name.endsWith('.yaml')].sortBy[name].reverse.head
+//		if (latestCallTree !== null) {
+//			val mapper = new ObjectMapper(new YAMLFactory)
+//			val jsonTree = mapper.readTree(latestCallTree)
+//			return Response.ok(jsonTree.toString).build
+//		} else {
 			return Response.status(Status.NOT_FOUND).build
-		}
+//		}
+	}
+	
+	@GET
+	@Path("by-key/{key}")
+	def Response getSuiteByKey(@PathParam("key") String keyString) {
+		
 	}
 
 	@POST
-	@Path("execute")
-	def Response executeTests(@QueryParam("resource") String resourcePath) { // add query parameter that notifies backend, that frontend is listening
-		// if frontend is listening, the test executor should receive an environment variable so that
-		// all reported call tree relevant information is send to some uri (e.g. localhost:80/tests/executionCallback?resource=... with some payload?)
-		// should reporting be synchronous (e.g. for debugging) or asynchronous (without loss, though)
-		// should reporting be filtered (and only after the test all information is available?)
-		val builder = executorProvider.testExecutionBuilder(resourcePath)
+	@Path("launch-new")
+	def Response launchNewSuiteWith(List<String> resourcePaths) {
+		val key = new TestExecutionKey("0", "0")
+		val builder = executorProvider.testExecutionBuilder(key, resourcePaths)
 		val logFile = builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)
 		val callTreeFile = builder.environment.get(TestExecutorProvider.CALL_TREE_YAML_FILE)
-		logger.info('''Starting test for resourcePath='«resourcePath»' logging into logFile='«logFile»', callTreeFile='«callTreeFile»'.''')
+		logger.info('''Starting test for resourcePaths='«resourcePaths.join(',')»' logging into logFile='«logFile»', callTreeFile='«callTreeFile»'.''')
 		val testProcess = builder.start
-		statusMapper.addTestRun(resourcePath, testProcess)
+//		statusMapper.addTestRun(resourcePath, testProcess)
 		testProcess.logToStandardOutAndIntoFile(new File(builder.directory, logFile))
 
-		return Response.created(logFile.resultingLogFileUri).build
+		return Response.created(URI.create('''/test-suite/by-key/«key.toString»''')).build
 	}
 
 	@GET
-	@Path("status")
+	@Path("status/{key}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@ManagedAsync
-	def void getStatus(@QueryParam("resource") String resourcePath, @DefaultValue("false") @QueryParam("wait") boolean wait,
+	def void getStatus(@PathParam("key") String key, @DefaultValue("false") @QueryParam("wait") boolean wait,
 		@Suspended AsyncResponse response) {
+		val key = TestExecutionKey.valueOf(key)
 		if (wait) {
-			waitForStatus(resourcePath, response)
+			waitForStatus(key, response)
 		} else {
-			val status = statusMapper.getStatus(resourcePath)
+			val status = statusMapper.getStatus(key)
 			response.resume(Response.ok(status.name).build)
 		}
 	}
@@ -86,9 +92,10 @@ class TestExecutorResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	def Iterable<TestStatusInfo> getStatusAll() {
 		return statusMapper.all
+		
 	}
 	
-	private def void waitForStatus(String resourcePath, AsyncResponse response) {
+	private def void waitForStatus(TestExecutionKey key, AsyncResponse response) {
 
 		response.setTimeout(LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 		response.timeoutHandler = [
@@ -96,14 +103,10 @@ class TestExecutorResource {
 		]
 
 		try {
-			val status = statusMapper.waitForStatus(resourcePath)
+			val status = statusMapper.waitForStatus(key)
 			response.resume(Response.ok(status.name).build)
 		} catch (InterruptedException ex) {
 		} // timeout handler takes care of response
-	}
-
-	private def URI resultingLogFileUri(String logFile) {
-		return UriBuilder.fromResource(DocumentResource).build(#[logFile], false)
 	}
 
 }
