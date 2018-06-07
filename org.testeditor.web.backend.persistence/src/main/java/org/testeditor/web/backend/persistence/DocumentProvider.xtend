@@ -209,8 +209,10 @@ class DocumentProvider {
 		logger.info('''running git pull against «configuration.remoteRepoUrl»''')
 		val mergeSuccessful = git.pull.configureTransport.call.mergeResult.mergeStatus.successful
 		return if (!mergeSuccessful) {
+			logger.info('''pull returned conflicts''')
 			Optional.of(git.status.call.conflictingStageState.values.head)
 		} else {
+			logger.info('''pull returned without conflicts''')
 			Optional.empty
 		}
 	}
@@ -218,7 +220,15 @@ class DocumentProvider {
 	private def void push() {
 		if (configuration.repoConnectionMode.equals(PersistenceConfiguration.RepositoryConnectionMode.pullPush)) {
 			logger.info('''running git push against «configuration.remoteRepoUrl»''')
-			git.push.configureTransport.call
+			val results = git.push.configureTransport.call
+			if (logger.infoEnabled) {
+				results.forEach[
+					logger.info('''push result uri: «URI»''')
+					logger.info('''push result message: «messages»''')
+				]
+			}
+		} else {
+			logger.info('''running NO git push against «configuration.remoteRepoUrl», since configuration repoConnectioNmode = '«configuration.repoConnectionMode.name»' prevents it''')
 		}
 	}
 
