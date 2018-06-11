@@ -51,7 +51,7 @@ subprojects {
         dropwizard: '1.2.2',
         testEditorDropwizard: '0.15.0',
         xtext: '2.13.0',
-        testEditorLanguage: '1.17.0'
+        testEditorLanguage: '1.17.1'
     ])
 
     sourceCompatibility = '1.8'

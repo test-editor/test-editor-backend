@@ -9,7 +9,10 @@ dependencies {
         // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
         exclude group: "org.apache.logging.log4j"
     }
-    compile "org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage"
+    compile ("org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage")  {
+        // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
+        exclude group: "org.apache.logging.log4j"
+    }
     compile "org.testeditor:org.testeditor.tcl.dsl.ide:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.aml.dsl:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.aml.dsl.ide:$versions.testEditorLanguage"
