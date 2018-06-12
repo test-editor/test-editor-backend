@@ -85,7 +85,11 @@ class TestExecutorProvider {
 			            testLogging.exceptionFormat = 'full'
 			
 			            beforeTest {
-			                println ">>>>>>>>>>>>>>>> got the following test class: ${it.getClassName()} with id ${System.props.get('TE_SUITEID')}.${System.props.get('TE_SUITERUNID')}.${testCaseRunId}"
+			                println "Starting test for the following test class: ${it.getClassName()} with id ${System.props.get('TE_SUITEID')}.${System.props.get('TE_SUITERUNID')}.${testCaseRunId}"
+			                println "@TESTRUN:ENTER:${System.props.get('TE_SUITEID')}.${System.props.get('TE_SUITERUNID')}.${testCaseRunId}"
+			            }
+			            afterTest {
+			                println "@TESTRUN:LEAVE:${System.props.get('TE_SUITEID')}.${System.props.get('TE_SUITERUNID')}.${testCaseRunId}"
 			                testCaseRunId ++
 			            }
 			        }
