@@ -11,7 +11,7 @@ cache:
 script:
 - "./gradlew check"
 - "./.travis-cat_owasp_depcheck_reports.sh"
-- if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" == "master"]; then ./gradlew docker; fi
+- if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" == "master" ]; then ./gradlew docker; fi
 deploy:
   provider: script
   script: bash docker_push
