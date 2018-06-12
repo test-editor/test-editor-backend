@@ -156,6 +156,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 
 		// then
 		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+		assertThat(response.headers.get("Location").toString).matches("\\[http://localhost:[0-9]+/test-suite/0/0\\]")
 
 		createTestStatusRequest(TestExecutionKey.valueOf('0-0')).get // wait for test to terminate
 		val executionResult = workspaceRootPath.resolve(userId + '/test.ok.txt').toFile
@@ -245,7 +246,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		workspaceRoot.newFile(userId + '''/logs/testrun.«testKey».200000000000.yaml''') => [
 			executable = true
 			JGitTestUtil.write(it, '''
-				"tests":
+				"testRuns":
 				- "source": "test.tcl"
 				  "id": "1"
 				  "children" :

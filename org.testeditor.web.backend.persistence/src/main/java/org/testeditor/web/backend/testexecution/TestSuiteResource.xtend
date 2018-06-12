@@ -3,6 +3,8 @@ package org.testeditor.web.backend.testexecution
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
+import java.net.URI
+import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
@@ -111,7 +113,7 @@ class TestSuiteResource {
 		val testProcess = builder.start
 		statusMapper.addTestSuiteRun(executionKey, testProcess)
 		testProcess.logToStandardOutAndIntoFile(new File(logFile))
-		val uri = UriBuilder.fromMethod(TestSuiteResource, "testSuiteRunStatus").build(executionKey.suiteId, executionKey.suiteRunId)
+		val uri = new URI(UriBuilder.fromResource(TestSuiteResource).build.toString+'''/«URLEncoder.encode(executionKey.suiteId, "UTF-8")»/«URLEncoder.encode(executionKey.suiteRunId,"UTF-8")»''')
 		return Response.created(uri).build
 	}
 

@@ -16,7 +16,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 	TestExecutionCallTree testExecutionCallTreeUnderTest
 
 	val testRunCallTreeYaml = '''
-		"tests":
+		"testRuns":
 		- "source": "org.testeditor.Minimal"
 		  "testRunId": ""
 		  "commitId": ""
@@ -88,13 +88,13 @@ class TestExecutionCallTreeTest extends AbstractTest {
 	@Test
 	def void testJacksonYamlParseProvidesMapsAndArrayLists() {
 		val yamlObject = objectMapper.readValue('''
-			"tests":
+			"testRuns":
 			- "source": "xyz.tcl"
 			  "id" : "4711"
 			  "children":
 		''', Map);
 
-		yamlObject.get("tests").assertInstanceOf(ArrayList).assertSingleElement //
+		yamlObject.get("testRuns").assertInstanceOf(ArrayList).assertSingleElement //
 		.assertInstanceOf(Map) //
 		.get('source').assertEquals('xyz.tcl')
 	}

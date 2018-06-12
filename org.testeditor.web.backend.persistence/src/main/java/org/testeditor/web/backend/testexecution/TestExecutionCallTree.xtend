@@ -55,7 +55,7 @@ class TestExecutionCallTree {
 			throw new IllegalArgumentException('''passed executionKey = '«executionKey»' must provide a caseRunId.''')
 		}
 
-		val test = yamlObject.typedMapGetArray("tests").filter(Map).findFirst [ test |
+		val test = yamlObject.typedMapGetArray("testRuns").filter(Map).findFirst [ test |
 			executionKey.caseRunId.equals(test.get("id"))
 		]
 
