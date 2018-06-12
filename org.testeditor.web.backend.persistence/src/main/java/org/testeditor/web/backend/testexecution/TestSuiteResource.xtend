@@ -5,8 +5,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.time.Instant
 import java.util.List
+import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.ws.rs.Consumes
@@ -23,7 +25,6 @@ import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.UriBuilder
 import org.apache.commons.text.StringEscapeUtils
-import org.glassfish.jersey.server.ManagedAsync
 import org.slf4j.LoggerFactory
 
 @Path("/test-suite")
@@ -36,17 +37,46 @@ class TestSuiteResource {
 	@Inject TestExecutorProvider executorProvider
 	@Inject TestStatusMapper statusMapper
 	@Inject extension TestLogWriter logWriter
+	@Inject Executor executor
+	@Inject TestExecutionCallTree testExecutionCallTree
 
 	@GET
-	@Path("{suiteId}/{suitRunId}")
+	@Path("{suiteId}/{suiteRunId}/{caseRunId}/{callTreeId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@ManagedAsync
-	def void testSuiteRunStatus(@PathParam("suiteId") String suiteId, @PathParam("suiteSuiteRunId") String suiteRunId, @QueryParam("status") String status,
-		@Suspended AsyncResponse response) {
+	def Response testSuiteCalltreeNode(
+		@PathParam("suiteId") String suiteId,
+		@PathParam("suiteRunId") String suiteRunId,
+		@PathParam("caseRunId") String caseRunId,
+		@PathParam("callTreeId") String callTreeId
+	) {
+		val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].reverse.head
+		if (latestCallTree !== null) {
+			val executionKey = new TestExecutionKey(suiteId, suiteRunId, caseRunId, callTreeId)
+			testExecutionCallTree.readFile(executionKey, latestCallTree)
+			val callTreeResultString = testExecutionCallTree.getNodeJson(executionKey)
+			val jsonResultString = '''[ { "type": "properties", "content": «callTreeResultString» } ]'''
+			return Response.ok(jsonResultString).build
+		} else {
+			return Response.status(Status.NOT_FOUND).build
+		}
+	}
+
+	@GET
+	@Path("{suiteId}/{suiteRunId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	def void testSuiteRunStatus(
+		@PathParam("suiteId") String suiteId,
+		@PathParam("suiteRunId") String suiteRunId,
+		@QueryParam("status") String status,
+		@QueryParam("wait") String wait,
+		@Suspended AsyncResponse response
+	) {
 		if (status !== null) {
 			val executionKey = new TestExecutionKey(suiteId, suiteRunId)
-			if (status.equals('wait')) {
-				waitForStatus(executionKey, response)
+			if (wait !== null) {
+				executor.execute [
+					waitForStatus(executionKey, response)
+				]
 			} else {
 				val suiteStatus = statusMapper.getStatus(executionKey)
 				response.resume(Response.ok(suiteStatus.name).build)
@@ -57,13 +87,17 @@ class TestSuiteResource {
 			if (latestCallTree !== null) {
 				val mapper = new ObjectMapper(new YAMLFactory)
 				val jsonTree = mapper.readTree(latestCallTree)
-				response.resume(Response.ok(jsonTree.toString).build)
+				response.resume(
+					Response.ok(jsonTree.toString).build
+				)
 			} else {
-				response.resume(Response.status(Status.NOT_FOUND).build)
-			}		
+				response.resume(
+					Response.status(Status.NOT_FOUND).build
+				)
+			}
 		}
 	}
-	
+
 	@POST
 	@Path("launch-new")
 	def Response launchNewSuiteWith(List<String> resourcePaths) {
@@ -76,7 +110,7 @@ class TestSuiteResource {
 		new File(callTreeFile).writeCallTreeYamlPrefix(executionKey, resourcePaths)
 		val testProcess = builder.start
 		statusMapper.addTestSuiteRun(executionKey, testProcess)
-		testProcess.logToStandardOutAndIntoFile(new File(builder.directory, logFile))
+		testProcess.logToStandardOutAndIntoFile(new File(logFile))
 		val uri = UriBuilder.fromMethod(TestSuiteResource, "testSuiteRunStatus").build(executionKey.suiteId, executionKey.suiteRunId)
 		return Response.created(uri).build
 	}
@@ -86,17 +120,18 @@ class TestSuiteResource {
 	@Produces(MediaType.APPLICATION_JSON)
 	def Iterable<TestSuiteStatusInfo> getStatusAll() {
 		return statusMapper.allTestSuites
-		
 	}
 
-	private def void writeCallTreeYamlPrefix(File callTreeYamlFile, TestExecutionKey executionKey, Iterable<String> resourcePaths) {
+	private def File writeCallTreeYamlPrefix(File callTreeYamlFile, TestExecutionKey executionKey, Iterable<String> resourcePaths) {
+		callTreeYamlFile.parentFile.mkdirs
 		Files.write(callTreeYamlFile.toPath, '''
 			"started": "«StringEscapeUtils.escapeJson(Instant.now().toString())»"
 			"testSuiteId": "«StringEscapeUtils.escapeJson(executionKey.suiteId)»"
 			"testSuiteRunId": "«StringEscapeUtils.escapeJson(executionKey.suiteRunId)»"
 			"resources": [ «resourcePaths.map['"'+StringEscapeUtils.escapeJson(it)+'"'].join(", ")» ]
 			"testRuns":
-		'''.toString.getBytes(StandardCharsets.UTF_8))
+		'''.toString.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+		return callTreeYamlFile
 	}
 
 	private def void waitForStatus(TestExecutionKey executionKey, AsyncResponse response) {

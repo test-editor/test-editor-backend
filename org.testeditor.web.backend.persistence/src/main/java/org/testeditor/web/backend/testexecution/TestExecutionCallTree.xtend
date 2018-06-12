@@ -14,13 +14,9 @@ class TestExecutionCallTree {
 	var TestExecutionKey executionKey
 	var Map<String, Object> yamlObject
 
-	def void readFile(TestExecutionKey executionKey, String yamlFileName) {
-		if (yamlFileName.nullOrEmpty) {
-			throw new IllegalArgumentException('Yaml file name must not be empty nor null')
-		} else {
-			yamlObject = objectMapper.readValue(new File(yamlFileName), Map);
-			this.executionKey = executionKey
-		}
+	def void readFile(TestExecutionKey executionKey, File yaml) {
+		yamlObject = objectMapper.readValue(yaml, Map);
+		this.executionKey = executionKey
 	}
 
 	def void readString(TestExecutionKey executionKey, String yaml) {

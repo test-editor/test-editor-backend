@@ -42,7 +42,7 @@ class TestStatusMapper {
 	val suiteStatusMap = new ConcurrentHashMap<TestExecutionKey, TestProcess>
 	
 	def TestExecutionKey deriveFreshRunId(TestExecutionKey suiteKey) {
-		return suiteKey.deriveWithCaseRunId(Long.toString(runningTestSuiteRunId.andIncrement))
+		return suiteKey.deriveWithSuiteRunId(Long.toString(runningTestSuiteRunId.andIncrement))
 	}
 
 	def TestStatus getStatus(TestExecutionKey executionKey) {

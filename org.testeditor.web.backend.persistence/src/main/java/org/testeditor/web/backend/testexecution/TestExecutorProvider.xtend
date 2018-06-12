@@ -3,6 +3,7 @@ package org.testeditor.web.backend.testexecution
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.StandardOpenOption
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -54,10 +55,6 @@ class TestExecutorProvider {
 			buildFolder.mkdir
 		}
 		val testSuiteGradleInit = new File(buildFolder, TEST_SUITE_INIT_FILE_NAME)
-		if (testSuiteGradleInit.exists) {
-			testSuiteGradleInit.delete
-		}
-		testSuiteGradleInit.createNewFile
 		Files.write(testSuiteGradleInit.toPath, '''
 			allprojects {
 			    apply plugin: 'java'
@@ -99,7 +96,7 @@ class TestExecutorProvider {
 			    }
 			
 			}
-		'''.toString.getBytes(StandardCharsets.UTF_8))
+		'''.toString.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
 	}
 
 	def ProcessBuilder testExecutionBuilder(TestExecutionKey executionKey, Iterable<String> testCases) {
@@ -111,8 +108,8 @@ class TestExecutorProvider {
 		val processBuilder = new ProcessBuilder => [
 			command(constructCommandLine(executionKey, testCases))
 			directory(workingDir)
-			environment.put(LOGFILE_ENV_KEY, logFile)
-			environment.put(CALL_TREE_YAML_FILE, callTreeYamlFile)
+			environment.put(LOGFILE_ENV_KEY, workingDir + "/" + logFile)
+			environment.put(CALL_TREE_YAML_FILE, workingDir + "/" + callTreeYamlFile)
 			environment.put(CALL_TREE_YAML_COMMIT_ID, '')
 			redirectErrorStream(true)
 		]

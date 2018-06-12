@@ -16,14 +16,13 @@ class TestLogWriter {
 		logFile.parentFile.mkdirs
 
 		val logStream = new FileOutputStream(logFile)
-		val destination = new TeeOutputStream(logStream, System.out)
+		val destination = new TeeOutputStream(System.out, logStream)
 
 		CompletableFuture.runAsync( [
 			try {
 				IOUtils.copy(process.inputStream, destination)
 			} finally {
 				logStream?.close
-				destination?.close
 			}
 		], executor)
 	}
