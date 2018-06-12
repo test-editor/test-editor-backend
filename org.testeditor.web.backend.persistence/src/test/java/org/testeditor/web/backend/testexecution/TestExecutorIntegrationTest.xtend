@@ -3,6 +3,7 @@ package org.testeditor.web.backend.testexecution
 import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeType
+import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -303,11 +304,14 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 	def void testThatStatusOfAllRunningAndTerminatedTestsIsReturned() {
 		// given
 		workspaceRoot.newFolder(userId)
+		val finishedFile = new File(workspaceRoot.root, '''«userId»/finished.txt''')
+		finishedFile.delete
 		workspaceRoot.newFile('''«userId»/gradlew''') => [
 			executable = true
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
 				if [ "$3" = "runningTest" ]; then
+				  echo "finished" > finished.txt
 				  sleep 7; exit 0
 				elif [ "$3" = "successfulTest" ]; then
 				  exit 0
@@ -324,6 +328,12 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 			val executionResponse = createTestExecutionRequest(it).post(null)
 			assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
 		]
+
+		var threshold = 4
+		while (!finishedFile.exists && threshold > 0) {
+			Thread.sleep(1000)
+			threshold--
+		}
 
 		// when
 		val response = createRequest('''tests/status/all''').get
