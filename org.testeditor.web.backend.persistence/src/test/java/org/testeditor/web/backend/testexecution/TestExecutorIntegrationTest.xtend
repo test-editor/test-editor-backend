@@ -12,7 +12,6 @@ import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MultivaluedMap
 import javax.ws.rs.core.Response.Status
-import org.apache.commons.lang3.StringUtils
 import org.assertj.core.api.SoftAssertions
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
@@ -305,7 +304,6 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		// given
 		workspaceRoot.newFolder(userId)
 		val finishedFile = new File(workspaceRoot.root, '''«userId»/finished.txt''')
-		finishedFile.delete
 		workspaceRoot.newFile('''«userId»/gradlew''') => [
 			executable = true
 			JGitTestUtil.write(it, '''
@@ -314,8 +312,10 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 				  echo "finished" > finished.txt
 				  sleep 7; exit 0
 				elif [ "$3" = "successfulTest" ]; then
+				  echo "finished" > finished.txt
 				  exit 0
 				elif [ "$3" = "failedTest" ]; then
+				  echo "finished" > finished.txt
 				  exit 1
 				fi
 			''')
@@ -325,15 +325,16 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 			workspaceRoot.newFile('''«userId»/«name»Test.tcl''')
 			return '''«name»Test.tcl'''
 		].forEach [
+			finishedFile.delete
 			val executionResponse = createTestExecutionRequest(it).post(null)
 			assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+			var threshold = 5
+			while (!finishedFile.exists && threshold > 0) {
+				println('waiting for shell script to finish.')
+				Thread.sleep(500)
+				threshold--
+			}
 		]
-
-		var threshold = 4
-		while (!finishedFile.exists && threshold > 0) {
-			Thread.sleep(1000)
-			threshold--
-		}
 
 		// when
 		val response = createRequest('''tests/status/all''').get
@@ -373,10 +374,6 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	private def Builder createAsyncTestStatusRequest(String resourcePath) {
 		return createRequest('''tests/status?wait=true&resource=«resourcePath»''')
-	}
-
-	private def String indent(CharSequence sequence, int level) {
-		return StringUtils.repeat(' ', level * 2) + sequence.toString.split('\n\r?').join('\n' + StringUtils.repeat(' ', level * 2)) + '\n'
 	}
 
 }

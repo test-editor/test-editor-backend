@@ -360,7 +360,6 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		// given
 		workspaceRoot.newFolder(userId)
 		new File(workspaceRoot.root, '''«userId»/calledCount.txt''').delete
-		new File(workspaceRoot.root, '''«userId»/finished.txt''').delete
 		workspaceRoot.newFile('''«userId»/gradlew''') => [
 			executable = true
 			JGitTestUtil.write(it, '''
@@ -372,8 +371,10 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				  echo "lastcall" > finished.txt
 				  sleep 7; exit 0
 				elif [ "$called" = "2" ]; then
+				  echo "secondcall" > finished.txt
 				  exit 0
 				elif [ "$called" = "1" ]; then
+				  echo "firstcall" > finished.txt
 				  exit 1
 				fi
 			''')
@@ -382,17 +383,18 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		expectedStatusMap.map [ name |
 			workspaceRoot.newFile('''«userId»/Test«name».tcl''')
 			return '''Test«name».tcl'''
-		].forEach [
-			val response = createLaunchNewRequest().post(Entity.entity(#[it], MediaType.APPLICATION_JSON_TYPE))
+		].forEach [ name, index |
+			new File(workspaceRoot.root, '''«userId»/finished.txt''').delete
+			val response = createLaunchNewRequest().post(Entity.entity(#[name], MediaType.APPLICATION_JSON_TYPE))
 			assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+			var threshold = 5
+			while (!new File(workspaceRoot.root, '''«userId»/finished.txt''').exists && threshold > 0) {
+				println('waiting for script to settle ...')
+				Thread.sleep(500) // give the script some time to settle
+				threshold--
+			}
 		]
 
-		var threshold = 5
-		while (!new File(workspaceRoot.root, '''«userId»/finished.txt''').exists && threshold > 0) {
-			println('waiting for script to settle ...')
-			Thread.sleep(1000) // give the script some time to settle
-			threshold--
-		}
 
 		// when
 		val response = createRequest('''test-suite/status''').get
