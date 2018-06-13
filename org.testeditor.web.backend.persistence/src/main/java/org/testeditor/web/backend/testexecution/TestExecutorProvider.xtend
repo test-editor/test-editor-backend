@@ -132,7 +132,6 @@ class TestExecutorProvider {
 		return testFiles
 	}
 
-
 	private def String getTestClass(String testCase) {
 		if (!testCase.endsWith(TEST_CASE_FILE_SUFFIX)) {
 			val errorMsg = '''File '«testCase»' is no test case (does not end on «TEST_CASE_FILE_SUFFIX»)'''
@@ -173,7 +172,7 @@ class TestExecutorProvider {
 	}
 
 	private def String gradleTestCommandLine(TestExecutionKey key, Iterable<String> testCases) {
-		return '''./gradlew -I build/«TEST_SUITE_INIT_FILE_NAME» testSuite -Dtests="«testCases.join(';')»" -DTE_SUITEID=«key.suiteId» -DTE_SUITERUNID=«key.suiteRunId»'''
+		return '''./gradlew -I build/«TEST_SUITE_INIT_FILE_NAME» testSuite -Dtests="«testCases.map[replaceAll('(?i)\\.tcl$', '')].join(';')»" -DTE_SUITEID=«key.suiteId» -DTE_SUITERUNID=«key.suiteRunId»'''
 	}
 
 	private def String createNewCallTreeYamlFileName(String testClass, String dateString) {
