@@ -9,6 +9,7 @@ import javax.servlet.FilterRegistration.Dynamic
 import org.testeditor.web.backend.persistence.exception.PersistenceExceptionMapper
 import org.testeditor.web.backend.persistence.workspace.WorkspaceResource
 import org.testeditor.web.backend.testexecution.TestExecutorResource
+import org.testeditor.web.backend.testexecution.TestSuiteResource
 import org.testeditor.web.dropwizard.DropwizardApplication
 
 import static org.eclipse.jetty.servlets.CrossOriginFilter.*
@@ -33,6 +34,7 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 			register(WorkspaceResource)
 			register(TestExecutorResource)
 			register(PersistenceExceptionMapper)
+			register(TestSuiteResource)
 		]
 	}
 

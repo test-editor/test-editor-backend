@@ -87,7 +87,7 @@ class TestExecutorResource {
 	def Iterable<TestStatusInfo> getStatusAll() {
 		return statusMapper.all
 	}
-
+	
 	private def void waitForStatus(String resourcePath, AsyncResponse response) {
 
 		response.setTimeout(LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
