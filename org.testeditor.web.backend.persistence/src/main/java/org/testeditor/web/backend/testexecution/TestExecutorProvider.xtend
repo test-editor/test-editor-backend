@@ -61,10 +61,6 @@ class TestExecutorProvider {
 			
 			    def testCaseRunId = 0
 			    def taskNum = 0
-			    // [
-			    //     "org/testeditor/BeispielImpl"
-			    //     ,"org/testeditor/Minimal"
-			    // ].forEach { testcase ->
 			    for (def testcase:System.props.get("tests").split(';')) {
 			        task "testTask${taskNum+1}" (type: Test) {
 			        	if (System.props.get("skipUnchanged") == null) {
