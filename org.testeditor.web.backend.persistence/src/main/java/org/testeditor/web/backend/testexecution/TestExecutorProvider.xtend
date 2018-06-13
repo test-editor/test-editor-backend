@@ -172,7 +172,8 @@ class TestExecutorProvider {
 	}
 
 	private def String gradleTestCommandLine(TestExecutionKey key, Iterable<String> testCases) {
-		return '''./gradlew -I build/«TEST_SUITE_INIT_FILE_NAME» testSuite -Dtests="«testCases.map[replaceAll('(?i)\\.tcl$', '')].join(';')»" -DTE_SUITEID=«key.suiteId» -DTE_SUITERUNID=«key.suiteRunId»'''
+		val testClassNames = testCases.map[replaceAll('(?i)\\.tcl$', '')].map[replaceAll('^src/test/java/', '')]
+		return '''./gradlew -I build/«TEST_SUITE_INIT_FILE_NAME» testSuite -Dtests="«testClassNames.join(';')»" -DTE_SUITEID=«key.suiteId» -DTE_SUITERUNID=«key.suiteRunId»'''
 	}
 
 	private def String createNewCallTreeYamlFileName(String testClass, String dateString) {
