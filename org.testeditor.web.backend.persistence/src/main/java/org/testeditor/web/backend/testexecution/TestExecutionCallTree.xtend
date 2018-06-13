@@ -15,7 +15,7 @@ class TestExecutionCallTree {
 	var Map<String, Object> yamlObject
 
 	def void readFile(TestExecutionKey executionKey, File yaml) {
-		yamlObject = objectMapper.readValue(yaml, Map);
+		yamlObject = objectMapper.readValue(yaml, Map)
 		this.executionKey = executionKey
 	}
 
@@ -23,7 +23,7 @@ class TestExecutionCallTree {
 		if (yaml.nullOrEmpty) {
 			throw new IllegalArgumentException('Yaml string must not be null nor empty')
 		} else {
-			yamlObject = objectMapper.readValue(yaml, Map);
+			yamlObject = objectMapper.readValue(yaml, Map)
 			this.executionKey = executionKey
 		}
 	}
@@ -32,7 +32,7 @@ class TestExecutionCallTree {
 		val test = executionKey.testNode
 		if (test !== null) {
 			val objectWriter = new ObjectMapper().writer
-			return objectWriter.writeValueAsString(test);
+			return objectWriter.writeValueAsString(test)
 		} else {
 			throw new IllegalArgumentException('''test for passed executionKey = '«executionKey»' cannot be found.''')
 		}
@@ -66,7 +66,7 @@ class TestExecutionCallTree {
 		val children = node.get("children")
 		node.remove("children")
 		val objectWriter = new ObjectMapper().writer
-		val result = objectWriter.writeValueAsString(node);
+		val result = objectWriter.writeValueAsString(node)
 		node.put("children", children)
 
 		return result

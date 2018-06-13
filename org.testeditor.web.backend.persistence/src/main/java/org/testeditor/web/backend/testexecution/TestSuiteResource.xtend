@@ -51,7 +51,7 @@ class TestSuiteResource {
 		@PathParam("caseRunId") String caseRunId,
 		@PathParam("callTreeId") String callTreeId
 	) {
-		val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].reverse.head
+		val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].last
 		if (latestCallTree !== null) {
 			val executionKey = new TestExecutionKey(suiteId, suiteRunId, caseRunId, callTreeId)
 			testExecutionCallTree.readFile(executionKey, latestCallTree)
@@ -130,7 +130,7 @@ class TestSuiteResource {
 			"started": "«StringEscapeUtils.escapeJson(Instant.now().toString())»"
 			"testSuiteId": "«StringEscapeUtils.escapeJson(executionKey.suiteId)»"
 			"testSuiteRunId": "«StringEscapeUtils.escapeJson(executionKey.suiteRunId)»"
-			"resources": [ «resourcePaths.map['"'+StringEscapeUtils.escapeJson(it)+'"'].join(", ")» ]
+			"resourcePaths": [ «resourcePaths.map['"'+StringEscapeUtils.escapeJson(it)+'"'].join(", ")» ]
 			"testRuns":
 		'''.toString.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
 		return callTreeYamlFile
