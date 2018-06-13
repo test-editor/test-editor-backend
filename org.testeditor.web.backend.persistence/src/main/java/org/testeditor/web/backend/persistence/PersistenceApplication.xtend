@@ -41,7 +41,7 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 	override def Dynamic configureCorsFilter(PersistenceConfiguration configuration, Environment environment) {
 		return super.configureCorsFilter(configuration, environment) => [
 			// Configure additional CORS parameters
-			setInitParameter(EXPOSED_HEADERS_PARAM, "Content-Location")
+			setInitParameter(EXPOSED_HEADERS_PARAM, "Content-Location, Location")
 		]
 	}
 
