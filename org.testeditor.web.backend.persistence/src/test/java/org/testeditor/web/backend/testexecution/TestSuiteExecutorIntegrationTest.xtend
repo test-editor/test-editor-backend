@@ -49,7 +49,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun.0-0--.200001011200123.yaml') => [
 			JGitTestUtil.write(it, '''
 				"started": "on some instant"
-				"resourcePaths": [ "one", "two" ]
+				"resourcePaths": [ "o'ne/two/three", "two/three.tcl" ]
 				"testRuns":
 				- "source": "SomeTest"
 				  "commitId": "«latestCommitID»"
@@ -76,9 +76,11 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		assertThat(response.status).isEqualTo(Status.OK.statusCode)
 
 		val jsonString = response.readEntity(String)
-		val jsonNode = mapper.readTree(jsonString).get('testRuns').get(0)
+		val json = mapper.readTree(jsonString)
+		val jsonNode = json.get('testRuns').get(0)
 		assertThat(jsonNode.get('source').asText).isEqualTo('SomeTest')
 		assertThat(jsonNode.get('commitId').asText).isEqualTo(latestCommitID)
+		assertThat(json.get('resourcePaths').get(0).asText).isEqualTo("o'ne/two/three")
 	}
 
 	@Test
