@@ -250,19 +250,19 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			JGitTestUtil.write(it, '''
 				"testRuns":
 				- "source": "test.tcl"
-				  "id": "1"
+				  "testRunId": "1"
 				  "children" :
-				  - "type": "TEST"
+				  - "node": "TEST"
 				    "id": "ID1"
 				    "children":
-				    - "type": "SPECIFICATION"
+				    - "node": "SPECIFICATION"
 				      "id": "ID2"
 				      "message": "hello"
 				      "children":
 				      - "id": "IDXY"
 				      - "id": "IDXZ"
 				      - "id": "IDYZ"
-				    - "type": "SPECIFICATION"
+				    - "node": "SPECIFICATION"
 				      "id": "ID3"
 			''')
 		]
