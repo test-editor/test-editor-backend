@@ -61,6 +61,9 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 	override run(TestEditorConfiguration configuration, Environment environment) throws Exception {
 		super.run(configuration, environment)
 		
-		environment.jersey.register(TestCaseResource)
+		environment.jersey => [
+			register(TestCaseResource)
+			register(IndexResource)			
+		]
 	}
 }
