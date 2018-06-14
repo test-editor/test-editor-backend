@@ -30,34 +30,34 @@ class TestExecutionCallTreeIllegalTest {
 			'''.toString, '1-2-0-ID7'],
 			// yaml has not the expected structure
 			#['1-2', '''
-				tests:
+				testRuns:
 				- "hello" : "ok"
 			'''.toString, '1-2-0-ID7'],
 			// node retrieval with wrong test execution key
 			#['1-2', '''
-				tests:
-				- "id": "0"
+				testRuns:
+				- "testRunId": "0"
 				  "children": 
 				  - "id": "ID7"
 			'''.toString, '1-3-0-ID7'],
 			// node retrieval with wrong test execution key
 			#['1-2', '''
-				tests:
-				- "id": "0"
+				testRuns:
+				- "testRunId": "0"
 				  "children": 
 				  - "id": "ID7"
 			'''.toString, '1-2-0-ID8'],
 			// node key incomplete (needs all four ids)
 			#['1-2', '''
-				tests:
-				- "id": "0"
+				testRuns:
+				- "testRunId": "0"
 				  "children":
 				  - "id": "ID7"
 			'''.toString, '1-2-0'],
 			// node key incomplete (needs all four ids)
 			#['1-2', '''
-				tests:
-				- "id": "0"
+				testRuns:
+				- "testRunId": "0"
 				  "children":
 				  - "id": "ID7"
 			'''.toString, '1-2']

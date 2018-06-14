@@ -55,11 +55,16 @@ class TestExecutionCallTree {
 			throw new IllegalArgumentException('''passed executionKey = '«executionKey»' must provide a caseRunId.''')
 		}
 
-		val test = yamlObject.typedMapGetArray("testRuns").filter(Map).findFirst [ test |
-			executionKey.caseRunId.equals(test.get("id"))
+		val testRuns = yamlObject.typedMapGetArray("testRuns").filter(Map)
+		val test = testRuns.findFirst [ test |
+			executionKey.caseRunId.equals(test.get("testRunId"))
 		]
-
-		return test
+		
+		if (test===null) {
+			throw new IllegalArgumentException('''could not find test run with id = '«executionKey.caseRunId»' in testRuns = '«testRuns.map[toString].join(', ')»' ''')
+		} else {
+			return test
+		}
 	}
 
 	private def String writeToJsonHidingChildren(Map<String, Object> node) {

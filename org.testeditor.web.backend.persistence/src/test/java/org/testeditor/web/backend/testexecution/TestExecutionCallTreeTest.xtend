@@ -18,9 +18,8 @@ class TestExecutionCallTreeTest extends AbstractTest {
 	val testRunCallTreeYaml = '''
 		"testRuns":
 		- "source": "org.testeditor.Minimal"
-		  "testRunId": ""
+		  "testRunId": "5"
 		  "commitId": ""
-		  "id": "0"
 		  "started": "2018-06-11T13:29:26.384Z"
 		  "children":
 		  - "node": "TEST"
@@ -90,13 +89,14 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		val yamlObject = objectMapper.readValue('''
 			"testRuns":
 			- "source": "xyz.tcl"
-			  "id" : "4711"
+			  "testRunId" : "4711"
 			  "children":
 		''', Map);
 
-		yamlObject.get("testRuns").assertInstanceOf(ArrayList).assertSingleElement //
+		val map = yamlObject.get("testRuns").assertInstanceOf(ArrayList).assertSingleElement //
 		.assertInstanceOf(Map) //
-		.get('source').assertEquals('xyz.tcl')
+		map.get('source').assertEquals('xyz.tcl')
+		map.get('testRunId').assertEquals('4711')
 	}
 
 	@Test
@@ -105,7 +105,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		testExecutionCallTreeUnderTest.readString(new TestExecutionKey('1', '2'), testRunCallTreeYaml)
 
 		// when
-		val jsonString = testExecutionCallTreeUnderTest.getNodeJson(new TestExecutionKey('1', '2', '0', 'ID16'))
+		val jsonString = testExecutionCallTreeUnderTest.getNodeJson(new TestExecutionKey('1', '2', '5', 'ID16'))
 
 		// then
 		jsonString.matches('''.*"enter" *: *"23859940990735".*''').assertTrue
@@ -117,7 +117,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		testExecutionCallTreeUnderTest.readString(new TestExecutionKey('1', '2'), testRunCallTreeYaml)
 
 		// when
-		val jsonString = testExecutionCallTreeUnderTest.getNodeJson(new TestExecutionKey('1', '2', '0', 'ID7'))
+		val jsonString = testExecutionCallTreeUnderTest.getNodeJson(new TestExecutionKey('1', '2', '5', 'ID7'))
 
 		// then
 		jsonString.matches('''.*"children" *:.*''').assertFalse
