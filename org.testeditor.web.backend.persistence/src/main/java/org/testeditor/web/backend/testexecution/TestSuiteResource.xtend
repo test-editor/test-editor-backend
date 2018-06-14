@@ -26,7 +26,6 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.UriBuilder
-import org.apache.commons.text.StringEscapeUtils
 import org.slf4j.LoggerFactory
 
 @Path("/test-suite")
@@ -109,11 +108,12 @@ class TestSuiteResource {
 		val logFile = builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)
 		val callTreeFile = builder.environment.get(TestExecutorProvider.CALL_TREE_YAML_FILE)
 		logger.info('''Starting test for resourcePaths='«resourcePaths.join(',')»' logging into logFile='«logFile»', callTreeFile='«callTreeFile»'.''')
-		new File(callTreeFile).writeCallTreeYamlPrefix(executionKey, resourcePaths)
+		new File(callTreeFile).writeCallTreeYamlPrefix(executorProvider.yamlFileHeader(executionKey, Instant.now, resourcePaths))
 		val testProcess = builder.start
 		statusMapper.addTestSuiteRun(executionKey, testProcess)
 		testProcess.logToStandardOutAndIntoFile(new File(logFile))
-		val uri = new URI(UriBuilder.fromResource(TestSuiteResource).build.toString+'''/«URLEncoder.encode(executionKey.suiteId, "UTF-8")»/«URLEncoder.encode(executionKey.suiteRunId,"UTF-8")»''')
+		val uri = new URI(UriBuilder.fromResource(TestSuiteResource).build.toString +
+			'''/«URLEncoder.encode(executionKey.suiteId, "UTF-8")»/«URLEncoder.encode(executionKey.suiteRunId,"UTF-8")»''')
 		return Response.created(uri).build
 	}
 
@@ -124,15 +124,9 @@ class TestSuiteResource {
 		return statusMapper.allTestSuites
 	}
 
-	private def File writeCallTreeYamlPrefix(File callTreeYamlFile, TestExecutionKey executionKey, Iterable<String> resourcePaths) {
+	private def File writeCallTreeYamlPrefix(File callTreeYamlFile, String fileHeader) {
 		callTreeYamlFile.parentFile.mkdirs
-		Files.write(callTreeYamlFile.toPath, '''
-			"started": "«StringEscapeUtils.escapeJson(Instant.now().toString())»"
-			"testSuiteId": "«StringEscapeUtils.escapeJson(executionKey.suiteId)»"
-			"testSuiteRunId": "«StringEscapeUtils.escapeJson(executionKey.suiteRunId)»"
-			"resourcePaths": [ «resourcePaths.map['"'+StringEscapeUtils.escapeJson(it)+'"'].join(", ")» ]
-			"testRuns":
-		'''.toString.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+		Files.write(callTreeYamlFile.toPath, fileHeader.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
 		return callTreeYamlFile
 	}
 
