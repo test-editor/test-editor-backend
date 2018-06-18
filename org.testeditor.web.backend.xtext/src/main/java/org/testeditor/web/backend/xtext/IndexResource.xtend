@@ -4,15 +4,22 @@ import java.util.List
 import javax.inject.Inject
 import javax.ws.rs.GET
 import javax.ws.rs.Path
+import javax.ws.rs.PathParam
 import javax.ws.rs.Produces
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
+import javax.ws.rs.core.Response.Status
 import org.eclipse.xtend.lib.annotations.Accessors
+import org.testeditor.web.backend.xtext.TestCaseResource.SerializableCallTreeNode
+
+import static org.testeditor.tcl.TclPackage.Literals.TEST_CASE
+import static org.testeditor.tsl.TslPackage.Literals.TEST_SPECIFICATION
 
 @Path('/index')
 class IndexResource {
 
 	@Inject StepTreeGenerator stepTreeGenerator
+	@Inject IndexInfo indexInfo
 
 	/*
 	 * API: StepTree that is easily serialized into json 
@@ -36,6 +43,17 @@ class IndexResource {
 	def Response getStepTree() {
 		val resultTree = stepTreeGenerator.generateStepTree
 		return Response.ok(resultTree).build
+	}
+
+	@GET
+	@Path('exported-objects/{type}')
+	@Produces(MediaType.APPLICATION_JSON)
+	def Response getExportedObjects(@PathParam("type") String type) {
+		switch (type) {
+			case "specification": return Response.ok(indexInfo.exportedObjects(TEST_SPECIFICATION)).build
+			case "test-case": return Response.ok(indexInfo.exportedObjects(TEST_CASE)).build
+			default: return Response.status(Status.NOT_FOUND).build
+		}
 	}
 
 }

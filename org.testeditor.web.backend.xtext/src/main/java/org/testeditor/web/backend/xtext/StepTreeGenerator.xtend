@@ -20,12 +20,104 @@ import org.testeditor.web.backend.xtext.IndexResource.SerializableStepTreeNode
 import org.testeditor.web.xtext.index.ChunkedResourceDescriptionsProvider
 import org.eclipse.xtext.xbase.lib.Functions.Function1
 
+/**
+ * generate a tree of SerializableStepTreeNodes that has the following shape:
+ * 
+ * namespace->macroCollection->macro
+ *          ->component->interaction
+ *                     ->element->interaction
+ */
 class StepTreeGenerator {
 
 	@Inject ChunkedResourceDescriptionsProvider resourceDescriptionsProvider
 	@Inject AmlQualifiedNameProvider amlQualifiedNameProvider
 	@Inject TclQualifiedNameProvider tclQualifiedNameProvider
 	@Inject ModelUtil modelUtil
+
+	def SerializableStepTreeNode generateStepTree() {
+		val allExportedObjects = resourceDescriptionsProvider.getResourceDescriptions(resourceDescriptionsProvider.indexResourceSet).exportedObjects.map[EObjectOrProxy]
+		val namespaceMacroCollectionsMap = allExportedObjects.namespaceMacroCollectionMap
+		val namespaceComponentsMap = allExportedObjects.namespaceComponentsMap
+		val namespaceObjectsMap = groupMerge(namespaceComponentsMap, namespaceMacroCollectionsMap)
+		val resultTree = new SerializableStepTreeNode => [
+			displayName = 'root'
+			type = 'root'
+			children = newArrayList
+			children += namespaceObjectsMap.keySet.map [ namespace |
+				val objects = namespaceObjectsMap.get(namespace)
+				return new SerializableStepTreeNode => [
+					displayName = namespace
+					type = 'namespace'
+					children = newArrayList
+					children += objects.filter(MacroCollection).map[generate(null)]
+					children += objects.filter(Component).map[generate(null)]
+				]
+			]
+		]
+		return resultTree
+	}
+
+	private def dispatch SerializableStepTreeNode generate(MacroCollection macroCollection, NamedElement context) {
+		return new SerializableStepTreeNode => [
+			displayName = macroCollection.name
+			type = 'macroCollection'
+			children = macroCollection.macros.map[generate(macroCollection)]
+		]
+	}
+
+	private def dispatch SerializableStepTreeNode generate(Macro macro, NamedElement context) {
+		return new SerializableStepTreeNode => [
+			displayName = macro.template.contents.map[getText(macro)].join(" ")
+			type = 'macro'
+			children = #[]
+		]
+
+	}
+
+	private def dispatch SerializableStepTreeNode generate(Component component, NamedElement context) {
+		return new SerializableStepTreeNode => [
+			displayName = component.name
+			type = 'component'
+			children = newArrayList
+			val allInteractions = modelUtil.getComponentInteractionTypes(component)
+			children += allInteractions.map[generate(component)]
+			children += modelUtil.getComponentElements(component).map[generate(component)]
+		]
+
+	}
+
+	private def dispatch SerializableStepTreeNode generate(InteractionType interaction, NamedElement context) {
+		return new SerializableStepTreeNode => [
+			displayName = interaction.template.contents.map[getText(context)].join(' ')
+			type = 'interaction'
+			children = newArrayList
+		]
+	}
+
+	private def dispatch SerializableStepTreeNode generate(ComponentElement element, NamedElement context) {
+		return new SerializableStepTreeNode => [
+			displayName = element.name
+			type = 'element'
+			children = newArrayList
+			children += modelUtil.getComponentElementInteractionTypes(element).map[generate(element)]
+		]
+	}
+
+	private def dispatch String getText(TemplateText element, NamedElement context) {
+		element.value
+	}
+
+	private def dispatch String getText(TemplateVariable element, NamedElement context) {
+		if (element.name == "element") {
+			if (context instanceof ComponentElement) {
+			'''<«context.name»>''' // reference to a component element				
+			}else {
+			'''<«element.name»>''' // reference to a component element
+			} 
+		} else {
+			'''"«element.name»"''' // regular parameter
+		}
+	}
 
 	private def Map<String, List<NamedElement>> getNamespaceToNamedElementsMap(Iterable<NamedElement> namedElements, Function1<NamedElement, String> generateKey) {
 		val resolvedNamedElements = namedElements.map[EcoreUtil2.resolve(it, resourceDescriptionsProvider.indexResourceSet)] //
@@ -43,96 +135,16 @@ class StepTreeGenerator {
 
 	private def Map<String, List<NamedElement>> getNamespaceMacroCollectionMap(Iterable<EObject> allExportedObjects) {
 		return allExportedObjects.filter(MacroCollection).filter(NamedElement).getNamespaceToNamedElementsMap [
-			tclQualifiedNameProvider.getFullyQualifiedName(it).skipLast(1).toString
+			val name = tclQualifiedNameProvider.getFullyQualifiedName(it).skipLast(1).toString
+			return name
 		]
 	}
 
 	private def Map<String, List<NamedElement>> getNamespaceComponentsMap(Iterable<EObject> allExportedObjects) {
 		return allExportedObjects.filter(Component).filter(NamedElement).getNamespaceToNamedElementsMap [
-			amlQualifiedNameProvider.getFullyQualifiedName(it).skipLast(1).toString
+			val name = amlQualifiedNameProvider.getFullyQualifiedName(it).skipLast(1).toString
+			return name
 		]
-	}
-
-	def SerializableStepTreeNode generateStepTree() {
-		val allExportedObjects = resourceDescriptionsProvider.getResourceDescriptions(resourceDescriptionsProvider.indexResourceSet).exportedObjects.map[EObjectOrProxy].
-			toList
-		val namespaceMacroCollectionsMap = allExportedObjects.namespaceMacroCollectionMap
-		val namespaceComponentsMap = allExportedObjects.namespaceComponentsMap
-		val namespaceObjectsMap = groupMerge(namespaceComponentsMap, namespaceMacroCollectionsMap)
-		val resultTree = new SerializableStepTreeNode => [
-			displayName = 'root'
-			type = 'root'
-			children = newArrayList
-			children += namespaceObjectsMap.keySet.map [ namespace |
-				val objects = namespaceObjectsMap.get(namespace)
-				return new SerializableStepTreeNode => [
-					displayName = namespace
-					type = 'namespace'
-					children = newArrayList
-					children += objects.filter(MacroCollection).map[generate]
-					children += objects.filter(Component).map[generate]
-				]
-			]
-		]
-		return resultTree
-	}
-
-	private def dispatch SerializableStepTreeNode generate(MacroCollection macroCollection) {
-		return new SerializableStepTreeNode => [
-			displayName = macroCollection.name
-			type = 'macroCollection'
-			children += macroCollection.macros.map[generate]
-		]
-	}
-
-	private def dispatch SerializableStepTreeNode generate(Macro macro) {
-		return new SerializableStepTreeNode => [
-			displayName = macro.template.contents.map[text].join(" ")
-			type = 'macro'
-			children = #[]
-		]
-
-	}
-
-	private def dispatch SerializableStepTreeNode generate(Component component) {
-		return new SerializableStepTreeNode => [
-			displayName = component.name
-			type = 'component'
-			children = newArrayList
-			val allInteractions = modelUtil.getComponentInteractionTypes(component)
-			children += allInteractions.map[generate]
-			children += modelUtil.getComponentElements(component).map[generate]
-		]
-
-	}
-
-	private def dispatch SerializableStepTreeNode generate(InteractionType interaction) {
-		return new SerializableStepTreeNode => [
-			displayName = interaction.template.contents.map[text].join(' ')
-			type = 'interaction'
-			children = newArrayList
-		]
-	}
-
-	private def dispatch SerializableStepTreeNode generate(ComponentElement element) {
-		return new SerializableStepTreeNode => [
-			displayName = element.name
-			type = 'element'
-			children = newArrayList
-			children += modelUtil.getComponentElementInteractionTypes(element).map[generate]
-		]
-	}
-
-	private def dispatch String getText(TemplateText element) {
-		element.value
-	}
-
-	private def dispatch String getText(TemplateVariable element) {
-		if (element.name == "element") {
-			'''<«element.name»>''' // reference to a component element 
-		} else {
-			'''"«element.name»"''' // regular parameter
-		}
 	}
 
 	private def <K, T> Map<K, List<T>> groupMerge(Map<K, List<T>> ... maps) {
