@@ -61,7 +61,8 @@ class StepTreeGenerator {
 		return new SerializableStepTreeNode => [
 			displayName = macroCollection.name
 			type = 'macroCollection'
-			children = macroCollection.macros.map[generate(macroCollection)]
+			children = newArrayList
+			children += macroCollection.macros.map[generate(macroCollection)]
 		]
 	}
 
@@ -69,7 +70,7 @@ class StepTreeGenerator {
 		return new SerializableStepTreeNode => [
 			displayName = macro.template.contents.map[getText(macro)].join(" ")
 			type = 'macro'
-			children = #[]
+			children = emptyList // will never hold any children
 		]
 
 	}
@@ -90,7 +91,7 @@ class StepTreeGenerator {
 		return new SerializableStepTreeNode => [
 			displayName = interaction.template.contents.map[getText(context)].join(' ')
 			type = 'interaction'
-			children = newArrayList
+			children = emptyList // will never hold children
 		]
 	}
 
@@ -110,10 +111,10 @@ class StepTreeGenerator {
 	private def dispatch String getText(TemplateVariable element, NamedElement context) {
 		if (element.name == "element") {
 			if (context instanceof ComponentElement) {
-			'''<«context.name»>''' // reference to a component element				
-			}else {
-			'''<«element.name»>''' // reference to a component element
-			} 
+				'''<«context.name»>''' // reference to a component element of the context
+			} else {
+				'''<«element.name»>''' // reference to a component element
+			}
 		} else {
 			'''"«element.name»"''' // regular parameter
 		}
@@ -153,10 +154,7 @@ class StepTreeGenerator {
 			map.forEach [ key, list |
 				val existingList = result.get(key)
 				if (existingList !== null) {
-					val newList = <T>newArrayList
-					newList.addAll(existingList)
-					newList.addAll(list)
-					result.put(key, newList)
+					existingList.addAll(list)
 				} else {
 					result.put(key, list)
 				}

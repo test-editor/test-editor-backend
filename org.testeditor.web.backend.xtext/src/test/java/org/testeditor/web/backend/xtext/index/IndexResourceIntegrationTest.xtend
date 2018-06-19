@@ -73,7 +73,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 			component SecondDummyComponent is DummyType
 		'''
 	}
-	
+
 	@Test
 	def void testRootInIndexStepTree() {
 		// given
@@ -146,17 +146,12 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 		val stepTree = response.readEntity(SerializableStepTreeNode)
 		stepTree.children.sortBy[displayName].findFirst[displayName.equals('some')] => [
 			type.assertEquals('namespace')
-			children.assertSize(3).findFirst[displayName.equals("Macros")] => [
+			children.findFirst[displayName.equals("Macros")] => [
 				type.assertEquals('macroCollection')
 				children.assertSize(2).sortBy[displayName] => [
-					get(0) => [
-						displayName.assertEquals('first macro')
-						type.assertEquals('macro')
-					]
-					get(1) => [
-						displayName.assertEquals('macro with "param"')
-						type.assertEquals('macro')
-					]
+					get(0).displayName.assertEquals('first macro')
+					get(1).displayName.assertEquals('macro with "param"')
+					forEach[type.assertEquals('macro')]
 				]
 			]
 		]
