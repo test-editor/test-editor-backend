@@ -16,6 +16,7 @@ import org.eclipse.jgit.lib.IndexDiff.StageState
 import org.eclipse.jgit.lib.PersonIdent
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.ConflictingModificationsException
+import org.testeditor.web.backend.persistence.exception.ExistingFileException
 import org.testeditor.web.backend.persistence.exception.MaliciousPathException
 import org.testeditor.web.backend.persistence.exception.MissingFileException
 import org.testeditor.web.backend.persistence.git.GitProvider
@@ -45,12 +46,14 @@ class DocumentProvider {
 	def void rename(String resourcePath, String newPath) throws ConflictingModificationsException {
 		val file = getWorkspaceFile(resourcePath)
 		val newFile = getWorkspaceFile(newPath)
-		if (file.exists && !newFile.exists) {
+		if (!file.exists) {
+			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
+		} else if (newFile.exists) {
+			throw new ExistingFileException('''target file '«newPath»' does already exist''')
+		} else {
 			file.renameTo(newFile)
 			#[file, newFile].commit('''rename '«resourcePath»' to '«newPath»'. ''')
 			repoSync[onConflict|onConflict.resetToRemoteNoBackup(resourcePath)]
-		} else {
-			throw new RuntimeException('''target file = '«newPath»' already exists or source file '«resourcePath»' does not exist, rename failed!''')
 		}
 	}
 
@@ -181,6 +184,7 @@ class DocumentProvider {
 			handler.accept(mergeConflictState.get)
 		}
 	}
+
 	private def void resetToRemoteNoBackup(StageState mergeConflictState, String resourcePath) {
 		resetToRemoteState
 		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
