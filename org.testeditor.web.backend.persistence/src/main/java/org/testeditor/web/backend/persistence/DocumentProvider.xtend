@@ -42,6 +42,18 @@ class DocumentProvider {
 	@Inject WorkspaceProvider workspaceProvider
 	@Inject PersistenceConfiguration configuration
 
+	def void rename(String resourcePath, String newPath) throws ConflictingModificationsException {
+		val file = getWorkspaceFile(resourcePath)
+		val newFile = getWorkspaceFile(newPath)
+		if (file.exists && !newFile.exists) {
+			file.renameTo(newFile)
+			#[file, newFile].commit('''rename '«resourcePath»' to '«newPath»'. ''')
+			repoSync[onConflict|onConflict.resetToRemoteNoBackup(resourcePath)]
+		} else {
+			throw new RuntimeException('''target file = '«newPath»' already exists or source file '«resourcePath»' does not exist, rename failed!''')
+		}
+	}
+
 	def boolean create(String resourcePath, String content) throws ConflictingModificationsException {
 		val file = getWorkspaceFile(resourcePath)
 
@@ -135,14 +147,18 @@ class DocumentProvider {
 		return file.toPath.probeContentType
 	}
 
-	private def void commit(File file, String message) {
+	private def void commit(Iterable<File> files, String message) {
 		val personIdent = new PersonIdent(userProvider.get.name, userProvider.get.email)
-		git.stage(file)
+		files.forEach[git.stage(it)]
 		git.commit //
 		.setMessage(message) //
 		.setAuthor(personIdent) //
 		.setCommitter(personIdent) //
 		.call
+	}
+
+	private def void commit(File file, String message) {
+		commit(#[file], message)
 	}
 
 	private def void stage(Git git, File file) {
@@ -165,13 +181,18 @@ class DocumentProvider {
 			handler.accept(mergeConflictState.get)
 		}
 	}
+	private def void resetToRemoteNoBackup(StageState mergeConflictState, String resourcePath) {
+		resetToRemoteState
+		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
+		throw new ConflictingModificationsException(exceptionMessage, null)
+	}
 
 	private def void resetToRemoteAndCreateBackup(StageState mergeConflictState, String resourcePath, String content) {
 		val backupFileContent = if (configuration.useDiffMarkersInBackups) {
-			Files.asCharSource(getWorkspaceFile(resourcePath), UTF_8).read
-		} else {
-			content
-		}
+				Files.asCharSource(getWorkspaceFile(resourcePath), UTF_8).read
+			} else {
+				content
+			}
 		resetToRemoteState
 		var exceptionMessage = mergeConflictState.getConflictMessage(resourcePath)
 		var String backupFilePath = null
@@ -191,7 +212,7 @@ class DocumentProvider {
 		var fileSuffix = BACKUP_FILE_SUFFIX
 		var backupFile = new File(workspace, resourcePath + fileSuffix)
 		if (!backupFile.create) {
-			val numberSuffix = (0..MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst[ i |
+			val numberSuffix = (0 .. MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst [ i |
 				new File(workspace, '''«resourcePath»«BACKUP_FILE_SUFFIX»-«i»''').create
 			]
 			if (numberSuffix !== null) {
@@ -222,7 +243,7 @@ class DocumentProvider {
 			logger.info('''running git push against «configuration.remoteRepoUrl»''')
 			val results = git.push.configureTransport.call
 			if (logger.infoEnabled) {
-				results.forEach[
+				results.forEach [
 					logger.info('''push result uri: «URI»''')
 					logger.info('''push result message: «messages»''')
 				]
