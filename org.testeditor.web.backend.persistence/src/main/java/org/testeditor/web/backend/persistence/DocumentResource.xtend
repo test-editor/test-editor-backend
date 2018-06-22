@@ -44,6 +44,11 @@ class DocumentResource {
 		}
 	}
 
+	/**
+	 * the actual content of the query parmaeter 'rename' is ignored.
+	 * if the rename parameter is present a rename is executed, the content holding the new name
+	 * if the rename parameter is absent a save is executed, the content holding the new content of the file
+	 */
 	@PUT
 	def Response update(@PathParam("resourcePath") String resourcePath, @QueryParam("rename") String rename, String content, @Context HttpHeaders headers) {
 		if (rename !== null) {
