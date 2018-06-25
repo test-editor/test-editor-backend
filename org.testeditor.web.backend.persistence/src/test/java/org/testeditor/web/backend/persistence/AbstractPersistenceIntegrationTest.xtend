@@ -59,10 +59,14 @@ abstract class AbstractPersistenceIntegrationTest {
 		remoteGitFolder = new TemporaryFolder => [create]
 
 		val git = Git.init.setDirectory(remoteGitFolder.root).call
+		git.populatedRemoteGit
+		return "file://" + remoteGitFolder.root.absolutePath
+	}
+
+	protected def void populatedRemoteGit(Git git) {
 		JGitTestUtil.writeTrashFile(git.repository, 'README.md', '# Readme')
 		git.add.addFilepattern("README.md").call
 		git.commit.setMessage("Initial commit").call
-		return "file://" + remoteGitFolder.root.absolutePath
 	}
 
 	protected def commitInRemoteRepository(String pathToCommit) {

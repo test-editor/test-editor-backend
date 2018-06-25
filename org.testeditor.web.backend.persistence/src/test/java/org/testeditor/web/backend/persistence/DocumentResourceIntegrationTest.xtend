@@ -5,12 +5,12 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
 import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.MediaType
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Before
 import org.junit.Test
 
@@ -22,7 +22,8 @@ import static extension org.apache.commons.io.IOUtils.contentEquals
 class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	val resourcePath = "some/parent/folder/example.tsl"
-	val renamedResource = "some/parent/folder/example_renamed.tsl"
+	val preRenamedResourcePath = "other/parent/folder/example_toberenamed.tsl"
+	val renamedResource = "other/parent/folder/example_renamed.tsl"
 	val simpleTsl = '''
 		package org.example
 		
@@ -34,17 +35,20 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	@Before
 	def void initGitInLocalWorkspace() {
 		createRequest('workspace/list-files').buildGet.submit.get
-		val resourceFile = new File(workspaceRoot.root, userId+'/'+resourcePath)
-		resourceFile.parentFile.mkdirs
-		resourceFile.createNewFile
-		Files.write(resourceFile.toPath,
-			'''some content'''.toString.getBytes(StandardCharsets.UTF_8))
+	}
+
+	override populatedRemoteGit(Git git) {
+		super.populatedRemoteGit(git)
+
+		JGitTestUtil.writeTrashFile(git.repository, preRenamedResourcePath, 'some content')
+		git.add.addFilepattern(preRenamedResourcePath).call
+		git.commit.setMessage("Commit for rename tests").call
 	}
 
 	@Test
 	def void canRenameDocument() {
 		// given
-		val request = createRenameDocumentRequest(resourcePath).buildPut(stringEntity(renamedResource))
+		val request = createRenameDocumentRequest(preRenamedResourcePath).buildPut(stringEntity(renamedResource))
 
 		// when
 		val response = request.submit.get
@@ -106,8 +110,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		response.status.assertEquals(FORBIDDEN.statusCode)
 		val responseMessage = response.readEntity(String)
-		responseMessage.startsWith("You are not allowed to access this resource. Your attempt has been logged").
-			assertTrue
+		responseMessage.startsWith("You are not allowed to access this resource. Your attempt has been logged").assertTrue
 		getRemoteFile(maliciousResourcePath).exists.assertFalse
 	}
 
@@ -294,9 +297,8 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		val backupPath = resourcePath + '.local-backup'
 		response.status.assertEquals(CONFLICT.statusCode)
-		response.readEntity(String).assertEquals(
-			'''The file '«resourcePath»' could not be saved due to concurrent modifications. ''' +
-				'''Local changes were instead backed up to '«backupPath»'.''')
+		response.readEntity(String).assertEquals('''The file '«resourcePath»' could not be saved due to concurrent modifications. ''' +
+			'''Local changes were instead backed up to '«backupPath»'.''')
 		response.headers.get('content-location').head.assertEquals(backupPath)
 		readLocal(resourcePath).assertEquals(simpleTsl + '\nRemote Change')
 		readLocal(backupPath).assertEquals(simpleTsl + '\nLocal Change')
@@ -321,9 +323,8 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		val backupPath = resourcePath + '.local-backup'
 		response.status.assertEquals(CONFLICT.statusCode)
-		response.readEntity(String).assertEquals(
-			'''The file '«resourcePath»' could not be saved as it was concurrently being deleted.''' +
-				''' Local changes were instead backed up to '«backupPath»'.'''.toString)
+		response.readEntity(String).assertEquals('''The file '«resourcePath»' could not be saved as it was concurrently being deleted.''' +
+			''' Local changes were instead backed up to '«backupPath»'.'''.toString)
 		response.headers.get('content-location').head.assertEquals(backupPath)
 		new File(workspaceRoot.root, resourcePath).exists.assertFalse
 		readLocal(backupPath).assertEquals(simpleTsl + '\nLocal Change')
@@ -344,8 +345,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		val backupPath = resourcePath + '.local-backup'
 		response.status.assertEquals(CONFLICT.statusCode)
-		response.readEntity(String).assertEquals(
-			'''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''.toString)
+		response.readEntity(String).assertEquals('''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''.toString)
 		response.headers.containsKey('content-location').assertFalse
 		new File(workspaceRoot.root, backupPath).exists.assertFalse
 		readLocal(resourcePath).assertEquals(simpleTsl + '\nRemote Change')
@@ -368,8 +368,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(NOT_FOUND.statusCode)
-		response.readEntity(String).assertEquals(
-			'''The file '«resourcePath»' does not exist. It may have been concurrently deleted.'''.toString)
+		response.readEntity(String).assertEquals('''The file '«resourcePath»' does not exist. It may have been concurrently deleted.'''.toString)
 	}
 
 	private def Entity<String> stringEntity(CharSequence charSequence) {
