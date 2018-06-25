@@ -26,6 +26,68 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void initLocalGit() {
 		gitProvider.git
 	}
+	
+	private def void folderSetupForRenameTests() {
+		createPreExistingFolderInRemoteRepository('src/main/java')
+		createPreExistingFolderInRemoteRepository('src/test/java')
+		createPreExistingFileInRemoteRepository('src/main/java/Hello.txt', 'Hello World!')
+		createPreExistingFileInRemoteRepository('src/test/java/Other.txt', 'Hello Otherworld!')
+		gitProvider.git.pull.call
+	}
+	
+	@Test(expected=RuntimeException)
+	def void renameFolderOntoExistingOneFails() {
+		// given
+		folderSetupForRenameTests
+
+		// when
+		documentProvider.rename('src/main/java', 'src/test/java')
+		
+		//then
+	}
+	
+	@Test
+	def void renameFolderCommitsARenameDiff() {
+		// given
+		folderSetupForRenameTests
+		val numberOfCommitsBefore = remoteGit.log.call.size
+
+		// when
+		documentProvider.rename('src/main/java', 'src/main/resource')
+		
+		//then
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, RENAME, 'src/main/java/Hello.txt')
+		new File(localGitRoot.root, 'src/main/resource/Hello.txt').exists.assertTrue
+	}
+	
+	@Test
+	def void renameFileCommitsARenameDiff() {
+		// given
+		val numberOfCommitsBefore = remoteGit.log.call.size
+		val oldFileName = 'README.md' // existing because of abstract test class setup
+		val newFileName = 'NEW-NAME.md'
+		
+		// when
+		documentProvider.rename(oldFileName, newFileName)
+		
+		//then
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, RENAME, oldFileName)
+		new File(localGitRoot.root, newFileName).exists.assertTrue
+	}
+
+	@Test
+	def void renamePushesChanges() {
+		// given
+		val numberOfCommitsBefore = remoteGit.log.call.size
+		val oldFileName = 'README.md' // existing because of abstract test class setup
+		val newFileName = 'NEW-NAME.md'
+
+		// when
+		documentProvider.rename(oldFileName, newFileName)
+
+		// then
+		remoteGit.assertSingleCommit(numberOfCommitsBefore, RENAME, oldFileName)
+	}
 
 	@Test
 	def void createCommitsNewFile() {

@@ -15,6 +15,7 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 
 import static javax.ws.rs.core.Response.Status.*
+import static javax.ws.rs.core.Response.ok
 import static javax.ws.rs.core.Response.status
 
 @Path("/documents/{resourcePath:.*}")
@@ -43,10 +44,20 @@ class DocumentResource {
 		}
 	}
 
+	/**
+	 * the actual content of the query parmaeter 'rename' is ignored.
+	 * if the rename parameter is present a rename is executed, the content holding the new name
+	 * if the rename parameter is absent a save is executed, the content holding the new content of the file
+	 */
 	@PUT
-	def Response update(@PathParam("resourcePath") String resourcePath, String content, @Context HttpHeaders headers) {
-		documentProvider.save(resourcePath, content)
-		return status(NO_CONTENT).build
+	def Response update(@PathParam("resourcePath") String resourcePath, @QueryParam("rename") String rename, String content, @Context HttpHeaders headers) {
+		if (rename !== null) {
+			documentProvider.rename(resourcePath, content) // content is actually the new path for the resource
+			return ok(content).build
+		} else {
+			documentProvider.save(resourcePath, content)
+			return status(NO_CONTENT).build
+		}
 	}
 
 	@GET

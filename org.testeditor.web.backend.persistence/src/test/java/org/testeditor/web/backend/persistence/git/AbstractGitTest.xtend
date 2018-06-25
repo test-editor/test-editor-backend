@@ -71,6 +71,13 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 	protected def createPreExistingFileInRemoteRepository() {
 		return this.createPreExistingFileInRemoteRepository("preExistingFile.txt")
 	}
+	
+	protected def createPreExistingFolderInRemoteRepository(String path) {
+		val folder = new File(remoteGitFolder.root, path)
+		folder.mkdirs
+		remoteGit.addAndCommit(path, "set test preconditions")
+		return path
+	}
 
 	protected def createPreExistingFileInRemoteRepository(String path) {
 		return this.createPreExistingFileInRemoteRepository(path, "These are the file's contents!\n")
