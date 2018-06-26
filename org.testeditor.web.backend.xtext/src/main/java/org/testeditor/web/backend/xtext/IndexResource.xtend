@@ -34,8 +34,8 @@ class IndexResource {
 	}
 
 	/*
-	 * Produce a tree of the form { displayName: string, children: [ { ... }, ... ] } (serialized {@link SerializableCallTreeNode})
-	 * that represents the (expected) static call tree that will be executed during test execution
+	 * Produce a tree of the form { displayName: string, type: string, children: [ { ... }, ... ] } (serialized {@link SerializableStepTreeNode})
+	 * that holds all interactions and macros available within this project (through Components, Elements and MacroCollections)
 	 */
 	@GET
 	@Path('step-tree')
