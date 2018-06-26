@@ -45,6 +45,9 @@ class IndexResource {
 		return Response.ok(resultTree).build
 	}
 
+	/*
+	 * Collect a list of xtext/emf uris for the given object type
+	 */
 	@GET
 	@Path('exported-objects/{type}')
 	@Produces(MediaType.APPLICATION_JSON)

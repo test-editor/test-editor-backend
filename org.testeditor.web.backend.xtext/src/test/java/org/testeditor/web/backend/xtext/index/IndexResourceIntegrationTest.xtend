@@ -5,6 +5,7 @@ import javax.ws.rs.core.Response.Status
 import org.eclipse.jgit.api.Git
 import org.junit.Test
 import org.testeditor.web.backend.xtext.IndexResource.SerializableStepTreeNode
+import java.util.List
 
 class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 
@@ -15,6 +16,37 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 		writeToRemote('src/test/java/some/other/Dummy.aml', getDummyAml('some.other'))
 		writeToRemote('src/test/java/next/Dummy.aml', getDummyAml('next'))
 		writeToRemote('src/test/java/some/Macros.tml', getDummyMacro('some', 'Macros'))
+		writeToRemote('src/test/java/some/Test.tcl', getTestcase('some', 'Test'))
+		writeToRemote('src/test/java/some/Spec.tsl', getSpecification('some', 'Spec'))
+	}
+	
+	private def String getTestcase(String ^package, String test) {
+		return '''
+			package «^package»
+			
+			# «test»
+			
+			* some spec
+			Component: DummyComponent
+			- return "ok" string
+			'''
+		
+	}
+	
+	private def String getSpecification(String ^package, String specification) {
+		return '''
+			package «^package»
+			
+			# «specification»
+			
+			* spec one
+			* spec two
+			* multi
+			  line
+			  spec
+			* spec four
+			'''
+
 	}
 
 	private def String getDummyMacro(String ^package, String macroCollection) {
@@ -189,9 +221,45 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 			]
 		]
 	}
+	
+	@Test
+	def void testExportedSpecification() {
+		// given
+		val url = buildUrlStringForExportedObjects('specification')
+		val getRequest = createRequest(url).buildGet
 
+		// when
+		val response = getRequest.submit.get
+
+		// then
+		response.status.assertEquals(Status.OK.statusCode)
+		val specifications = response.readEntity(List)
+		val link = specifications.assertSingleElement.toString
+		link.matches('^.*/src/test/java/some/Spec.tsl#//@specification$').assertTrue('''«link» did not match expected pattern''')
+	}
+	
+	@Test
+	def void testExportedTestCase() {
+		// given
+		val url = buildUrlStringForExportedObjects('test-case')
+		val getRequest = createRequest(url).buildGet
+
+		// when
+		val response = getRequest.submit.get
+
+		// then
+		response.status.assertEquals(Status.OK.statusCode)
+		val testCases = response.readEntity(List)
+		val link = testCases.assertSingleElement.toString
+		link.matches('^.*/src/test/java/some/Test.tcl#/0/@test$').assertTrue('''«link» did not match expected pattern''')
+	}
+	
 	private def String buildUrlStringForStepTree() {
 		return '''index/step-tree'''
+	}
+
+	private def String buildUrlStringForExportedObjects(String objectType) {
+		return '''index/exported-objects/«objectType»'''
 	}
 
 }

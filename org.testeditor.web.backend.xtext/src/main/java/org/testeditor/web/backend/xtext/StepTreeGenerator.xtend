@@ -148,6 +148,11 @@ class StepTreeGenerator {
 		]
 	}
 
+	/*
+	 * merge all lists having the same key
+	 *
+	 * make sure that lists can be modified (addAll), since no new lists are generated
+	 */
 	private def <K, T> Map<K, List<T>> groupMerge(Map<K, List<T>> ... maps) {
 		val result = <K, List<T>>newHashMap
 		maps.forEach [ map |
