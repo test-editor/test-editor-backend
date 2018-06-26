@@ -10,7 +10,6 @@ import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status
 import org.eclipse.xtend.lib.annotations.Accessors
-import org.testeditor.web.backend.xtext.TestCaseResource.SerializableCallTreeNode
 
 import static org.testeditor.tcl.TclPackage.Literals.TEST_CASE
 import static org.testeditor.tsl.TslPackage.Literals.TEST_SPECIFICATION

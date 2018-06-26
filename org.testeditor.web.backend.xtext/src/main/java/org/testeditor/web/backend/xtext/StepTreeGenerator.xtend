@@ -40,7 +40,7 @@ class StepTreeGenerator {
 		val namespaceComponentsMap = allExportedObjects.namespaceComponentsMap
 		val namespaceObjectsMap = groupMerge(namespaceComponentsMap, namespaceMacroCollectionsMap)
 		val resultTree = new SerializableStepTreeNode => [
-			displayName = 'root'
+			displayName = 'Test Steps'
 			type = 'root'
 			children = newArrayList
 			children += namespaceObjectsMap.keySet.map [ namespace |
@@ -126,7 +126,7 @@ class StepTreeGenerator {
 		val namespaceMacroCollectionsMap = resolvedNamedElements.groupBy [ namedElement |
 			val key = generateKey.apply(namedElement)
 			if (key.nullOrEmpty) {
-				return "./."
+				return "::"
 			} else {
 				return key
 			}

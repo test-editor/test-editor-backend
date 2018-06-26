@@ -118,7 +118,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 		// then
 		response.status.assertEquals(Status.OK.statusCode)
 		val stepTree = response.readEntity(SerializableStepTreeNode)
-		stepTree.displayName.assertEquals('root')
+		stepTree.displayName.assertEquals('Test Steps')
 		stepTree.type.assertEquals('root')
 	}
 
