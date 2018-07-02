@@ -22,7 +22,7 @@ import org.testeditor.web.dropwizard.xtext.XtextApplication
 import org.testeditor.web.xtext.index.XtextIndexModule
 
 class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
-	
+
 	@Inject XtextIndexHealthCheck xtextIndexHealthCheck
 	@Inject GitHealthCheck gitHealthCheck
 
@@ -39,28 +39,34 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 
 	private def ISetup createAmlSetup(XtextIndexModule indexModule) {
 		return new AmlStandaloneSetup {
+
 			override createInjector() {
 				val module = Modules2.mixin(new AmlRuntimeModule, new AmlIdeModule, new DefaultWebModule, indexModule)
 				return Guice.createInjector(module)
 			}
+
 		}
 	}
 
 	private def ISetup createTslSetup(XtextIndexModule indexModule) {
 		return new TslWebSetup {
+
 			override createInjector() {
 				val module = Modules2.mixin(new TslRuntimeModule, new TslIdeModule, new TslWebModule, indexModule)
 				return Guice.createInjector(module)
 			}
+
 		}
 	}
 
 	private def ISetup createTclSetup(XtextIndexModule indexModule) {
 		return new TclStandaloneSetup {
+
 			override createInjector() {
 				val module = Modules2.mixin(new TclRuntimeModule, new TclIdeModule, new DefaultWebModule, indexModule)
 				return Guice.createInjector(module)
 			}
+
 		}
 	}
 
@@ -70,7 +76,7 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 		environment.registerResources
 		environment.registerHealthChecks
 	}
-	
+
 	private def registerResources(Environment environment) {
 		#[
 			TestCaseResource,
@@ -78,13 +84,13 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 		] //
 		.forEach[environment.jersey.register(it)]
 	}
-	
+
 	private def registerHealthChecks(Environment environment) {
 		#{
 			'xtext-index' -> xtextIndexHealthCheck,
 			'git' -> gitHealthCheck
 		} //
-		.forEach[name, healthCheck| environment.healthChecks.register(name, healthCheck)]
+		.forEach[name, healthCheck|environment.healthChecks.register(name, healthCheck)]
 	}
 
 }
