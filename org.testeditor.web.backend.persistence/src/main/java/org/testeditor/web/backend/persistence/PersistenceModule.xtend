@@ -13,9 +13,13 @@ class PersistenceModule extends AbstractModule {
 		]
 	}
 
+	/**
+	 * This provider method is needed because ProcessBuilder has no standard
+	 * constructor. The method actually calls a constructor that takes a varargs
+	 * parameter of type String, and implicitly passes an empty array.
+	 */
 	@Provides
 	def ProcessBuilder provideProcessBuilder() {
-		return new ProcessBuilder()
+		return new ProcessBuilder
 	}
-
 }
