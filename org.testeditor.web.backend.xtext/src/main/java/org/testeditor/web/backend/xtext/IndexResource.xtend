@@ -13,6 +13,7 @@ import org.eclipse.xtend.lib.annotations.Accessors
 
 import static org.testeditor.tcl.TclPackage.Literals.TEST_CASE
 import static org.testeditor.tsl.TslPackage.Literals.TEST_SPECIFICATION
+import static org.eclipse.xtext.common.types.TypesPackage.Literals.JVM_GENERIC_TYPE
 
 @Path('/index')
 class IndexResource {
@@ -54,6 +55,7 @@ class IndexResource {
 		switch (type) {
 			case "specification": return Response.ok(indexInfo.exportedObjects(TEST_SPECIFICATION)).build
 			case "test-case": return Response.ok(indexInfo.exportedObjects(TEST_CASE)).build
+			case "java": return Response.ok(indexInfo.exportedObjects(JVM_GENERIC_TYPE)).build
 			default: return Response.status(Status.NOT_FOUND).build
 		}
 	}

@@ -12,7 +12,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 	override protected initializeRemoteRepository(Git git, File parent) {
 		super.initializeRemoteRepository(git, parent)
 		writeToRemote('src/test/java/some/Dummy.aml', getDummyAml('some'))
-		writeToRemote('src/test/java/some/SecondDummy.aml', getSecondDummyAml('some'))
+		writeToRemote('src/test/java/some/even/SecondDummy.aml', getSecondDummyAml('some.even'))
 		writeToRemote('src/test/java/some/other/Dummy.aml', getDummyAml('some.other'))
 		writeToRemote('src/test/java/next/Dummy.aml', getDummyAml('next'))
 		writeToRemote('src/test/java/some/Macros.tml', getDummyMacro('some', 'Macros'))
@@ -26,9 +26,9 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 			
 			# «test»
 			
-			* some spec
-			Component: DummyComponent
-			- return "ok" string
+			* dies ist ein schritt
+			  Component: DummyComponent
+			  - ^return "ok" ^string
 			'''
 		
 	}
@@ -42,8 +42,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 			* spec one
 			* spec two
 			* multi
-			  line
-			  spec
+			  line spec
 			* spec four
 			'''
 
@@ -58,12 +57,12 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 			## FirstMacro
 			template = "first macro"
 			Component: DummyComponent
-			- return "Hello World!" string
+			- ^return "Hello World!" ^string
 			
 			## SecondMacro
 			template = "macro with" ${param}
 			Component: DummyComponent
-			- return @param string
+			- ^return @param ^string
 		'''
 	}
 
@@ -102,7 +101,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 		return '''
 			package «package»
 			
-			component SecondDummyComponent is DummyType
+			component SecondDummyComponent is some.DummyType
 		'''
 	}
 
@@ -236,6 +235,22 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 		val specifications = response.readEntity(List)
 		val link = specifications.assertSingleElement.toString
 		link.matches('^.*/src/test/java/some/Spec.tsl#//@specification$').assertTrue('''«link» did not match expected pattern''')
+	}
+	
+	@Test
+	def void testExportedJavaObjects() {
+		// given
+		val url = buildUrlStringForExportedObjects('java')
+		val getRequest = createRequest(url).buildGet
+
+		// when
+		val response = getRequest.submit.get
+
+		// then
+		response.status.assertEquals(Status.OK.statusCode)
+		val genericJavaTypes = response.readEntity(List)
+		val head = genericJavaTypes.assertSize(17).filter(String).sort.head
+		head.matches('^.*/src/test/java/next/Dummy.aml#/1$').assertTrue('''«head» did not match expected pattern''')
 	}
 	
 	@Test
