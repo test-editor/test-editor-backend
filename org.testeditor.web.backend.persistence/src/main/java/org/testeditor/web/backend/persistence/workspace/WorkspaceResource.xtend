@@ -21,7 +21,7 @@ class WorkspaceResource {
 	def WorkspaceElement listFiles() {
 		git.pull.configureTransport.call
 		val workspaceRoot = createWorkspaceElements
-		workspaceRoot.name = '''workspace («workspaceRoot.name»)'''
+		workspaceRoot.name = 'workspace'
 		return workspaceRoot
 	}
 
