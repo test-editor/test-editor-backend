@@ -322,6 +322,63 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		propertiesContent.get("message").assertEquals("hello")
 		
 	}
+	
+	@Test
+	def void testThatScreenshotDetailsAreProvided() {
+		val testKey = TestExecutionKey.valueOf('1-5')
+		val screenshotPath = 'screenshots/test/hello.png'
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFolder(userId, 'logs')
+		workspaceRoot.newFile(userId + '''/logs/testrun.«testKey».200000000000.yaml''') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				"testRuns":
+				- "source": "test.tcl"
+				  "testRunId": "1"
+				  "children" :
+				  - "node": "TEST"
+				    "id": "ID1"
+				    "children":
+				    - "node": "SPECIFICATION"
+				      "id": "ID2"
+				      "message": "hello"
+				      "children":
+				      - "id": "IDXY"
+				      - "id": "IDXZ"
+				      - "id": "IDYZ"
+				    - "node": "SPECIFICATION"
+				      "id": "ID3"
+			''')
+		]
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				targetDir=".testexecution/artifacts/«testKey.suiteId»/«testKey.suiteRunId»/1"
+				mkdir -p ${targetDir}
+				printf '"screenshot": "«screenshotPath»"\n' > ${targetDir}/ID2.yaml
+			''')
+		]
+
+		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
+		response.status.assertEquals(Status.CREATED.statusCode)
+		createTestStatusRequest(testKey).get // wait for completion
+		
+		// when
+		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID2')).get.readEntity(String)
+
+		// then
+		val properties = new ObjectMapper().readValue(result, Object)
+			.assertInstanceOf(List)
+			.findFirst[map|"image".equals((map as Map<String, Object>).get("type"))]
+			.assertInstanceOf(Map)
+		properties.get("content")
+			.assertInstanceOf(String)
+			.assertEquals(screenshotPath)
+		
+	}
 
 	@Test
 	def void testThatStatusRequestIsReturnedEventuallyForLongRunningTests() {
