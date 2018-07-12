@@ -85,6 +85,7 @@ class TestExecutorProvider {
 			            environment "«CALL_TREE_YAML_TEST_CASE_ID»", "${taskNum}"
 			            environment "TE_SUITERUNID", "${System.props.get('TE_SUITERUNID')}"
 			            environment "TE_SUITEID", "${System.props.get('TE_SUITEID')}"
+			            environment "TE_TESTRUNID", "${testCaseRunId}"
 			
 			            include "${testcase}.class"
 			            testLogging.showStandardStreams = true
