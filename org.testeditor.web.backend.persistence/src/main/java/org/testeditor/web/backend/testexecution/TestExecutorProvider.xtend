@@ -11,6 +11,7 @@ import javax.inject.Inject
 import org.apache.commons.text.StringEscapeUtils
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
+import static extension org.apache.commons.io.FileUtils.deleteDirectory
 
 /**
  * Execute tests and test suites. Executing (single) tests will be deprecated.
@@ -50,12 +51,19 @@ class TestExecutorProvider {
 
 		return processBuilder
 	}
+	
+	private def cleanBuildDir(File workingDir) {
+		return new File(workingDir, 'build') => [ 
+			if (exists) {
+				deleteDirectory
+			}
+			mkdir
+		]
+	}
 
 	private def ensureBuildingToolsInPlace(File workingDir) {
-		val buildFolder = new File(workingDir, "build")
-		if (!buildFolder.exists) {
-			buildFolder.mkdir
-		}
+		val buildFolder = workingDir.cleanBuildDir
+		
 		val testSuiteGradleInit = new File(buildFolder, TEST_SUITE_INIT_FILE_NAME)
 		Files.write(testSuiteGradleInit.toPath, '''
 			allprojects {
