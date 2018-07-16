@@ -356,6 +356,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			executable = true
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
+				echo "Running mock gradlew script from working directory $(pwd)"
+				set -x
 				targetDir=".testexecution/artifacts/«testKey.suiteId»/«testKey.suiteRunId»/1"
 				mkdir -p ${targetDir}
 				printf '"screenshot": "«screenshotPath»"\n' > ${targetDir}/ID2.yaml
