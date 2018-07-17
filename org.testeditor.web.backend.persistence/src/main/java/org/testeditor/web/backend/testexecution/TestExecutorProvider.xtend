@@ -85,6 +85,7 @@ class TestExecutorProvider {
 			            environment "«CALL_TREE_YAML_TEST_CASE_ID»", "${taskNum}"
 			            environment "TE_SUITERUNID", "${System.props.get('TE_SUITERUNID')}"
 			            environment "TE_SUITEID", "${System.props.get('TE_SUITEID')}"
+			            environment "TE_TESTRUNID", "${taskNum}"
 			
 			            include "${testcase}.class"
 			            testLogging.showStandardStreams = true
@@ -193,7 +194,7 @@ class TestExecutorProvider {
 
 	private def String gradleTestCommandLine(TestExecutionKey key, Iterable<String> testCases) {
 		val testClassNames = testCases.map[replaceAll('(?i)\\.tcl$', '')].map[replaceAll('^src/test/java/', '')]
-		return '''./gradlew -I build/«TEST_SUITE_INIT_FILE_NAME» testSuite -Dtests="«testClassNames.join(';')»" -DTE_SUITEID=«key.suiteId» -DTE_SUITERUNID=«key.suiteRunId»'''
+		return '''./gradlew -I build/«TEST_SUITE_INIT_FILE_NAME» testSuite -Dtests="«testClassNames.join(';')»" -DTE_SUITEID=«key.suiteId» -DTE_SUITERUNID=«key.suiteRunId» -DTE_TESTRUNID=«key.caseRunId»'''
 	}
 
 	private def String createNewCallTreeYamlFileName(String testClass, String dateString) {

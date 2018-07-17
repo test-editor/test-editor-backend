@@ -27,6 +27,7 @@ import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
+import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 
 @Path("/test-suite")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
@@ -40,6 +41,7 @@ class TestSuiteResource {
 	@Inject extension TestLogWriter logWriter
 	@Inject Executor executor
 	@Inject TestExecutionCallTree testExecutionCallTree
+	@Inject ScreenshotFinder screenshotFinder
 
 	@GET
 	@Path("{suiteId}/{suiteRunId}/{caseRunId}/{callTreeId}")
@@ -55,7 +57,11 @@ class TestSuiteResource {
 			val executionKey = new TestExecutionKey(suiteId, suiteRunId, caseRunId, callTreeId)
 			testExecutionCallTree.readFile(executionKey, latestCallTree)
 			val callTreeResultString = testExecutionCallTree.getNodeJson(executionKey)
-			val jsonResultString = '''[ { "type": "properties", "content": «callTreeResultString» } ]'''
+			
+			val jsonResultString = '[' + (#['''{ "type": "properties", "content": «callTreeResultString» }'''] +
+				screenshotFinder.getScreenshotPathForTestStep(executionKey)
+				.map['''{ "type": "image", "content": "«it»" }''']).join(',') + ']'
+			
 			return Response.ok(jsonResultString).build
 		} else {
 			return Response.status(Status.NOT_FOUND).build
