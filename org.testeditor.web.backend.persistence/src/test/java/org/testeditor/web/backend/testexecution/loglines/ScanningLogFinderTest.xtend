@@ -42,7 +42,7 @@ class ScanningLogFinderTest {
 	@Test
 	def void shouldReturnRelevantLogLines() {
 		// given
-		val key = new TestExecutionKey('0', '0', '0', '3')
+		val key = new TestExecutionKey('0', '0', '0', 'ID3')
 		val arbitraryDateAndTime = '20180716111612603'
 
 		when(mockWorkspace.workspace).thenReturn(testRoot.root)
@@ -79,7 +79,7 @@ class ScanningLogFinderTest {
 	@Test
 	def void shouldSkipLogLinesOfSubSteps() {
 		// given
-		val key = new TestExecutionKey('0', '0', '0', '2')
+		val key = new TestExecutionKey('0', '0', '0', 'ID2')
 		val arbitraryDateAndTime = '20180716111612603'
 
 		when(mockWorkspace.workspace).thenReturn(testRoot.root)

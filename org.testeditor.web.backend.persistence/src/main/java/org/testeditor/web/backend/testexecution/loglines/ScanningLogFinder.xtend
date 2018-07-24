@@ -14,10 +14,15 @@ import static java.nio.charset.StandardCharsets.UTF_8
 import static extension java.nio.file.Files.list
 import static extension java.nio.file.Files.readAllLines
 
+/**
+ * Locates log files corresponding to test execution keys relying on file naming
+ * conventions, and scans the files for lines marking the begin and end of
+ * blocks belonging to specific call tree IDs.
+ */
 class ScanningLogFinder implements LogFinder {
 
-	private static val ROOT_ID = 'ROOT'
-	private static val ENTER_REGEX = Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:ID([0-9]+)''')
+	private static val ROOT_ID = 'IDROOT'
+	private static val ENTER_REGEX = Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:(.+)''')
 	private static val ILLEGAL_TEST_EXECUTION_KEY_MESSAGE = "Provided test execution key must contain a test suite id and a test suite run id. (Key was: '%s'.)"
 
 	@Inject extension WorkspaceProvider
@@ -27,8 +32,8 @@ class ScanningLogFinder implements LogFinder {
 		Validate.notBlank(key?.suiteRunId, ILLEGAL_TEST_EXECUTION_KEY_MESSAGE, key?.toString)
 
 		val callTreeId = key.callTreeIdOrRoot
-		return key.logFile.readAllLines(UTF_8).dropWhile[!Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:ID«callTreeId»''').matcher(it).find].drop(1).
-			takeWhile[!Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:ID«callTreeId»''').matcher(it).find].skipSubSteps
+		return key.logFile.readAllLines(UTF_8).dropWhile[!Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:«callTreeId»''').matcher(it).find].drop(1).
+			takeWhile[!Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:«callTreeId»''').matcher(it).find].skipSubSteps
 	}
 
 	private def Path getLogFile(TestExecutionKey key) {
@@ -54,7 +59,7 @@ class ScanningLogFinder implements LogFinder {
 			val matcher = regex.matcher(line)
 			if (matcher.find) {
 				if (regex === ENTER_REGEX) {
-					regex = Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:ID«matcher.group(1)»''')
+					regex = Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:«matcher.group(1)»''')
 				} else {
 					regex = ENTER_REGEX
 				}

@@ -6,6 +6,8 @@ import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 import org.testeditor.web.backend.testexecution.screenshots.TestArtifactRegistryScreenshotFinder
+import org.testeditor.web.backend.testexecution.loglines.LogFinder
+import org.testeditor.web.backend.testexecution.loglines.ScanningLogFinder
 
 class PersistenceModule extends AbstractModule {
 
@@ -13,6 +15,7 @@ class PersistenceModule extends AbstractModule {
 		binder => [
 			bind(Executor).toInstance(ForkJoinPool.commonPool)
 			bind(ScreenshotFinder).to(TestArtifactRegistryScreenshotFinder)
+			bind(LogFinder).to(ScanningLogFinder)
 		]
 	}
 
