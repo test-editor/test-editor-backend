@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when
 
 import static extension java.nio.file.Files.write
 
-@RunWith(MockitoJUnitRunner.Silent)
+@RunWith(MockitoJUnitRunner)
 class TestArtifactRegistryScreenshotFinderTest {
 
 	@Rule public val TemporaryFolder testRoot = new TemporaryFolder
