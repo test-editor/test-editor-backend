@@ -30,6 +30,8 @@ import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
+import com.fasterxml.jackson.databind.util.JSONPObject
+import com.fasterxml.jackson.core.io.JsonStringEncoder
 
 @Path("/test-suite")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
@@ -65,7 +67,9 @@ class TestSuiteResource {
 			var logLines = newLinkedList
 			var warning = ''
 			try {
-				logLines.addAll(logFinder.getLogLinesForTestStep(executionKey))
+				logLines.addAll(logFinder.getLogLinesForTestStep(executionKey)
+					.map[new String(JsonStringEncoder.instance.quoteAsString(it))]
+				)
 			} catch (FileNotFoundException e) {
 				warning = '''No log file for test execution key '«executionKey.toString»'.'''
 				logger.warn(warning, e)
@@ -85,6 +89,7 @@ class TestSuiteResource {
 				responseBuilder.header('Warning', '''299 «warning»''').build
 			}
 		}
+
 		return response
 	}
 
