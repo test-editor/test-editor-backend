@@ -7,6 +7,8 @@ import java.util.regex.Pattern
 import javax.inject.Inject
 import org.apache.commons.lang3.Validate
 import org.slf4j.LoggerFactory
+import org.testeditor.web.backend.persistence.PersistenceConfiguration
+import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 
@@ -23,12 +25,15 @@ import static extension java.nio.file.Files.readAllLines
 class ScanningLogFinder implements LogFinder {
 
 	private static val ROOT_ID = 'IDROOT'
+	private static val MARKER_REGEX = Pattern.compile('''@[A-Z_]+:(ENTER|LEAVE):[0-9a-f]+:.+''')
 	private static val ENTER_REGEX = Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:(.+)''')
 	private static val ILLEGAL_TEST_EXECUTION_KEY_MESSAGE = "Provided test execution key must contain a test suite id and a test suite run id. (Key was: '%s'.)"
 
 	static val logger = LoggerFactory.getLogger(ScanningLogFinder)
 
 	@Inject extension WorkspaceProvider
+	@Inject extension PersistenceConfiguration
+	@Inject extension HierarchicalLineSkipper
 
 	override getLogLinesForTestStep(TestExecutionKey key) {
 		Validate.notBlank(key?.suiteId, ILLEGAL_TEST_EXECUTION_KEY_MESSAGE, key?.toString)
@@ -39,7 +44,7 @@ class ScanningLogFinder implements LogFinder {
 		.dropWhile[!Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:«callTreeId»''').matcher(it).find] //
 		.drop(1) //
 		.takeWhile[!Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:«callTreeId»''').matcher(it).find] //
-		.skipSubSteps //
+		.skipMarkerAndSubStepLines //
 	}
 
 	private def Path getLogFile(TestExecutionKey key) {
@@ -66,39 +71,14 @@ class ScanningLogFinder implements LogFinder {
 		return callTreeId
 	}
 
-	private def Iterable<String> skipSubSteps(Iterable<String> lines) {
-		logger.debug('filtering out sub-step log lines from an initial log of {} lines.', lines.size)
-
-		val result = newLinkedList
-		var regex = ENTER_REGEX
-
-		var skippedLines = 0
-
-		for (line : lines) {
-			val matcher = regex.matcher(line)
-			if (matcher.find) {
-				if (regex === ENTER_REGEX) {
-					val subStepId = matcher.group(1)
-					skippedLines = 1
-					logger.debug('found beginning of sub-step ({}), starting to skip.', subStepId)
-					regex = Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:«subStepId»''')
-				} else {
-					regex = ENTER_REGEX
-					skippedLines++
-					logger.debug('end of sub-step found, skipped {} lines.', skippedLines)
-				}
-			} else {
-				if (regex === ENTER_REGEX) {
-					result += line
-				} else {
-					skippedLines++
-				}
-			}
+	private def Iterable<String> skipMarkerAndSubStepLines(Iterable<String> lines) {
+		return if (filterTestSubStepsFromLogs) {
+			lines.skipChildren(ENTER_REGEX, [
+				Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:«IF generic».+«ELSE»«matcher.group(1)»«ENDIF»''')
+			])
+		} else {
+			lines.filter[!MARKER_REGEX.matcher(it).find]
 		}
-
-		logger.debug('done filtering out sub-step log lines: {} lines left.', result.size)
-
-		return result
 	}
 
 }
