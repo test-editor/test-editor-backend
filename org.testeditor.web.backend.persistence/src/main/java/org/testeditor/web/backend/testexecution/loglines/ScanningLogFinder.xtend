@@ -17,11 +17,6 @@ import static extension java.nio.file.Files.readAllLines
  */
 class ScanningLogFinder extends AbstractLogFinder {
 
-	private static val ROOT_ID = 'IDROOT'
-	private static val MARKER_REGEX = Pattern.compile('''@[A-Z_]+:(ENTER|LEAVE):[0-9a-f]+:.+''')
-	private static val ENTER_REGEX = Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:(.+)''')
-	private static val ILLEGAL_TEST_EXECUTION_KEY_MESSAGE = "Provided test execution key must contain a test suite id and a test suite run id. (Key was: '%s'.)"
-
 	@Inject extension PersistenceConfiguration
 	@Inject extension HierarchicalLineSkipper
 
