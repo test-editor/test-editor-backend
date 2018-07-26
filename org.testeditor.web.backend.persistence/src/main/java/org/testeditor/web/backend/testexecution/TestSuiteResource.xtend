@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
@@ -30,8 +31,6 @@ import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
-import com.fasterxml.jackson.databind.util.JSONPObject
-import com.fasterxml.jackson.core.io.JsonStringEncoder
 
 @Path("/test-suite")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
@@ -67,8 +66,8 @@ class TestSuiteResource {
 			var logLines = newLinkedList
 			var warning = ''
 			try {
-				logLines.addAll(logFinder.getLogLinesForTestStep(executionKey)
-					.map[new String(JsonStringEncoder.instance.quoteAsString(it))]
+				logLines.addAll(
+					logFinder.getLogLinesForTestStep(executionKey).map[new String(JsonStringEncoder.instance.quoteAsString(it))]
 				)
 			} catch (FileNotFoundException e) {
 				warning = '''No log file for test execution key '«executionKey.toString»'.'''
@@ -76,10 +75,9 @@ class TestSuiteResource {
 			}
 
 			val jsonResultString = '[' + (
-				#['''{ "type": "properties", "content": «callTreeResultString» }'''] + 
-				screenshotFinder.getScreenshotPathForTestStep(executionKey).map [
-					'''{ "type": "image", "content": "«it»" }'''
-				] + #['''{ "type": "text", "content": ["«logLines.join('", "')»"]}''']
+				#['''{ "type": "properties", "content": «callTreeResultString» }'''] + screenshotFinder.getScreenshotPathForTestStep(executionKey).map [
+				'''{ "type": "image", "content": "«it»" }'''
+			] + #['''{ "type": "text", "content": ["«logLines.join('", "')»"]}''']
 			).join(',') + ']'
 
 			val responseBuilder = Response.ok(jsonResultString)

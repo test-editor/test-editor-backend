@@ -6,6 +6,7 @@ import java.nio.file.Path
 import java.util.regex.Pattern
 import javax.inject.Inject
 import org.apache.commons.lang3.Validate
+import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 
@@ -13,7 +14,6 @@ import static java.nio.charset.StandardCharsets.UTF_8
 
 import static extension java.nio.file.Files.list
 import static extension java.nio.file.Files.readAllLines
-import org.slf4j.LoggerFactory
 
 /**
  * Locates log files corresponding to test execution keys relying on file naming
@@ -44,7 +44,7 @@ class ScanningLogFinder implements LogFinder {
 
 	private def Path getLogFile(TestExecutionKey key) {
 		logger.debug('getting log file for test execution key "{}".', key.toString)
-		
+
 		val matcher = FileSystems.^default.getPathMatcher('''glob:testrun.«key.suiteId»-«key.suiteRunId»--.*.log''')
 		val logFile = workspace.toPath.resolve('logs').list //
 		.filter[matcher.matches(fileName)] //
@@ -52,9 +52,9 @@ class ScanningLogFinder implements LogFinder {
 		.orElseThrow [
 			new FileNotFoundException('''No log file for test execution key '«key?.toString»' found.''')
 		]
-		
+
 		logger.debug('retrieved log file "{}" for test execution key "{}".', logFile.fileName, key.toString)
-		
+
 		return logFile
 	}
 
@@ -68,10 +68,10 @@ class ScanningLogFinder implements LogFinder {
 
 	private def Iterable<String> skipSubSteps(Iterable<String> lines) {
 		logger.debug('filtering out sub-step log lines from an initial log of {} lines.', lines.size)
-		
+
 		val result = newLinkedList
 		var regex = ENTER_REGEX
-		
+
 		var skippedLines = 0
 
 		for (line : lines) {
@@ -95,7 +95,7 @@ class ScanningLogFinder implements LogFinder {
 				}
 			}
 		}
-		
+
 		logger.debug('done filtering out sub-step log lines: {} lines left.', result.size)
 
 		return result
