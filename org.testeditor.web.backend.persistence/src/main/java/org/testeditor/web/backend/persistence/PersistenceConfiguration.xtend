@@ -53,4 +53,31 @@ class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 	 */
 	@Accessors
 	private Boolean filterTestSubStepsFromLogs = false
+	
+	
+	/**
+	 * Whether all log entries should be attributed to leaf test steps.
+	 * 
+	 * When requesting the log lines for a particular test step via the
+	 * appropriate REST endpoint
+	 * ({@link org.testeditor.web.backend.testexecution.TestSuiteResource.xtend}),
+	 * log lines can be associated with inner nodes (including the root) of the
+	 * test execution call tree, as opposed to from a subordinate test step.
+	 * 
+	 * If set to <code>true</code> (the default), log lines will be pushed into
+	 * leaf nodes with the following strategy:
+	 * - Any log lines associated with inner nodes occurring before the first
+	 * leaf node will be prepended to the log lines of the first leaf node.
+	 * - Any log lines associated with inner nodes occurring between two leaf
+	 * nodes will be appended to the log lines of the anterior one.
+	 * - Any log lines associated with inner nodes occurring after the last
+	 * leaf node will be appended to the last leaf node.
+	 * Furthermore, the log lines returned for inner nodes will be the 
+	 * concatenation of the log lines of their children.
+	 * 
+	 * If set to <code>false</code>, only log lines specifically associated with
+	 * the requested test step will be returned.
+	 */
+	@Accessors
+	private Boolean pushLogLinesToLeafs = true
 }
