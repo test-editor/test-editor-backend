@@ -1,4 +1,4 @@
-package org.testeditor.web.backend.persistence.util
+package org.testeditor.web.backend.testexecution.loglines
 
 import java.util.function.Function
 import java.util.regex.Matcher

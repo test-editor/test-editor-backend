@@ -8,7 +8,6 @@ import javax.inject.Inject
 import org.apache.commons.lang3.Validate
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 

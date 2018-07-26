@@ -1,11 +1,11 @@
-package org.testeditor.web.backend.persistence.util
+package org.testeditor.web.backend.testexecution.loglines
 
 import java.util.function.Function
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 import org.eclipse.xtend.lib.annotations.Accessors
 
-import static org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper.EndMarkerRequest.*
+import static org.testeditor.web.backend.testexecution.loglines.HierarchicalLineSkipper.EndMarkerRequest.*
 
 class RecursiveHierarchicalLineSkipper implements HierarchicalLineSkipper {
 

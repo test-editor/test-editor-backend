@@ -11,8 +11,6 @@ import org.mockito.Mock
 import org.mockito.Spy
 import org.mockito.junit.MockitoJUnitRunner
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
-import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkipper
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 
