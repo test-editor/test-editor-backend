@@ -17,6 +17,7 @@ abstract class AbstractLogFinder implements LogFinder {
 	protected static val ROOT_ID = 'IDROOT'
 	protected static val MARKER_REGEX = Pattern.compile('''@[A-Z_]+:(ENTER|LEAVE):[0-9a-f]+:.+''')
 	protected static val ENTER_REGEX = Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:(.+)''')
+	protected static val ENTER_TEST_RUN_REGEX = Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:[^.]+\\.[^.]+\\.([^.]+)''')
 	protected static val ILLEGAL_TEST_EXECUTION_KEY_MESSAGE = "Provided test execution key must contain a test suite id and a test suite run id. (Key was: '%s'.)"
 
 
