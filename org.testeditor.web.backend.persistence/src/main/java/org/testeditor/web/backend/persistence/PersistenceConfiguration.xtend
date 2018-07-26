@@ -47,9 +47,9 @@ class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 	 * either be filtered out or kept.
 	 * 
 	 * If set to <code>true</code>, log lines associated with subordinate test
-	 * steps will get filtered out. If set to <code>false</code>, they will be
-	 * retained; lines marking the beginning and end of individual test steps
-	 * will still be removed, though.
+	 * steps will get filtered out. If set to <code>false</code> (the default),
+	 * they will be retained; lines marking the beginning and end of individual
+	 * test steps will still be removed, though.
 	 */
 	@Accessors
 	private Boolean filterTestSubStepsFromLogs = false
