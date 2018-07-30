@@ -1,8 +1,10 @@
 package org.testeditor.web.backend.testexecution
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
+import java.io.FileNotFoundException
 import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -27,6 +29,7 @@ import javax.ws.rs.core.Response
 import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
+import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 
 @Path("/test-suite")
@@ -42,6 +45,7 @@ class TestSuiteResource {
 	@Inject Executor executor
 	@Inject TestExecutionCallTree testExecutionCallTree
 	@Inject ScreenshotFinder screenshotFinder
+	@Inject LogFinder logFinder
 
 	@GET
 	@Path("{suiteId}/{suiteRunId}/{caseRunId}/{callTreeId}")
@@ -52,20 +56,39 @@ class TestSuiteResource {
 		@PathParam("caseRunId") String caseRunId,
 		@PathParam("callTreeId") String callTreeId
 	) {
+		var response = Response.status(Status.NOT_FOUND).build
 		val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].last
 		if (latestCallTree !== null) {
 			val executionKey = new TestExecutionKey(suiteId, suiteRunId, caseRunId, callTreeId)
 			testExecutionCallTree.readFile(executionKey, latestCallTree)
 			val callTreeResultString = testExecutionCallTree.getNodeJson(executionKey)
-			
-			val jsonResultString = '[' + (#['''{ "type": "properties", "content": «callTreeResultString» }'''] +
-				screenshotFinder.getScreenshotPathForTestStep(executionKey)
-				.map['''{ "type": "image", "content": "«it»" }''']).join(',') + ']'
-			
-			return Response.ok(jsonResultString).build
-		} else {
-			return Response.status(Status.NOT_FOUND).build
+
+			var logLines = newLinkedList
+			var warning = ''
+			try {
+				logLines.addAll(
+					logFinder.getLogLinesForTestStep(executionKey).map[new String(JsonStringEncoder.instance.quoteAsString(it))]
+				)
+			} catch (FileNotFoundException e) {
+				warning = '''No log file for test execution key '«executionKey.toString»'.'''
+				logger.warn(warning, e)
+			}
+
+			val jsonResultString = '[' + (
+				#['''{ "type": "properties", "content": «callTreeResultString» }'''] + screenshotFinder.getScreenshotPathForTestStep(executionKey).map [
+				'''{ "type": "image", "content": "«it»" }'''
+			] + #['''{ "type": "text", "content": ["«logLines.join('", "')»"]}''']
+			).join(',') + ']'
+
+			val responseBuilder = Response.ok(jsonResultString)
+			response = if (warning.nullOrEmpty) {
+				responseBuilder.build
+			} else {
+				responseBuilder.header('Warning', '''299 «warning»''').build
+			}
 		}
+
+		return response
 	}
 
 	@GET
@@ -90,7 +113,8 @@ class TestSuiteResource {
 			}
 		} else {
 			// get the latest call tree of the given resource
-			val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].reverse.head
+			val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].
+				reverse.head
 			if (latestCallTree !== null) {
 				val mapper = new ObjectMapper(new YAMLFactory)
 				val jsonTree = mapper.readTree(latestCallTree)
@@ -113,7 +137,8 @@ class TestSuiteResource {
 		val builder = executorProvider.testExecutionBuilder(executionKey, resourcePaths)
 		val logFile = builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)
 		val callTreeFile = builder.environment.get(TestExecutorProvider.CALL_TREE_YAML_FILE)
-		logger.info('''Starting test for resourcePaths='«resourcePaths.join(',')»' logging into logFile='«logFile»', callTreeFile='«callTreeFile»'.''')
+		logger.
+			info('''Starting test for resourcePaths='«resourcePaths.join(',')»' logging into logFile='«logFile»', callTreeFile='«callTreeFile»'.''')
 		new File(callTreeFile).writeCallTreeYamlPrefix(executorProvider.yamlFileHeader(executionKey, Instant.now, resourcePaths))
 		val testProcess = builder.start
 		statusMapper.addTestSuiteRun(executionKey, testProcess)
@@ -132,7 +157,8 @@ class TestSuiteResource {
 
 	private def File writeCallTreeYamlPrefix(File callTreeYamlFile, String fileHeader) {
 		callTreeYamlFile.parentFile.mkdirs
-		Files.write(callTreeYamlFile.toPath, fileHeader.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+		Files.write(callTreeYamlFile.toPath, fileHeader.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE,
+			StandardOpenOption.TRUNCATE_EXISTING)
 		return callTreeYamlFile
 	}
 

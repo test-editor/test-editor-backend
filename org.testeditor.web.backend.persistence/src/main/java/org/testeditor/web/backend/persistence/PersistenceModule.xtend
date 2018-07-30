@@ -4,6 +4,10 @@ import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
+import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
+import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkipper
+import org.testeditor.web.backend.testexecution.loglines.LogFinder
+import org.testeditor.web.backend.testexecution.loglines.ScanningLogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 import org.testeditor.web.backend.testexecution.screenshots.TestArtifactRegistryScreenshotFinder
 
@@ -13,6 +17,8 @@ class PersistenceModule extends AbstractModule {
 		binder => [
 			bind(Executor).toInstance(ForkJoinPool.commonPool)
 			bind(ScreenshotFinder).to(TestArtifactRegistryScreenshotFinder)
+			bind(LogFinder).to(ScanningLogFinder)
+			bind(HierarchicalLineSkipper).to(RecursiveHierarchicalLineSkipper)
 		]
 	}
 
@@ -25,4 +31,5 @@ class PersistenceModule extends AbstractModule {
 	def ProcessBuilder provideProcessBuilder() {
 		return new ProcessBuilder
 	}
+
 }
