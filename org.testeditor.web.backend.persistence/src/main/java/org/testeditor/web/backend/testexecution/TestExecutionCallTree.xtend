@@ -10,6 +10,8 @@ import java.util.Map
 class TestExecutionCallTree {
 
 	private static val objectMapper = new ObjectMapper(new YAMLFactory)
+	private static val childrenKey = 'children'
+	private static val idKey = 'id'
 
 	var TestExecutionKey executionKey
 	var Map<String, Object> yamlObject
@@ -40,12 +42,32 @@ class TestExecutionCallTree {
 
 	def String getNodeJson(TestExecutionKey executionKey) {
 		val test = executionKey.testNode
-		val node = test.typedMapGetArray("children")?.findNode(executionKey.callTreeId)
+		val node = test.typedMapGetArray(childrenKey)?.findNode(executionKey.callTreeId)
 		if (node !== null) {
 			return node.writeToJsonHidingChildren
 		} else {
 			throw new IllegalArgumentException('''TestExecutionKey = '«executionKey»' cannot be found in call tree.''')
 		}
+	}
+	
+	def Iterable<TestExecutionKey> getChildKeys(TestExecutionKey key) {
+		val node = key.testNode.typedMapGetArray(childrenKey)?.findNode(key.callTreeId)
+		return if (node !== null && !node.empty) {
+			// tail, because childKeys includes the key of the root as first element
+			node.childKeys.tail
+		} else {
+			#[]
+		}
+	}
+	
+	private def Iterable<TestExecutionKey> getChildKeys(Map<String, Object> node) {
+		val keys = newLinkedList(executionKey.deriveWithCallTreeId(node.get(idKey) as String))
+		if (node.get(childrenKey) !== null) {
+			node.<Map<String, Object>>typedMapGetArray(childrenKey).forEach[
+				keys += childKeys
+			]
+		}
+		return keys
 	}
 
 	private def Map<String, Object> getTestNode(TestExecutionKey executionKey) {
@@ -68,11 +90,11 @@ class TestExecutionCallTree {
 	}
 
 	private def String writeToJsonHidingChildren(Map<String, Object> node) {
-		val children = node.get("children")
-		node.remove("children")
+		val children = node.get(childrenKey)
+		node.remove(childrenKey)
 		val objectWriter = new ObjectMapper().writer
 		val result = objectWriter.writeValueAsString(node)
-		node.put("children", children)
+		node.put(childrenKey, children)
 
 		return result
 	}
@@ -85,7 +107,7 @@ class TestExecutionCallTree {
 			if (nodeFound !== null) {
 				return nodeFound
 			} else {
-				val recursivelyFoundNode = nodes.map[node|(node.get("children") as ArrayList<Map<String, Object>>)?.findNode(callTreeId)].filterNull.head
+				val recursivelyFoundNode = nodes.map[node|(node.get(childrenKey) as ArrayList<Map<String, Object>>)?.findNode(callTreeId)].filterNull.head
 				return recursivelyFoundNode
 			}
 		}
