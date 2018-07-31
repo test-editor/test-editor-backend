@@ -384,6 +384,71 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		
 	}
 	
+	@Test
+	def void testThatSubStepScreenshotDetailsAreProvided() {
+		val testKey = TestExecutionKey.valueOf('0-0')
+		val childKeys = #['IDXY', 'IDXZ', 'IDYZ']
+		val testFile = 'test.tcl'
+		val userDir = workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFolder(userId, 'logs')
+		workspaceRoot.newFile(userId + '''/logs/testrun.«testKey».299900000000.yaml''') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				"testRuns":
+				- "source": "test.tcl"
+				  "testRunId": "1"
+				  "children" :
+				  - "node": "TEST"
+				    "id": "ID1"
+				    "children":
+				    - "node": "SPECIFICATION"
+				      "id": "ID2"
+				      "message": "hello"
+				      "children":
+				      - "id": "IDXY"
+				      - "id": "IDXZ"
+				      - "id": "IDYZ"
+				    - "node": "SPECIFICATION"
+				      "id": "ID3"
+			''')
+		]
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo "Running mock gradlew script from working directory $(pwd)"
+				set -x
+				targetDir=".testexecution/artifacts/«testKey.suiteId»/«testKey.suiteRunId»/1"
+				mkdir -p ${targetDir}
+				«FOR id: childKeys»
+				printf '"screenshot": "screenshots/test/«id».png"\n' > ${targetDir}/«id».yaml
+				«ENDFOR»
+			''')
+		]
+
+		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
+		response.status.assertEquals(Status.CREATED.statusCode)
+		createTestStatusRequest(testKey).get // wait for completion
+		childKeys.forall[new File(userDir, '''.testexecution/artifacts/0/0/1/«it».yaml''').exists]
+			.assertTrue('Mocked process did not write yaml file with screenshot information.')
+		
+		// when
+		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID2')).get.readEntity(String)
+
+		// then
+		val propertiesList = newArrayList
+		propertiesList.addAll(new ObjectMapper().readValue(result, Object)
+			.assertInstanceOf(List)
+			.filter[map|'image'.equals((map as Map<String, Object>).get('type'))]
+			.assertSize(3))
+			
+		propertiesList.get(0).assertInstanceOf(Map).get('content').assertInstanceOf(String).assertEquals('screenshots/test/IDXY.png')
+		propertiesList.get(1).assertInstanceOf(Map).get('content').assertInstanceOf(String).assertEquals('screenshots/test/IDXZ.png')
+		propertiesList.get(2).assertInstanceOf(Map).get('content').assertInstanceOf(String).assertEquals('screenshots/test/IDYZ.png')
+		
+	}
+	
 	
 	@Test
 	def void testThatLogLinesAreProvided() {

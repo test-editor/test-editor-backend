@@ -31,11 +31,13 @@ import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
+import javax.inject.Named
 
 @Path("/test-suite")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
 class TestSuiteResource {
 
+	public static val String SCREENSHOT_FINDER_NAME = 'test-suite-resource-screenshot-finder'
 	private static val LONG_POLLING_TIMEOUT_SECONDS = 5
 	static val logger = LoggerFactory.getLogger(TestExecutorResource)
 
@@ -44,7 +46,7 @@ class TestSuiteResource {
 	@Inject extension TestLogWriter logWriter
 	@Inject Executor executor
 	@Inject TestExecutionCallTree testExecutionCallTree
-	@Inject ScreenshotFinder screenshotFinder
+	@Inject @Named(SCREENSHOT_FINDER_NAME) ScreenshotFinder screenshotFinder
 	@Inject LogFinder logFinder
 
 	@GET

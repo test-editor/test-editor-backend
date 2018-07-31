@@ -10,13 +10,19 @@ import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.loglines.ScanningLogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 import org.testeditor.web.backend.testexecution.screenshots.TestArtifactRegistryScreenshotFinder
+import org.testeditor.web.backend.testexecution.screenshots.SubStepAggregatingScreenshotFinder
+import com.google.inject.name.Names
+import org.testeditor.web.backend.testexecution.TestSuiteResource
 
 class PersistenceModule extends AbstractModule {
 
 	override protected configure() {
 		binder => [
 			bind(Executor).toInstance(ForkJoinPool.commonPool)
-			bind(ScreenshotFinder).to(TestArtifactRegistryScreenshotFinder)
+			bind(ScreenshotFinder).annotatedWith(Names.named(TestSuiteResource.SCREENSHOT_FINDER_NAME)) //
+			.to(SubStepAggregatingScreenshotFinder)
+			bind(ScreenshotFinder).annotatedWith(Names.named(SubStepAggregatingScreenshotFinder.DELEGATE_NAME)) //
+			.to(TestArtifactRegistryScreenshotFinder)
 			bind(LogFinder).to(ScanningLogFinder)
 			bind(HierarchicalLineSkipper).to(RecursiveHierarchicalLineSkipper)
 		]
