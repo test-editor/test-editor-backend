@@ -134,7 +134,7 @@ class TestSuiteResource {
 	def Response launchNewSuiteWith(List<String> resourcePaths) {
 		val suiteKey = new TestExecutionKey("0") // default suite
 		val executionKey = statusMapper.deriveFreshRunId(suiteKey)
-		val builder = executorProvider.testExecutionBuilder(executionKey, resourcePaths)
+		val builder = executorProvider.testExecutionBuilder(executionKey, resourcePaths, '') // commit id unknown
 		val logFile = builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)
 		val callTreeFile = builder.environment.get(TestExecutorProvider.CALL_TREE_YAML_FILE)
 		logger.
