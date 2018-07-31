@@ -11,6 +11,7 @@ import javax.inject.Inject
 import org.apache.commons.text.StringEscapeUtils
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
+
 import static extension org.apache.commons.io.FileUtils.deleteDirectory
 
 /**
@@ -26,6 +27,7 @@ class TestExecutorProvider {
 	public static val CALL_TREE_YAML_TEST_CASE_ID = 'TE_CALL_TREE_YAML_TEST_CASE_ID'
 	public static val CALL_TREE_YAML_COMMIT_ID = 'TE_CALL_TREE_YAML_COMMIT_ID'
 	public static val LOG_FOLDER = 'logs' // log files will be created here
+	public static val TESTRUN_COMMITID = 'TE_TESTRUNCOMMITID'
 	
 	static val TEST_SUITE_INIT_FILE_NAME = 'testsuite.init.gradle'
 	static val JAVA_TEST_SOURCE_PREFIX = 'src/test/java'
@@ -81,10 +83,11 @@ class TestExecutorProvider {
 			                dependsOn "testTask${taskNum-1}"
 			            }
 			
-			            environment "«CALL_TREE_YAML_TEST_CASE»", "${testcase}"
+			            environment "TE_TESTCASENAME", "${testcase}"
 			            environment "TE_SUITERUNID", "${System.props.get('TE_SUITERUNID')}"
 			            environment "TE_SUITEID", "${System.props.get('TE_SUITEID')}"
 			            environment "TE_TESTRUNID", "${taskNum}"
+			            environment "TE_TESTRUNCOMMITID", "${System.props.get('TE_TESTRUNCOMMITID')}"
 			
 			            include "${testcase}.class"
 			            testLogging.showStandardStreams = true
@@ -109,7 +112,7 @@ class TestExecutorProvider {
 		'''.toString.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
 	}
 
-	def ProcessBuilder testExecutionBuilder(TestExecutionKey executionKey, Iterable<String> testCases) {
+	def ProcessBuilder testExecutionBuilder(TestExecutionKey executionKey, Iterable<String> testCases, String commitId) {
 		val workingDir = workspaceProvider.workspace.absoluteFile
 		workingDir.ensureBuildingToolsInPlace
 		val testRunDateString = createTestRunDateString
@@ -120,7 +123,7 @@ class TestExecutorProvider {
 			directory(workingDir)
 			environment.put(LOGFILE_ENV_KEY, workingDir + "/" + logFile)
 			environment.put(CALL_TREE_YAML_FILE, workingDir + "/" + callTreeYamlFile)
-			environment.put(CALL_TREE_YAML_COMMIT_ID, '')
+			environment.put(TESTRUN_COMMITID, commitId)
 			redirectErrorStream(true)
 		]
 

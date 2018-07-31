@@ -52,12 +52,12 @@ class ConsecutiveTestExecutionsWithChangesTest {
 		val secondTestKey = new TestExecutionKey('0', '1')	
 		
 		// when
-		val firstProcess = executorUnderTest.testExecutionBuilder(firstTestKey, #[testClass]).start
+		val firstProcess = executorUnderTest.testExecutionBuilder(firstTestKey, #[testClass], '4711').start
 		firstProcess.waitFor(60, SECONDS)
 		
 		workspace.introduceChange
 		
-		val secondProcess = executorUnderTest.testExecutionBuilder(secondTestKey, #[testClass]).start
+		val secondProcess = executorUnderTest.testExecutionBuilder(secondTestKey, #[testClass], '4711').start
 		secondProcess.waitFor(60, SECONDS)
 
 		// then
