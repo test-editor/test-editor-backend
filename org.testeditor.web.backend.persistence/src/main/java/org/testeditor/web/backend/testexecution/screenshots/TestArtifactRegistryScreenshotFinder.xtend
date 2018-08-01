@@ -22,7 +22,7 @@ class TestArtifactRegistryScreenshotFinder implements ScreenshotFinder {
 	private static val FILE_EXTENSION = ".yaml"
 	private static val ENTRY_PATTERN = Pattern.compile('"screenshot": "([^"]*)"')
 
-	override getScreenshotPathForTestStep(TestExecutionKey key) {
+	override getScreenshotPathsForTestStep(TestExecutionKey key) {
 		val filePath = artifactRegistryPath.resolve(key.toPath)
 
 		return if (filePath.isReadable && filePath.isRegularFile) {

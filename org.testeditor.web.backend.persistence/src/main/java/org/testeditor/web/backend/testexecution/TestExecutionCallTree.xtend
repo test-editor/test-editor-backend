@@ -50,21 +50,21 @@ class TestExecutionCallTree {
 		}
 	}
 	
-	def Iterable<TestExecutionKey> getChildKeys(TestExecutionKey key) {
+	def Iterable<TestExecutionKey> getDescendantsKeys(TestExecutionKey key) {
 		val node = key.testNode.typedMapGetArray(childrenKey)?.findNode(key.callTreeId)
 		return if (node !== null && !node.empty) {
-			// tail, because childKeys includes the key of the root as first element
-			node.childKeys.tail
+			node.descendantsKeys
 		} else {
 			#[]
 		}
 	}
 	
-	private def Iterable<TestExecutionKey> getChildKeys(Map<String, Object> node) {
-		val keys = newLinkedList(executionKey.deriveWithCallTreeId(node.get(idKey) as String))
+	private def Iterable<TestExecutionKey> getDescendantsKeys(Map<String, Object> node) {
+		val keys = newLinkedList()
 		if (node.get(childrenKey) !== null) {
 			node.<Map<String, Object>>typedMapGetArray(childrenKey).forEach[
-				keys += childKeys
+				keys += executionKey.deriveWithCallTreeId(get(idKey) as String)
+				keys += descendantsKeys
 			]
 		}
 		return keys

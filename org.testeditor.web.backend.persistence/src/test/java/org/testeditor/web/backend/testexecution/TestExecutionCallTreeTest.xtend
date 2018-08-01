@@ -134,7 +134,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		testExecutionCallTreeUnderTest.readString(testRunKey, testRunCallTreeYaml)
 
 		// when
-		val actualKeys = testExecutionCallTreeUnderTest.getChildKeys(rootCallTreeKey)
+		val actualKeys = testExecutionCallTreeUnderTest.getDescendantsKeys(rootCallTreeKey)
 
 		// then
 		assertThat(actualKeys).containsExactlyInAnyOrder(
@@ -151,7 +151,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		testExecutionCallTreeUnderTest.readString(testRunKey, testRunCallTreeYaml)
 
 		// when
-		val actualKeys = testExecutionCallTreeUnderTest.getChildKeys(rootCallTreeKey)
+		val actualKeys = testExecutionCallTreeUnderTest.getDescendantsKeys(rootCallTreeKey)
 
 		// then
 		assertThat(actualKeys).containsExactlyInAnyOrder(
@@ -168,7 +168,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		testExecutionCallTreeUnderTest.readString(testRunKey, testRunCallTreeYaml)
 
 		// when
-		val actualKeys = testExecutionCallTreeUnderTest.getChildKeys(rootCallTreeKey)
+		val actualKeys = testExecutionCallTreeUnderTest.getDescendantsKeys(rootCallTreeKey)
 
 		// then
 		assertThat(actualKeys).isEmpty
@@ -182,7 +182,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		testExecutionCallTreeUnderTest.readString(testRunKey, testRunCallTreeYaml)
 
 		// when
-		val actualKeys = testExecutionCallTreeUnderTest.getChildKeys(rootCallTreeKey)
+		val actualKeys = testExecutionCallTreeUnderTest.getDescendantsKeys(rootCallTreeKey)
 
 		// then
 		assertThat(actualKeys).isEmpty

@@ -15,7 +15,7 @@ import org.testeditor.web.backend.testexecution.TestExecutorProvider
 @RunWith(MockitoJUnitRunner)
 class SubStepAggregatingScreenshotFinderTest {
 
-	@Mock ScreenshotFinder mockDelegate
+	@Mock TestArtifactRegistryScreenshotFinder mockDelegate
 	@Mock TestExecutionCallTree mockCallTree
 	@Mock TestExecutorProvider mockExecutorProvider
 
@@ -26,12 +26,12 @@ class SubStepAggregatingScreenshotFinderTest {
 		// given
 		val key = TestExecutionKey.valueOf('0-0-0-1')
 		val childKeys = #['0-0-0-2', '0-0-0-3', '0-0-0-4'].map[TestExecutionKey.valueOf(it)]
-		when(mockDelegate.getScreenshotPathForTestStep(key)).thenReturn(#[])
-		childKeys.forEach[when(mockDelegate.getScreenshotPathForTestStep(it)).thenReturn(#['''path/to/screenshot-«callTreeId».png'''])]
-		when(mockCallTree.getChildKeys(key)).thenReturn(childKeys)
+		when(mockDelegate.getScreenshotPathsForTestStep(key)).thenReturn(#[])
+		childKeys.forEach[when(mockDelegate.getScreenshotPathsForTestStep(it)).thenReturn(#['''path/to/screenshot-«callTreeId».png'''])]
+		when(mockCallTree.getDescendantsKeys(key)).thenReturn(childKeys)
 
 		// when
-		val actualScreenshots = finderUnderTest.getScreenshotPathForTestStep(key)
+		val actualScreenshots = finderUnderTest.getScreenshotPathsForTestStep(key)
 
 		// then
 		assertThat(actualScreenshots).containsExactly('path/to/screenshot-2.png', 'path/to/screenshot-3.png', 'path/to/screenshot-4.png')
