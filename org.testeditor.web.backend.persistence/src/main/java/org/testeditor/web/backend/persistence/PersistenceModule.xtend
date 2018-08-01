@@ -9,14 +9,14 @@ import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkip
 import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.loglines.ScanningLogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
-import org.testeditor.web.backend.testexecution.screenshots.TestArtifactRegistryScreenshotFinder
+import org.testeditor.web.backend.testexecution.screenshots.SubStepAggregatingScreenshotFinder
 
 class PersistenceModule extends AbstractModule {
 
 	override protected configure() {
 		binder => [
 			bind(Executor).toInstance(ForkJoinPool.commonPool)
-			bind(ScreenshotFinder).to(TestArtifactRegistryScreenshotFinder)
+			bind(ScreenshotFinder).to(SubStepAggregatingScreenshotFinder)
 			bind(LogFinder).to(ScanningLogFinder)
 			bind(HierarchicalLineSkipper).to(RecursiveHierarchicalLineSkipper)
 		]

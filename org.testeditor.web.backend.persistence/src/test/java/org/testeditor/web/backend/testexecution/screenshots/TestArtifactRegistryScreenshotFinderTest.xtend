@@ -38,7 +38,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 		artifactRegistryFile.write(#['''"screenshot": "«expectedScreenshotPath»"'''], UTF_8)
 
 		// when
-		val actualScreenshotPaths = screenshotFinder.getScreenshotPathForTestStep(key)
+		val actualScreenshotPaths = screenshotFinder.getScreenshotPathsForTestStep(key)
 
 		// then
 		assertThat(actualScreenshotPaths).containsOnly(expectedScreenshotPath)
@@ -60,7 +60,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 		artifactRegistryFile.write(expectedScreenshotPaths.map['''"screenshot": "«it»"'''], UTF_8)
 
 		// when
-		val actualScreenshotPaths = screenshotFinder.getScreenshotPathForTestStep(key)
+		val actualScreenshotPaths = screenshotFinder.getScreenshotPathsForTestStep(key)
 
 		// then
 		assertThat(actualScreenshotPaths).containsExactlyInAnyOrder(expectedScreenshotPaths)
@@ -83,7 +83,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 			UTF_8)
 
 		// when
-		val actualScreenshotPaths = screenshotFinder.getScreenshotPathForTestStep(key)
+		val actualScreenshotPaths = screenshotFinder.getScreenshotPathsForTestStep(key)
 
 		// then
 		assertThat(actualScreenshotPaths).containsExactlyInAnyOrder(expectedScreenshotPaths)
@@ -97,7 +97,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 		when(mockWorkspace.workspace).thenReturn(testRoot.root)
 
 		// when
-		val actualScreenshotPaths = screenshotFinder.getScreenshotPathForTestStep(key)
+		val actualScreenshotPaths = screenshotFinder.getScreenshotPathsForTestStep(key)
 
 		// then
 		assertThat(actualScreenshotPaths).isEmpty

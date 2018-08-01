@@ -8,6 +8,8 @@ import javax.inject.Inject
 import org.junit.Test
 import org.testeditor.web.dropwizard.testing.AbstractTest
 
+import static org.assertj.core.api.Assertions.assertThat
+
 class TestExecutionCallTreeTest extends AbstractTest {
 
 	private static val objectMapper = new ObjectMapper(new YAMLFactory)
@@ -124,5 +126,66 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		jsonString.matches('''.*"message" *: *"MySecondMacro".*''').assertTrue
 	}
 
+	@Test
+	def void testGetChildKeysOfRoot() {
+		// given
+		val testRunKey = new TestExecutionKey('1', '2', '5');
+		val rootCallTreeKey = testRunKey.deriveWithCallTreeId('IDROOT')
+		testExecutionCallTreeUnderTest.readString(testRunKey, testRunCallTreeYaml)
+
+		// when
+		val actualKeys = testExecutionCallTreeUnderTest.getDescendantsKeys(rootCallTreeKey)
+
+		// then
+		assertThat(actualKeys).containsExactlyInAnyOrder(
+			#['ID1', 'ID2', 'ID3', 'ID4', 'ID5', 'ID6', 'ID7', 'ID10', 'ID11', 'ID16'] //
+			.map[rootCallTreeKey.deriveWithCallTreeId(it)]
+		)
+	}
+	
+	@Test
+	def void testGetChildKeysOfInnerNode() {
+		// given
+		val testRunKey = new TestExecutionKey('1', '2', '5');
+		val rootCallTreeKey = testRunKey.deriveWithCallTreeId('ID3')
+		testExecutionCallTreeUnderTest.readString(testRunKey, testRunCallTreeYaml)
+
+		// when
+		val actualKeys = testExecutionCallTreeUnderTest.getDescendantsKeys(rootCallTreeKey)
+
+		// then
+		assertThat(actualKeys).containsExactlyInAnyOrder(
+			#['ID4', 'ID5', 'ID6', 'ID7'] //
+			.map[rootCallTreeKey.deriveWithCallTreeId(it)]
+		)
+	}
+	
+	@Test
+	def void testGetChildKeysOfLeafNode() {
+		// given
+		val testRunKey = new TestExecutionKey('1', '2', '5');
+		val rootCallTreeKey = testRunKey.deriveWithCallTreeId('ID7')
+		testExecutionCallTreeUnderTest.readString(testRunKey, testRunCallTreeYaml)
+
+		// when
+		val actualKeys = testExecutionCallTreeUnderTest.getDescendantsKeys(rootCallTreeKey)
+
+		// then
+		assertThat(actualKeys).isEmpty
+	}
+	
+	@Test
+	def void testGetChildKeysOfNonExistingNode() {
+		// given
+		val testRunKey = new TestExecutionKey('1', '2', '5');
+		val rootCallTreeKey = testRunKey.deriveWithCallTreeId('NON-EXISTING-ID')
+		testExecutionCallTreeUnderTest.readString(testRunKey, testRunCallTreeYaml)
+
+		// when
+		val actualKeys = testExecutionCallTreeUnderTest.getDescendantsKeys(rootCallTreeKey)
+
+		// then
+		assertThat(actualKeys).isEmpty
+	}
 
 }

@@ -75,7 +75,7 @@ class TestSuiteResource {
 			}
 
 			val jsonResultString = '[' + (
-				#['''{ "type": "properties", "content": «callTreeResultString» }'''] + screenshotFinder.getScreenshotPathForTestStep(executionKey).map [
+				#['''{ "type": "properties", "content": «callTreeResultString» }'''] + screenshotFinder.getScreenshotPathsForTestStep(executionKey).map [
 				'''{ "type": "image", "content": "«it»" }'''
 			] + #['''{ "type": "text", "content": ["«logLines.join('", "')»"]}''']
 			).join(',') + ']'
