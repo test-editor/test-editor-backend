@@ -1,0 +1,4 @@
+#!/bin/bash
+DOCKER_TAG="${TRAVIS_TAG:=SNAPSHOT}"
+docker tag testeditor/persistence "testeditor/persistence:$DOCKER_TAG"
+docker tag testeditor/xtext "testeditor/xtext:$DOCKER_TAG"
