@@ -11,12 +11,14 @@ cache:
 script:
 - "./gradlew check"
 - "./.travis-cat_owasp_depcheck_reports.sh"
-- if [ "$TRAVIS_PULL_REQUEST" != "false" -o "$TRAVIS_BRANCH" == "master" ]; then ./gradlew docker; fi
+after_success:
+- if [ "$TRAVIS_PULL_REQUEST" = "false" -a "$TRAVIS_BRANCH" = "master" ]; then ./gradlew docker; fi
 deploy:
   provider: script
   script: bash docker_push
   on:
     branch: master
+    condition: "$TRAVIS_PULL_REQUEST = 'false'"
 env:
   matrix:
     secure: b6m+E3PjtnKM7O8O9zm7GZqQirqzoG94oDzytAszRm3H9M4hnRiNG21IEs9jumV0eqAMjkL5wstj74yddvAK94kWKWQOcbFpYX7ZknrGX+r6UvaiABZef8e59SJETu/CmYgiuVLvZB8qElRDDUBOXwuRjCXHW+TSIcdzI23/HttdTDIfw1i0UYDlRS7EfTzPTF49ZkmRxPz5hL4GZmeJZaAMqzMo4Hp4b+dhah0RrXLAwD5vR7IZk3tscg+Hkc/rK+tHAa/Cpf+fX0GFBg+k2P7RTyxskGKZgPAGLRUVpiJpg90cIhYkx4WVH1BX4hN5XbPZyix91QmI3sKQVMG0XOoM6R8AVTwFJUKlyqLNrl3dbAz9u1y5A5ga7g+0zGrC60rrpUyv4DO+v/Kg0DPnF8iagfBgA+DVARNxOoheRt6dUZX55FmReH7cnf9Ma4ufXjx8Hczh15OAtugIE0KIpLkAvLo+bl538NW8pdG34/v7VBJ9cuzQss6HtxLPiuLDIzfcoTn4CbfS+MQjZUrzTpPNhDwvxTVvt50kYbFfNjY5o0Pi+8XFyKDSwDwNb9vQ7f/9p//cAieupvCxD+b/M8eUIjQwam7b5D6t/9BefGoIFqpdAkV4YzhhH5fUdg6HXxQS5nALT3v+8mLoO+TPLhzNYnDxUlhHsHfwiKhb9Pk=
