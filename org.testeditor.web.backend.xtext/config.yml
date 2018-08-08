@@ -1,4 +1,9 @@
+remoteRepoUrl: https://github.com/test-editor/test-editor-examples.git
+apiToken: secret
 server:
   applicationConnectors:
-    - type: http
-      port: 8080
+  - type: http 
+    port: 8080
+  adminConnectors:
+  - type: http
+    port: 8081

@@ -1,12 +1,62 @@
 dependencies {
-    compile 'org.testeditor:org.testeditor.tsl.dsl.web:1.7.0'
-    compile 'org.testeditor:org.testeditor.dsl.common.model:1.7.0'
+    compile "io.dropwizard:dropwizard-client:$versions.dropwizard"
+    compile "org.testeditor:org.testeditor.tsl.dsl.web:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.dsl.common.model:$versions.testEditorLanguage"
     compile "org.testeditor.web:org.testeditor.web.dropwizard.xtext:$versions.testEditorDropwizard"
+    testCompile "org.testeditor.web:org.testeditor.web.dropwizard.xtext.testing:$versions.testEditorDropwizard"
+
+    compile ("org.testeditor:org.testeditor.tcl.dsl:$versions.testEditorLanguage") {
+        // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
+        exclude group: "org.apache.logging.log4j"
+    }
+    compile ("org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage")  {
+        // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
+        exclude group: "org.apache.logging.log4j"
+    }
+    compile "org.testeditor:org.testeditor.tcl.dsl.ide:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.aml.dsl:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.aml.dsl.ide:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.aml.model:$versions.testEditorLanguage"
+    compile ("org.testeditor:org.testeditor.dsl.common:$versions.testEditorLanguage") {
+        // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
+        exclude group: "org.apache.logging.log4j"
+    }
+
+    compile "org.eclipse.xtend:org.eclipse.xtend.core:$versions.xtext"
+    testCompile "org.eclipse.xtext:org.eclipse.xtext.testing:$versions.xtext"
+    compile 'org.gradle:gradle-tooling-api:4.4.1'
+    testCompile "com.github.tomakehurst:wiremock:2.13.0"
 }
 
 mainClassName = 'org.testeditor.web.backend.xtext.TestEditorApplication'
 
 run {
-	main mainClassName
-	args 'server', configPath + 'config.yml'
+    main mainClassName
+    args 'server', configPath + configFile
+}
+
+tasks.withType(JavaExec) {
+    if (System.getProperty('run.debug')) {
+        jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005'
+    }
+}
+
+dependencyCheck {
+    failBuildOnCVSS=11
+    suppressionFile=file("suppressions.xml").getCanonicalPath()
+}
+
+task docker(type:Exec) {
+    dependsOn(build)
+    executable 'sh'
+    args '-c', """
+      (([ -d testeditor ] && rm -Rf testeditor) || true) &&
+      cd build/distributions && (rm xtext.tar || true) &&
+      rm org.testeditor.*.zip &&
+      mv org.testeditor.web.backend.xtext-*.tar xtext.tar &&
+      tar -xf xtext.tar &&
+      mv org.testeditor.web.backend.xtext* ../../testeditor &&
+      cd ../.. &&
+      docker build -t testeditor/xtext:SNAPSHOT .
+    """
 }

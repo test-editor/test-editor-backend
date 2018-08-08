@@ -1,8 +1,7 @@
 package org.testeditor.web.backend.xtext
 
-import io.dropwizard.Configuration
-import javax.inject.Singleton
+import org.testeditor.web.dropwizard.xtext.XtextConfiguration
 
-@Singleton
-class TestEditorConfiguration extends Configuration {
+class TestEditorConfiguration extends XtextConfiguration {
+
 }

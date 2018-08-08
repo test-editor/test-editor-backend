@@ -1,18 +1,56 @@
 package org.testeditor.web.backend.persistence
 
-import io.dropwizard.Configuration
 import javax.inject.Singleton
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.hibernate.validator.constraints.NotEmpty
+import org.testeditor.web.dropwizard.DropwizardApplicationConfiguration
 
 @Singleton
-class PersistenceConfiguration extends Configuration {
-
-	@Accessors
-	private String projectRepoUrl
+class PersistenceConfiguration extends DropwizardApplicationConfiguration {
+	enum RepositoryConnectionMode { pullPush, pullOnly }
 
 	@NotEmpty
 	@Accessors
-	private String gitFSRoot = 'repo'
+	private String remoteRepoUrl
+	
+	@Accessors
+	private RepositoryConnectionMode repoConnectionMode = RepositoryConnectionMode.pullPush
+	
+	@Accessors
+	private Boolean separateUserWorkspaces = true
 
+	@NotEmpty
+	@Accessors
+	private String localRepoFileRoot = 'repo'
+	
+	@NotEmpty 
+	@Accessors
+	private String branchName = 'master'
+	
+	@Accessors
+	private String privateKeyLocation
+
+	@Accessors
+	private String knownHostsLocation
+	
+	@Accessors
+	private Boolean useDiffMarkersInBackups = false
+	
+	
+	/**
+	 * Whether to skip over log entries produced by subordinate test steps.
+	 * 
+	 * When requesting the log lines for a particular test step via the
+	 * appropriate REST endpoint
+	 * ({@link org.testeditor.web.backend.testexecution.TestSuiteResource.xtend}),
+	 * log lines produced by sub-steps (and potentially their sub-steps) can
+	 * either be filtered out or kept.
+	 * 
+	 * If set to <code>true</code>, log lines associated with subordinate test
+	 * steps will get filtered out. If set to <code>false</code>, they will be
+	 * retained; lines marking the beginning and end of individual test steps
+	 * will still be removed, though.
+	 */
+	@Accessors
+	private Boolean filterTestSubStepsFromLogs = false
 }

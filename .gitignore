@@ -4,6 +4,7 @@
 .settings/
 .metadata/
 bin/
+.odcdb/
 
 ### IntelliJ ###
 *.iml
@@ -25,3 +26,7 @@ xtend-gen/
 \#*\#
 .\#*
 .projectile
+
+### local configurations
+init.gradle
+config.local.yml
