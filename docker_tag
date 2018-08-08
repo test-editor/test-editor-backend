@@ -1,4 +1,7 @@
-#!/bin/bash
-DOCKER_TAG="${TRAVIS_TAG:=SNAPSHOT}"
-docker tag testeditor/persistence "testeditor/persistence:$DOCKER_TAG"
-docker tag testeditor/xtext "testeditor/xtext:$DOCKER_TAG"
+#!/bin/sh
+if [[ $TRAVIS_TAG = v* ]]; then
+  docker tag testeditor/persistence:SNAPSHOT "testeditor/persistence:$TRAVIS_TAG"
+  docker tag testeditor/xtext:SNAPSHOT "testeditor/xtext:$TRAVIS_TAG"
+  docker tag testeditor/persistence:SNAPSHOT "testeditor/persistence:latest"
+  docker tag testeditor/xtext:SNAPSHOT "testeditor/xtext:latest"
+fi
