@@ -10,7 +10,7 @@ class HealthCheckIntegrationTest extends AbstractTestEditorIntegrationTest {
 		val url = '''http://localhost:«dropwizardAppRule.adminPort»/healthcheck'''
 		
 		// when
-		val responseBody = client.target(url).request.get(String)
+		val responseBody = dropwizardAppRule.client.target(url).request.get(String)
 		
 		// then
 		responseBody.assertEquals('{"deadlocks":{"healthy":true},"git":{"healthy":true},"xtext-index":{"healthy":true}}')
