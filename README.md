@@ -13,6 +13,13 @@ alternatively, start both in parallel: `./gradlew run --parallel`
 
 # Development
 
+## Release
+
+To release persistence and xtext backend, simply execute `./gradlew release` on the locally checked out master branch. This will build and test locally, given the success of the aforementioned the release is tagged with 'v${version}' (version is entered during the release process), committed, writing the new (entered) development version into `gradle.properties`, and commiting this again.
+The travis build will recognize tagged master branches and push respectively tagged docker images to docker hub.
+
+## Local development
+
 In order to allow building with non-published, locally built artifacts, gradle can be executed with the `-I` option.
 
 E.g. building and running the backend services with a snapshot version of the test editor language (built locally and installed into maven local) and with a yet unpublished xtext-dropwizard version (built locally and installed into maven local) the following needs to be set up:
@@ -24,8 +31,8 @@ allprojects {
         mavenLocal()
     }
     ext.versions = [
-        testEditorDropwizard: '0.11.0',       // use locally built, not yet published version
-        testEditorLanguage: '1.12.0-SNAPSHOT' // use locally built language version
+        testEditorDropwizard: '0.17.0-SNAPSHOT',       // use locally built, not yet published version
+        testEditorLanguage: '1.18.0-SNAPSHOT' // use locally built language version
     ]
     ext.localconfig = true // make sure to use config.local.yml as dropwizard configuration
 }
@@ -33,7 +40,7 @@ allprojects {
 2. config.local.yml (within `test-editor-backend/org.testeditor.web.backend.persistence`):
 ``` yaml
 remoteRepoUrl: http://any.repo.of.your.choice
-branchName: feature/gonk
+branchName: feature/some
 repoConnectionMode: pullOnly
 
 server:
@@ -47,7 +54,7 @@ server:
 3. config.local.yml (within `test-editor-backend/org.testeditor.web.backend.xtext`):
 ``` yaml
 remoteRepoUrl: http://any.repo.of.your.choice
-branchName: feature/gonk
+branchName: feature/some
 apiToken: secret
 server:
   applicationConnectors:
