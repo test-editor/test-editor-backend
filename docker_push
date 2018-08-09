@@ -3,8 +3,12 @@ echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 docker push testeditor/persistence:SNAPSHOT
 docker push testeditor/xtext:SNAPSHOT
 if [[ $TRAVIS_TAG = v* ]]; then
-  docker push testeditor/persistence:SNAPSHOT "testeditor/persistence:$TRAVIS_TAG"
-  docker push testeditor/xtext:SNAPSHOT "testeditor/xtext:$TRAVIS_TAG"
-  docker push testeditor/persistence:SNAPSHOT "testeditor/persistence:latest"
-  docker push testeditor/xtext:SNAPSHOT "testeditor/xtext:latest"
+  docker tag testeditor/persistence:SNAPSHOT testeditor/persistence:$TRAVIS_TAG
+  docker push testeditor/persistence:$TRAVIS_TAG
+  docker tag testeditor/xtext:SNAPSHOT testeditor/persistence:$TRAVIS_TAG
+  docker push testeditor/xtext:$TRAVIS_TAG
+  docker tag testeditor/persistence:SNAPSHOT testeditor/persistence:latest
+  docker push testeditor/persistence:latest
+  docker tag testeditor/xtext:SNAPSHOT testeditor/persistence:latest
+  docker push testeditor/xtext:latest
 fi
