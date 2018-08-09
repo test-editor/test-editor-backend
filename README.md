@@ -16,7 +16,7 @@ alternatively, start both in parallel: `./gradlew run --parallel`
 ## Release
 
 To release persistence and xtext backend, simply execute `./gradlew release` on the locally checked out master branch. This will build and test locally, and, if successful, tag the release with 'v${version}' (version is entered during the release process), commit it, write the new (entered) development version into `gradle.properties`, and commit again.
-The travis build will recognize tagged master branches and push respectively tagged docker images to docker hub.
+The Travis build will recognize tagged master branches and push docker images to docker hub, tagged accordingly.
 
 ## Local development
 
