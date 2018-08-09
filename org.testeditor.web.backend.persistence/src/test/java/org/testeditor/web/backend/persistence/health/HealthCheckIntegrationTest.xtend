@@ -11,7 +11,7 @@ class HealthCheckIntegrationTest extends AbstractPersistenceIntegrationTest {
 		val url = '''http://localhost:«dropwizardAppRule.adminPort»/healthcheck'''
 
 		// when
-		val request = client.target(url).request
+		val request = dropwizardAppRule.client.target(url).request
 		val responseBody = request.get(String)
 
 		// then

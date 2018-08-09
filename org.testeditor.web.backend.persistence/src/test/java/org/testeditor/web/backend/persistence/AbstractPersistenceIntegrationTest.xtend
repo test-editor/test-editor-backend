@@ -53,7 +53,6 @@ abstract class AbstractPersistenceIntegrationTest {
 	)
 
 	protected extension val AssertionHelper = AssertionHelper.instance
-	protected val client = dropwizardAppRule.client
 
 	public def setupRemoteGitRepository() {
 		remoteGitFolder = new TemporaryFolder => [create]
@@ -77,8 +76,8 @@ abstract class AbstractPersistenceIntegrationTest {
 
 	@Before
 	def void setClientTimeouts() {
-		client.property(ClientProperties.CONNECT_TIMEOUT, 100000);
-		client.property(ClientProperties.READ_TIMEOUT, 100000);
+		dropwizardAppRule.client.property(ClientProperties.CONNECT_TIMEOUT, 100000);
+		dropwizardAppRule.client.property(ClientProperties.READ_TIMEOUT, 100000);
 	}
 
 	@After
@@ -89,7 +88,7 @@ abstract class AbstractPersistenceIntegrationTest {
 
 	protected def Builder createRequest(String relativePath) {
 		val uri = '''http://localhost:«dropwizardAppRule.localPort»/«relativePath»'''
-		val builder = client.target(uri).request
+		val builder = dropwizardAppRule.client.target(uri).request
 		builder.header('Authorization', '''Bearer «token»''')
 		return builder
 	}
