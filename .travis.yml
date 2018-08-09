@@ -11,12 +11,13 @@ cache:
 script:
 - "./gradlew check"
 - "./.travis-cat_owasp_depcheck_reports.sh"
-- if [[ ( "$TRAVIS_PULL_REQUEST" = "false" ) && (( "$TRAVIS_BRANCH" = "master" ) || ( "$TRAVIS_TAG" != "" )) ]]; then ./gradlew docker; export TE_DEPLOY=true; fi
+- if [[ ( "$TRAVIS_PULL_REQUEST" = "false" ) && (( "$TRAVIS_BRANCH" = "master" ) || ( "$TRAVIS_TAG" != "" )) ]]; then ./gradlew docker && export TE_DEPLOY=true; fi
 deploy:
   provider: script
   script: bash docker_push
   on:
     condition: "$TE_DEPLOY != ''"
+    all_branches: true
 env:
   global:
     secure: wv7BDZ/aNEKiXgEE3Lcc326P+7LHB4NiuO/kPdicpuc2M8AlMdSoIedfkuBHTdI6SkjvpjFXaJDzUoDDEdXweMbW9Id+S9CifnQPKNcdB9VcXoCr4dPeIB6QWRGcMvYsuQM7vYY/3WwTF9h4Rj5yJ22cVikndaIwREmhh1Bz6BqweZ+MEPgmpZ4Z0Fut+a8QcgC9SLWMWiIhBtpMcGu7FTeNdKyBrOJPtThfllLLN3a6IQS435Hlm5tNRZE7u+pTfL5Zv/nmvQpuXaKb0IoMuO7IBkxablaD5h7iCO1o0vZjO/HWYY4QWBaz9AY7VFoTqTz32h2R8ZqmzEb3eHVw3tBU5Jc3JntYE8NgE3jdds8LWMxcIN4Ud2/CzOKwGqT2IbBgr1qpkCwqsJD46GZdCJhmxTqD9Rv9lPCEpHiw1MrJ7dYKFlstF9hbhbI5qYCqA9UPTct7FAmYKfYqz1ZNFUKlDFDMZKDoLfN0Ojw6p761u3OTSoh43rlr/+e78QO/mlUJ2k4m+MPtP2kpbpc5GQRSMcPtULEh96tCaTteUVjlpFWDnTVj8hpUcoAQ4LDN7wxQEfCAXlk/e8SXBczcAw+1jOwPfPbIED6Pv+9HlRj1S2ZJEnpRE8uVUouuBj+EWDSomcvHpJ8iGhsf0xim3uCjm6KuLpVInv6p7sBhkf8=
