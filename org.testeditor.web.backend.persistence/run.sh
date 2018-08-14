@@ -12,7 +12,7 @@ if [ "$REPO_MODE" == "" ]; then
   fi
 fi
 
-export JAVA_TOOLS_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStore=/opt/testeditor/testeditor.certs"
+export JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs"
 keytool -importkeystore -srckeystore $JAVA_HOME/jre/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
 if [ "$PROXY_CERT" != "" ]; then
   keytool -importcert -file $PROXY_CERT -keystore ${PROG_DIR}/testeditor.certs -storepass changeit -noprompt -trustcacerts
@@ -20,7 +20,7 @@ fi
 
 if [ "$GRADLE_PROPS" != "" ]; then
   mkdir ${PROG_DIR}/.gradle
-  cp ${PROG_DIR}/gradle.properties ${PROG_DIR}/.gradle
+  cp ${GRADLE_PROPS} ${PROG_DIR}/.gradle
 fi
 
 
