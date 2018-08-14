@@ -2,7 +2,16 @@ FROM openjdk:8-jdk
 
 # This image needs one environment variables upon execution:
 # * TARGET_REPO
-#   Defines the git repository used (read only)
+#   Defines the git repository used
+# * BRANCH_NAME
+#   branch of the git repo to be used
+# * KEY_LOCATION
+#   file location of the private key to use for ssh git access
+# * KNOWN_HOSTS
+#   file location of the known hosts file to be used for network access
+# * REPO_MODE
+#   mode in which the repositorys to be used, valid values are: 'pullOnly', 'pullPush'
+#   pull only will never push back changes to the remote repo (local changes are possible)
 
 LABEL license="EPL 1.0" \
       name="testeditor/persistence"
