@@ -1,14 +1,14 @@
 #!/bin/sh
 echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-docker push testeditor/persistence:SNAPSHOT
-docker push testeditor/xtext:SNAPSHOT
+docker push testeditor/persistence:snapshot
+docker push testeditor/xtext:snapshot
 if [[ $TRAVIS_TAG = v* ]]; then
-  docker tag testeditor/persistence:SNAPSHOT testeditor/persistence:$TRAVIS_TAG
+  docker tag testeditor/persistence:snapshot testeditor/persistence:$TRAVIS_TAG
   docker push testeditor/persistence:$TRAVIS_TAG
-  docker tag testeditor/xtext:SNAPSHOT testeditor/xtext:$TRAVIS_TAG
+  docker tag testeditor/xtext:snapshot testeditor/xtext:$TRAVIS_TAG
   docker push testeditor/xtext:$TRAVIS_TAG
-  docker tag testeditor/persistence:SNAPSHOT testeditor/persistence:latest
+  docker tag testeditor/persistence:snapshot testeditor/persistence:latest
   docker push testeditor/persistence:latest
-  docker tag testeditor/xtext:SNAPSHOT testeditor/xtext:latest
+  docker tag testeditor/xtext:snapshot testeditor/xtext:latest
   docker push testeditor/xtext:latest
 fi
