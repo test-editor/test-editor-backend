@@ -8,6 +8,8 @@ sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
 sed -i "s|%REPO_ROOT%|$REPO_ROOT|g" config.yml
 sed -i "s|%BRANCH_NAME%|$BRANCH_NAME|g" config.yml
 sed -i "s|%API_TOKEN_SECRET%|$API_TOKEN_SECRET|g" config.yml
+sed -i "s|%KEY_LOCATION%|$KEY_LOCATION|g" config.yml
+sed -i "s|%KNOWN_HOSTS%|$KNOWN_HOSTS|g" config.yml
 
 export HOME=/opt/testeditor
 

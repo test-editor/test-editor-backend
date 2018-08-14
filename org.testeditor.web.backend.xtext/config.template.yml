@@ -1,6 +1,8 @@
 remoteRepoUrl: %TARGET_REPO%
 branchName: %BRANCH_NAME%
 apiToken: %API_TOKEN_SECRET%
+privateKeyLocation: %KEY_LOCATION%
+knownHostsLocation: %KNOWN_HOSTS%
 server:
   applicationConnectors:
   - type: http 

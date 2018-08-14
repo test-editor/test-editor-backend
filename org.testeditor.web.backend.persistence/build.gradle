@@ -32,6 +32,6 @@ task docker(type:Exec) {
       tar -xf persistence.tar &&
       mv org.testeditor.web.backend.persistence* ../../testeditor &&
       cd ../.. &&
-      docker build -t testeditor/persistence:SNAPSHOT .
+      docker build -t testeditor/persistence:snapshot .
     """
 }

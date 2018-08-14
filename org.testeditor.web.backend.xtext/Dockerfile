@@ -1,8 +1,14 @@
 FROM openjdk:8-jdk
 
-# This image needs one environment variables upon execution:
+# This image needs four environment variables upon execution:
 # * TARGET_REPO
 #   Defines the git repository used (read only)
+# * BRANCH_NAME
+#   branch of the git repo to be used
+# * KEY_LOCATION
+#   file location of the private key to use for ssh git access
+# * KNOWN_HOSTS
+#   file location of the known hosts file to be used for network access
 
 LABEL license="EPL 1.0" \
       name="testeditor/xtext"
