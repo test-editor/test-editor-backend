@@ -5,32 +5,32 @@ if [ "$BRANCH_NAME" == "" ]; then
 fi
 
 if [ "$REPO_MODE" == "" ]; then
-  if [ "$GIT_PRIVATE_KEY" != "" ]; then
+  if [ "$GIT_PRIVATE_KEY" != "" -o "$KEY_LOCATION" != "" ]; then
     export REPO_MODE="pullPush"
   else
     export REPO_MODE="pullOnly"
   fi
 fi
 
-if [ "$GIT_PRIVATE_KEY" != "" ]; then
-  echo "$GIT_PRIVATE_KEY" > /opt/testeditor/id_git_rsa
-else
-  touch /opt/testeditor/id_git_rsa
+export JAVA_TOOLS_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStore=/opt/testeditor/testeditor.certs"
+keytool -importkeystore -srckeystore $JAVA_HOME/jre/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
+if [ "$PROXY_CERT" != "" ]; then
+  keytool -importcert -file $PROXY_CERT -keystore ${PROG_DIR}/testeditor.certs -storepass changeit -noprompt -trustcacerts
 fi
-sed -i "s|%KEY_LOCATION%|/opt/testeditor/id_git_rsa|g" config.yml
 
-if [ "$KNOWN_HOSTS" != "" ]; then
-  echo "$KNOWN_HOSTS" > /opt/testeditor/known_hosts
-else
-  touch /opt/testeditor/known_hosts
+if [ "$GRADLE_PROPS" != "" ]; then
+  mkdir ${PROG_DIR}/.gradle
+  cp ${PROG_DIR}/gradle.properties ${PROG_DIR}/.gradle
 fi
-sed -i "s|%KNOWN_HOSTS%|/opt/testeditor/known_hosts|g" config.yml
+
 
 sed -i "s|%REPO_MODE%|$REPO_MODE|g" config.yml
 sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
 sed -i "s|%REPO_ROOT%|$REPO_ROOT|g" config.yml
 sed -i "s|%BRANCH_NAME%|$BRANCH_NAME|g" config.yml
 sed -i "s|%API_TOKEN_SECRET%|$API_TOKEN_SECRET|g" config.yml
+sed -i "s|%KEY_LOCATION%|$KEY_LOCATION|g" config.yml
+sed -i "s|%KNOWN_HOSTS%|$KNOWN_HOSTS|g" config.yml
 
 export HOME=/opt/testeditor
 
