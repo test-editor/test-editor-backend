@@ -23,6 +23,9 @@ if [ "$GRADLE_PROPS" != "" ]; then
   cp ${GRADLE_PROPS} ${PROG_DIR}/.gradle
 fi
 
+if [ "$TIMEZONE" != "" ]; then
+  export TZ="/usr/share/zoneinfo/$TIMEZONE"
+fi
 
 sed -i "s|%REPO_MODE%|$REPO_MODE|g" config.yml
 sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
