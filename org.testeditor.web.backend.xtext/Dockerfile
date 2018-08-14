@@ -1,6 +1,6 @@
 FROM openjdk:8-jdk
 
-# This image needs one environment variables upon execution:
+# This image needs four environment variables upon execution:
 # * TARGET_REPO
 #   Defines the git repository used (read only)
 # * BRANCH_NAME
