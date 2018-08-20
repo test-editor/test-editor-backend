@@ -12,6 +12,19 @@ if [ "$REPO_MODE" == "" ]; then
   fi
 fi
 
+if [ "$GIT_PRIVATE_KEY" != "" ]; then
+  KEY_LOCATION=/etc/ssh-keys/ssh-privatekey
+  mkdir -p /etc/ssh-keys
+  echo "$GIT_PRIVATE_KEY" > $KEY_LOCATION
+  chmod 600 $KEY_LOCATION
+fi
+
+if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
+  KNOWN_HOSTS=/etc/ssh-keys/known_hosts
+  mkdir -p /etc/ssh-keys
+  echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
+fi
+
 export JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs"
 keytool -importkeystore -srckeystore $JAVA_HOME/jre/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
 if [ "$PROXY_CERT" != "" ]; then

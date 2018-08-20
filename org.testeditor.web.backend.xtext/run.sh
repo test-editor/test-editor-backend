@@ -19,6 +19,19 @@ if [ "$TIMEZONE" != "" ]; then
   export TZ="/usr/share/zoneinfo/$TIMEZONE"
 fi
 
+if [ "$GIT_PRIVATE_KEY" != "" ]; then
+  KEY_LOCATION=/etc/ssh-keys/ssh-privatekey
+  mkdir -p /etc/ssh-keys
+  echo "$GIT_PRIVATE_KEY" > $KEY_LOCATION
+  chmod 600 $KEY_LOCATION
+fi
+
+if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
+  KNOWN_HOSTS=/etc/ssh-keys/known_hosts
+  mkdir -p /etc/ssh-keys
+  echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
+fi
+
 sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
 sed -i "s|%REPO_ROOT%|$REPO_ROOT|g" config.yml
 sed -i "s|%BRANCH_NAME%|$BRANCH_NAME|g" config.yml
