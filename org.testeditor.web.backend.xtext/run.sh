@@ -11,6 +11,10 @@ if [ "$PROXY_CERT" != "" ]; then
 fi
 
 if [ "$GRADLE_PROPS" != "" ]; then
+  if [ "$http_proxyUser" != "" ]; then
+    sed -i "s|%http_proxyUser%|$http_proxyUser|g" ${GRADLE_PROPS}
+    sed -i "s|%http_proxyPassword%|$http_proxyPassword|g" ${GRADLE_PROPS}
+  fi
   mkdir ${PROG_DIR}/.gradle
   cp ${GRADLE_PROPS} ${PROG_DIR}/.gradle
 fi

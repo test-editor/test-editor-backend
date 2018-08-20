@@ -101,8 +101,8 @@ Starting this `Debug configuration` will then connect to the process started via
 Execute `../gradlew docker` within org.testeditor.web.xtext.persistence
 
 ``` shell
-docker run -p 8080:8080 -e GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" -e KNOWN_HOSTS_CONTENT="$(cat ~/.ssh/known_hosts)" -e TARGET_REPO=git@github.com:test-editor/language-examples.git -e BRANCH_NAME=feature/gonk testb-editor/xtext &
-docker run -p 9080:8080 -e GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" -e KNOWN_HOSTS_CONTENT="$(cat ~/.ssh/known_hosts)" -e TARGET_REPO=git@github.com:test-editor/language-examples.git -e BRANCH_NAME=feature/gonk test-editor/persistence &
+docker run -p 8080:8080 -e GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" -e KNOWN_HOSTS_CONTENT="$(cat ~/.ssh/known_hosts)" -e TARGET_REPO=git@github.com:test-editor/language-examples.git -e BRANCH_NAME=feature/some test-editor/xtext &
+docker run -p 9080:8080 -e GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" -e KNOWN_HOSTS_CONTENT="$(cat ~/.ssh/known_hosts)" -e TARGET_REPO=git@github.com:test-editor/language-examples.git -e BRANCH_NAME=feature/some test-editor/persistence &
 ```
 
 Given an appropriate compose file (see https://github.com/test-editor/test-editor-web), the frontend including the backends can be started via a single `docker-compose` command.
