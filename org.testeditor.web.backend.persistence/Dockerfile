@@ -50,8 +50,6 @@ RUN \
     mkdir -p ${PROG_DIR} && \
     mkdir -p ${REPO_ROOT} && \
     \
-    mkdir ${PROG_DIR}/.gradle && \
-    cp ${PROG_DIR}/gradle.properties ${PROG_DIR}/.gradle && \
     mv ${PROG_DIR}/config.template.yml ${PROG_DIR}/config.yml &&\
     \
     chmod --recursive ug+rwX,o-rwX ${PROG_DIR} && \
