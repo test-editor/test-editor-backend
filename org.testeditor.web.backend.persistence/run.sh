@@ -13,14 +13,14 @@ if [ "$REPO_MODE" == "" ]; then
 fi
 
 if [ "$GIT_PRIVATE_KEY" != "" ]; then
-  KEY_LOCATION=/etc/ssh-keys/ssh-privatekey
+  KEY_LOCATION=${PROG_DIR}/ssh-keys/ssh-privatekey
   mkdir -p `dirname $KEY_LOCATION`
   echo "$GIT_PRIVATE_KEY" > $KEY_LOCATION
   chmod 600 $KEY_LOCATION
 fi
 
 if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
-  KNOWN_HOSTS=/etc/ssh-keys/known_hosts
+  KNOWN_HOSTS=${PROG_DIR}/ssh-keys/known_hosts
   mkdir -p `dirname $KNOWN_HOSTS`
   echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
 fi
