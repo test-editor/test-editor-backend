@@ -11,12 +11,29 @@ if [ "$PROXY_CERT" != "" ]; then
 fi
 
 if [ "$GRADLE_PROPS" != "" ]; then
+  if [ "$http_proxyUser" != "" ]; then
+    sed -i "s|%http_proxyUser%|$http_proxyUser|g" ${GRADLE_PROPS}
+    sed -i "s|%http_proxyPassword%|$http_proxyPassword|g" ${GRADLE_PROPS}
+  fi
   mkdir ${PROG_DIR}/.gradle
   cp ${GRADLE_PROPS} ${PROG_DIR}/.gradle
 fi
 
 if [ "$TIMEZONE" != "" ]; then
   export TZ="/usr/share/zoneinfo/$TIMEZONE"
+fi
+
+if [ "$GIT_PRIVATE_KEY" != "" ]; then
+  KEY_LOCATION=/etc/ssh-keys/ssh-privatekey
+  mkdir -p `dirname $KEY_LOCATION`
+  echo "$GIT_PRIVATE_KEY" > $KEY_LOCATION
+  chmod 600 $KEY_LOCATION
+fi
+
+if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
+  KNOWN_HOSTS=/etc/ssh-keys/known_hosts
+  mkdir -p `dirname $KNOWN_HOSTS`
+  echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
 fi
 
 sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
