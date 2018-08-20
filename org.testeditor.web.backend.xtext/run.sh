@@ -21,14 +21,14 @@ fi
 
 if [ "$GIT_PRIVATE_KEY" != "" ]; then
   KEY_LOCATION=/etc/ssh-keys/ssh-privatekey
-  mkdir -p /etc/ssh-keys
+  mkdir -p `dirname $KEY_LOCATION`
   echo "$GIT_PRIVATE_KEY" > $KEY_LOCATION
   chmod 600 $KEY_LOCATION
 fi
 
 if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
   KNOWN_HOSTS=/etc/ssh-keys/known_hosts
-  mkdir -p /etc/ssh-keys
+  mkdir -p `dirname $KNOWN_HOSTS`
   echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
 fi
 
