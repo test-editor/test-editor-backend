@@ -56,6 +56,8 @@ if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
   echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
 fi
 
+echo "check env-var transport $some_env" # just a test
+
 sed -i "s|%REPO_MODE%|$REPO_MODE|g" config.yml
 sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
 sed -i "s|%REPO_ROOT%|$REPO_ROOT|g" config.yml
