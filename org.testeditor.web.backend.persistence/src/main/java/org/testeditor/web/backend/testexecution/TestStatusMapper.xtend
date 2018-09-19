@@ -38,7 +38,6 @@ class TestStatusMapper {
 	
 	var AtomicLong runningTestSuiteRunId = new AtomicLong(0)
 
-	val statusMap = new ConcurrentHashMap<String, TestProcess>
 	val suiteStatusMap = new ConcurrentHashMap<TestExecutionKey, TestProcess>
 	
 	def TestExecutionKey deriveFreshRunId(TestExecutionKey suiteKey) {
@@ -82,47 +81,6 @@ class TestStatusMapper {
 
 	private def boolean isRunning(TestExecutionKey executionKey) {
 		val process = suiteStatusMap.getOrDefault(executionKey, TestProcess.DEFAULT_IDLE_TEST_PROCESS)
-		return process.status == RUNNING
-	}
-
-
-	def TestStatus getStatus(String testPath) {
-		if (statusMap.containsKey(testPath)) {
-			return statusMap.get(testPath).status
-		} else {
-			return IDLE
-		}
-	}
-
-	def TestStatus waitForStatus(String testPath) {
-		if (statusMap.containsKey(testPath)) {
-			return statusMap.get(testPath).waitForStatus
-		} else {
-			return IDLE
-		}
-	}
-
-	def void addTestRun(String testPath, Process runningTest) {
-		if (testPath.isRunning) {
-			throw new IllegalStateException('''Test "«testPath»" is still running.''')
-		} else {
-			val testProcess = new TestProcess(runningTest)
-			statusMap.put(testPath, testProcess)
-		}
-	}
-	
-	def Iterable<TestStatusInfo> getAll() {
-		// iterating should be thread-safe, see e.g.
-		// https://stackoverflow.com/questions/3768554/is-iterating-concurrenthashmap-values-thread-safe
-
-		return this.statusMap.entrySet.map[entry|new TestStatusInfo => [
-			path = entry.key
-			status = entry.value.status.name
-		]]
-	}
-
-	private def boolean isRunning(String testPath) {
-		val process = statusMap.getOrDefault(testPath, TestProcess.DEFAULT_IDLE_TEST_PROCESS)
 		return process.status == RUNNING
 	}
 

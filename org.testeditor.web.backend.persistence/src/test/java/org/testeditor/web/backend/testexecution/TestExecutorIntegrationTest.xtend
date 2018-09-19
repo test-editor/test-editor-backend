@@ -6,15 +6,13 @@ import com.fasterxml.jackson.databind.node.JsonNodeType
 import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
-import java.util.regex.Pattern
+import javax.ws.rs.client.Entity
+import javax.ws.rs.client.Invocation
 import javax.ws.rs.client.Invocation.Builder
-import javax.ws.rs.core.GenericType
-import javax.ws.rs.core.HttpHeaders
-import javax.ws.rs.core.MultivaluedMap
 import javax.ws.rs.core.Response.Status
-import org.assertj.core.api.SoftAssertions
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
 
 import static org.assertj.core.api.Assertions.*
@@ -29,7 +27,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTestX-200001011200123.yaml') // SomeTestX != SomeTest
 		
 		// when
-		val request = createCallTreeRequest('SomeTest.tcl').buildGet
+		val request = createRequest('''test-suite/0/0''').buildGet
 		val response = request.submit.get
 
 		// then
@@ -46,7 +44,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		// latest (12 o'clock)
 		val latestCommitID = 'abcd'
 		val previousCommitID = '1234'
-		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011200123.yaml') => [
+		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun.0-0--.200001011200123.yaml') => [
 			JGitTestUtil.write(it, '''
 				"started": "on some instant"
 				"resourcePaths": [ "one", "two" ]
@@ -57,7 +55,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 			''')
 		]
 		// previous (11 o'clock)
-		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011100123.yaml') => [
+		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun.0-0--.200001011100123.yaml') => [
 			JGitTestUtil.write(it, '''
 				"started": "on some instant"
 				"resourcePaths": [ "one", "two" ]
@@ -69,7 +67,8 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		]
 
 		// when
-		val request = createCallTreeRequest('SomeTest.tcl').buildGet
+		val request = createCallTreeRequest('0', '0').buildGet
+		
 		val response = request.submit.get
 
 		// then
@@ -88,7 +87,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		workspaceRoot.newFolder(userId)
 		workspaceRoot.newFile(userId + '/SomeTest.tcl')
 		workspaceRoot.newFolder(userId, TestExecutorProvider.LOG_FOLDER)
-		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun-SomeTest-200001011200123.yaml') => [
+		workspaceRoot.newFile(userId + '/' + TestExecutorProvider.LOG_FOLDER + '/testrun.0-0--.200001011200123.yaml') => [
 			JGitTestUtil.write(it, '''
 				"started": "on some instant"
 				"resourcePaths": [ "one", "two" ]
@@ -110,7 +109,7 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		]
 
 		// when
-		val request = createCallTreeRequest('SomeTest.tcl').buildGet
+		val request = createCallTreeRequest('0', '0').buildGet
 		val response = request.submit.get
 
 		// then
@@ -151,15 +150,14 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		]
 
 		// when
-		val request = createTestExecutionRequest(testFile).buildPost(null)
+		val request = createTestExecutionRequest(testFile)
 		val response = request.submit.get
 
 		// then
 		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+		val url=response.headers.get('location').head.toString
 
-		createAsyncTestStatusRequest(testFile).get // wait for test to terminate
-		val logfile = workspaceRootPath.resolve(userId + '/' + relativeLogFileNameFrom(response.headers))
-		assertThat(logfile).exists
+		createAsyncTestStatusRequest(url).get // wait for test to terminate
 		val executionResult = workspaceRootPath.resolve(userId + '/test.ok.txt').toFile
 		assertThat(executionResult).exists
 	}
@@ -178,11 +176,12 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 				echo "test was run" > test.ok.txt
 			''')
 		]
-		val executionResponse = createTestExecutionRequest(testFile).post(null)
+		val executionResponse = createTestExecutionRequest(testFile).invoke
 		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+		val url=executionResponse.headers.get('location').head.toString
 
 		// when
-		val actualTestStatus = createTestStatusRequest(testFile).get
+		val actualTestStatus = createTestStatusRequest(url).get
 
 		// then
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('RUNNING')
@@ -202,11 +201,12 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 				echo "test was run" > test.ok.txt
 			''')
 		]
-		val executionResponse = createTestExecutionRequest(testFile).post(null)
+		val executionResponse = createTestExecutionRequest(testFile).invoke
 		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+		val url=executionResponse.headers.get('location').head.toString
 
 		// when
-		val actualTestStatus = createAsyncTestStatusRequest(testFile).get
+		val actualTestStatus = createAsyncTestStatusRequest(url).get
 
 		// then
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('SUCCESS')
@@ -226,11 +226,11 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 				exit 1 # signal error/failure
 			''')
 		]
-		val executionResponse = createTestExecutionRequest(testFile).post(null)
-		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
+		val executionResponse = createTestExecutionRequest(testFile).invoke
+		val url=executionResponse.headers.get('location').head.toString
 
 		// when
-		val actualTestStatus = createAsyncTestStatusRequest(testFile).get
+		val actualTestStatus = createAsyncTestStatusRequest(url).get
 
 		// then
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('FAILED')
@@ -253,16 +253,23 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		]
 
 		// when
-		val response = createTestExecutionRequest(testFile).post(null)
-		createAsyncTestStatusRequest(testFile).get // wait for completion
+		val response = createTestExecutionRequest(testFile).invoke
+		val url=response.headers.get('location').head.toString
+		createAsyncTestStatusRequest(url).get // wait for completion
 		// then
-		val logfile = workspaceRoot.root.toPath.resolve(userId + '/' + relativeLogFileNameFrom(response.headers))
-		val actualLogContent = new String(Files.readAllBytes(logfile))
+		val logFile=workspaceRoot.firstFileMatching('testrun\\.0-0--.*\\.log', userId, TestExecutorProvider.LOG_FOLDER)
+		val actualLogContent = new String(Files.readAllBytes(logFile.toPath))
 
 		assertThat(actualLogContent).isEqualTo('''
 			Test message to standard out
 			Test message to standard error
 		'''.toString)
+	}
+	
+	private def File firstFileMatching(TemporaryFolder folder, String pattern, String... subFolders) {
+		val dir = new File(folder.root.absolutePath, subFolders.join('/'))
+		val found=dir.list[home,name|name.matches(pattern)].head
+		return new File(dir, found)
 	}
 
 	@Test
@@ -278,10 +285,10 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 				sleep 12 # should timeout twice w/ timeout = 5 sec
 			''')
 		]
-		val executionResponse = createTestExecutionRequest(testFile).post(null)
+		val executionResponse = createTestExecutionRequest(testFile).invoke
 		assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
-
-		val longPollingRequest = createAsyncTestStatusRequest(testFile).async
+		val url=executionResponse.headers.get('location').head.toString
+		val longPollingRequest = createAsyncTestStatusRequest(url).async
 		val statusList = <String>newLinkedList('RUNNING')
 
 		// when
@@ -299,81 +306,21 @@ class TestExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
 		assertThat(statusList.head).isEqualTo('SUCCESS')
 	}
 
-	@Test
-	def void testThatStatusOfAllRunningAndTerminatedTestsIsReturned() {
-		// given
-		workspaceRoot.newFolder(userId)
-		val finishedFile = new File(workspaceRoot.root, '''«userId»/finished.txt''')
-		workspaceRoot.newFile('''«userId»/gradlew''') => [
-			executable = true
-			JGitTestUtil.write(it, '''
-				#!/bin/sh
-				if [ "$3" = "runningTest" ]; then
-				  echo "finished" > finished.txt
-				  sleep 7; exit 0
-				elif [ "$3" = "successfulTest" ]; then
-				  echo "finished" > finished.txt
-				  exit 0
-				elif [ "$3" = "failedTest" ]; then
-				  echo "finished" > finished.txt
-				  exit 1
-				fi
-			''')
-		]
-		val expectedStatusMap = #{'failed' -> 'FAILED', 'successful' -> 'SUCCESS', 'running' -> 'RUNNING'}
-		expectedStatusMap.keySet.map [ name |
-			workspaceRoot.newFile('''«userId»/«name»Test.tcl''')
-			return '''«name»Test.tcl'''
-		].forEach [
-			finishedFile.delete
-			val executionResponse = createTestExecutionRequest(it).post(null)
-			assertThat(executionResponse.status).isEqualTo(Status.CREATED.statusCode)
-			var threshold = 5
-			while (!finishedFile.exists && threshold > 0) {
-				println('waiting for shell script to finish.')
-				Thread.sleep(500)
-				threshold--
-			}
-		]
+	private def Builder createCallTreeRequest(String suiteId, String suiteRunId) {
+		return createRequest('''test-suite/«suiteId»/«suiteRunId»''')
 
-		// when
-		val response = createRequest('''tests/status/all''').get
-		response.bufferEntity
-
-		// then
-		val json = response.readEntity(String)
-		new SoftAssertions => [
-			expectedStatusMap.forEach [ prefix, status |
-				assertThat(json).matches(Pattern.compile(
-				'''\s*\[.*\{\s*"path"\s*:\s*"«prefix»Test.tcl"\s*,\s*"status"\s*:\s*"«status»"\s*\}.*\]\s*''', Pattern.DOTALL))
-			]
-			assertAll
-		]
-		val actualStatuses = response.readEntity(new GenericType<Iterable<TestStatusInfo>>() {
-		})
-		assertThat(actualStatuses).size.isEqualTo(3)
 	}
 
-	private def String relativeLogFileNameFrom(MultivaluedMap<String, Object> headers) {
-		val logFileURI = headers.getFirst(HttpHeaders.LOCATION) as String
-		val logAsRelativeFile = logFileURI.replaceFirst('.*/documents/', '')
-		return logAsRelativeFile
+	private def Invocation createTestExecutionRequest(String resourcePath) {
+		return createRequest('''test-suite/launch-new''').buildPost(Entity.json(#[resourcePath].toArray))
 	}
 
-	private def Builder createCallTreeRequest(String resourcePath) {
-		return createRequest('''tests/call-tree?resource=«resourcePath»''')
+	private def Builder createTestStatusRequest(String url) {
+		return createUrlRequest('''«url»?status''')
 	}
 
-	private def Builder createTestExecutionRequest(String resourcePath) {
-		return createRequest('''tests/execute?resource=«resourcePath»''')
-	}
-
-	private def Builder createTestStatusRequest(String resourcePath) {
-		return createRequest('''tests/status?resource=«resourcePath»''')
-	}
-
-	private def Builder createAsyncTestStatusRequest(String resourcePath) {
-		return createRequest('''tests/status?wait=true&resource=«resourcePath»''')
+	private def Builder createAsyncTestStatusRequest(String url) { // String
+		return createUrlRequest('''«url»?status&wait=true''')
 	}
 
 }

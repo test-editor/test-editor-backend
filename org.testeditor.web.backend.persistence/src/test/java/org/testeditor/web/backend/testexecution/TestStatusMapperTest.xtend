@@ -22,13 +22,13 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		// given
 		val testProcess = mock(Process)
 		when(testProcess.alive).thenReturn(true)
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 
 		// when
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// then
-		assertThat(statusMapperUnderTest.getStatus(testPath)).isEqualTo(RUNNING)
+		assertThat(statusMapperUnderTest.getStatus(testKey)).isEqualTo(RUNNING)
 	}
 
 	@Test
@@ -37,16 +37,16 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		val testProcess = mock(Process)
 		when(testProcess.alive).thenReturn(true)
 		val secondProcess = mock(Process)
-		val testPath = '/path/to/test.tcl'
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		val testKey = new TestExecutionKey('a')
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
 		try {
-			statusMapperUnderTest.addTestRun(testPath, secondProcess)
+			statusMapperUnderTest.addTestSuiteRun(testKey, secondProcess)
 			fail('Expected exception but none was thrown.')
 		} // then
 		catch (IllegalStateException ex) {
-			assertThat(ex.message).isEqualTo('''Test "«testPath»" is still running.'''.toString)
+			assertThat(ex.message).isEqualTo('''TestSuite "«testKey»" is still running.'''.toString)
 		}
 
 	}
@@ -56,28 +56,28 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		// given
 		val testProcess = mock(Process)
 		val secondProcess = mock(Process)
-		val testPath = '/path/to/test.tcl'
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		val testKey = new TestExecutionKey('a')
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 		when(testProcess.waitFor).thenReturn(EXIT_SUCCESS)
 		when(testProcess.exitValue).thenReturn(EXIT_SUCCESS)
 		when(testProcess.alive).thenReturn(false)
 		when(secondProcess.alive).thenReturn(true)
-		assertThat(statusMapperUnderTest.getStatus(testPath)).isNotEqualTo(RUNNING)
+		assertThat(statusMapperUnderTest.getStatus(testKey)).isNotEqualTo(RUNNING)
 
 		// when
-		statusMapperUnderTest.addTestRun(testPath, secondProcess)
+		statusMapperUnderTest.addTestSuiteRun(testKey, secondProcess)
 
 		// then
-		assertThat(statusMapperUnderTest.getStatus(testPath)).isEqualTo(RUNNING)
+		assertThat(statusMapperUnderTest.getStatus(testKey)).isEqualTo(RUNNING)
 	}
 
 	@Test
-	def void getStatusReturnsIdleForUnknownTestPath() {
+	def void getStatusReturnsIdleForUnknownTestKey() {
 		// given
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 
 		// when
-		val actualStatus = statusMapperUnderTest.getStatus(testPath)
+		val actualStatus = statusMapperUnderTest.getStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.IDLE)
@@ -87,13 +87,13 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void getStatusReturnsRunningAsLongAsTestProcessIsAlive() {
 		// given
 		val testProcess = mock(Process)
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 		when(testProcess.alive).thenReturn(true)
 		when(testProcess.exitValue).thenThrow(new IllegalStateException("Process is still running"))
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
-		val actualStatus = statusMapperUnderTest.getStatus(testPath)
+		val actualStatus = statusMapperUnderTest.getStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.RUNNING)
@@ -103,13 +103,13 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void getStatusReturnsSuccessAfterTestFinishedSuccessfully() {
 		// given
 		val testProcess = mock(Process)
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 		when(testProcess.exitValue).thenReturn(EXIT_SUCCESS)
 		when(testProcess.waitFor).thenReturn(EXIT_SUCCESS)
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
-		val actualStatus = statusMapperUnderTest.getStatus(testPath)
+		val actualStatus = statusMapperUnderTest.getStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.SUCCESS)
@@ -119,13 +119,13 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void getStatusReturnsFailureAfterTestFailed() {
 		// given
 		val testProcess = mock(Process)
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 		when(testProcess.exitValue).thenReturn(EXIT_FAILURE)
 		when(testProcess.waitFor).thenReturn(EXIT_FAILURE)
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
-		val actualStatus = statusMapperUnderTest.getStatus(testPath)
+		val actualStatus = statusMapperUnderTest.getStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.FAILED)
@@ -135,24 +135,24 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void getStatusReturnsFailureWhenExternalProcessExitsWithNoneZeroCode() {
 		// given
 		val testProcess = new ProcessBuilder('sh', '-c', '''exit «EXIT_FAILURE»''').start
-		val testPath = '/path/to/test.tcl'
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		val testKey = new TestExecutionKey('a')
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 		testProcess.waitFor
 
 		// when
-		val actualStatus = statusMapperUnderTest.getStatus(testPath)
+		val actualStatus = statusMapperUnderTest.getStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.FAILED)
 	}
 
 	@Test
-	def void waitForStatusReturnsIdleForUnknownTestPath() {
+	def void waitForStatusReturnsIdleForUnknownTestKey() {
 		// given
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 
 		// when
-		val actualStatus = statusMapperUnderTest.waitForStatus(testPath)
+		val actualStatus = statusMapperUnderTest.waitForStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.IDLE)
@@ -162,15 +162,15 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void waitForStatusCallsBlockingWaitForMethodOfProcess() {
 		// given
 		val testProcess = mock(Process)
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 		when(testProcess.exitValue).thenReturn(0)
 		when(testProcess.waitFor).thenReturn(0)
 		when(testProcess.alive).thenReturn(true)
 
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
-		statusMapperUnderTest.waitForStatus(testPath)
+		statusMapperUnderTest.waitForStatus(testKey)
 
 		// then
 		verify(testProcess).waitFor
@@ -180,14 +180,14 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void waitForStatusReturnsSuccessAfterTestFinishedSuccessfully() {
 		// given
 		val testProcess = mock(Process)
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 		when(testProcess.exitValue).thenReturn(EXIT_SUCCESS)
 		when(testProcess.waitFor).thenReturn(EXIT_SUCCESS)
 		when(testProcess.alive).thenReturn(false)
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
-		val actualStatus = statusMapperUnderTest.waitForStatus(testPath)
+		val actualStatus = statusMapperUnderTest.waitForStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.SUCCESS)
@@ -197,13 +197,13 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void waitForStatusReturnsFailureAfterTestFailed() {
 		// given
 		val testProcess = mock(Process)
-		val testPath = '/path/to/test.tcl'
+		val testKey = new TestExecutionKey('a')
 		when(testProcess.exitValue).thenReturn(EXIT_FAILURE)
 		when(testProcess.waitFor).thenReturn(EXIT_FAILURE)
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
-		val actualStatus = statusMapperUnderTest.waitForStatus(testPath)
+		val actualStatus = statusMapperUnderTest.waitForStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.FAILED)
@@ -213,11 +213,11 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void waitForStatusReturnsFailureWhenExternalProcessExitsWithNoneZeroCode() {
 		// given
 		val testProcess = new ProcessBuilder('sh', '-c', '''exit «EXIT_FAILURE»''').start
-		val testPath = '/path/to/test.tcl'
-		statusMapperUnderTest.addTestRun(testPath, testProcess)
+		val testKey = new TestExecutionKey('a')
+		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
-		val actualStatus = statusMapperUnderTest.waitForStatus(testPath)
+		val actualStatus = statusMapperUnderTest.waitForStatus(testKey)
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.FAILED)
@@ -226,7 +226,7 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void getAllInitiallyReturnsEmptyArray() {
 		// given + when
-		val actualStatuses = statusMapperUnderTest.all
+		val actualStatuses = statusMapperUnderTest.allTestSuites
 
 		// then
 		assertThat(actualStatuses).isEmpty()
@@ -235,34 +235,34 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void getAllReturnsStatusOfAllTestsWithKnownStatus() {
 		// given
-		val failedTestPath = '/path/to/failedTest.tcl'
+		val failedTestKey = new TestExecutionKey('f')
 		val failedProcess = mockedTerminatedProcess(EXIT_FAILURE)
 
-		val successfulTestPath = '/path/to/successfulTest.tcl'
+		val successfulTestKey = new TestExecutionKey('s')
 		val successfulProcess = mockedTerminatedProcess(EXIT_SUCCESS)
 
-		val runningTestPath = '/path/to/runningTest.tcl'
+		val runningTestKey = new TestExecutionKey('r')
 		val runningProcess = mockedRunningProcess()
 
-		statusMapperUnderTest.addTestRun(failedTestPath, failedProcess)
-		statusMapperUnderTest.addTestRun(successfulTestPath, successfulProcess)
-		statusMapperUnderTest.addTestRun(runningTestPath, runningProcess)
+		statusMapperUnderTest.addTestSuiteRun(failedTestKey, failedProcess)
+		statusMapperUnderTest.addTestSuiteRun(successfulTestKey, successfulProcess)
+		statusMapperUnderTest.addTestSuiteRun(runningTestKey, runningProcess)
 
 		// when
-		val actualStatuses = statusMapperUnderTest.all
+		val actualStatuses = statusMapperUnderTest.allTestSuites
 
 		// then
 		assertThat(actualStatuses).containsOnly(#[
-			new TestStatusInfo => [
-				path = failedTestPath
+			new TestSuiteStatusInfo => [
+				key = failedTestKey
 				status = 'FAILED'
 			],
-			new TestStatusInfo => [
-				path = successfulTestPath
+			new TestSuiteStatusInfo => [
+				key = successfulTestKey
 				status = 'SUCCESS'
 			],
-			new TestStatusInfo => [
-				path = runningTestPath
+			new TestSuiteStatusInfo => [
+				key = runningTestKey
 				status = 'RUNNING'
 			]
 		])

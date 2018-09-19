@@ -31,3 +31,4 @@ xtend-gen/
 ### local configurations
 init.gradle
 config.local.yml
+/org.testeditor.web.backend.xtext/repo/
