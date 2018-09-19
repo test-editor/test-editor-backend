@@ -555,6 +555,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				sleep 2 # should timeout twice w/ timeout = 5 sec
 				echo "done"
 				echo "ok" > test.ok.txt
+				exit 0
 			''')
 		]
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
