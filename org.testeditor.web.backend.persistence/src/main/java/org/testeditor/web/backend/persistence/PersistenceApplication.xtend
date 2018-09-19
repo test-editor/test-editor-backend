@@ -9,7 +9,6 @@ import javax.servlet.FilterRegistration.Dynamic
 import org.testeditor.web.backend.persistence.exception.PersistenceExceptionMapper
 import org.testeditor.web.backend.persistence.health.ExecutionHealthCheck
 import org.testeditor.web.backend.persistence.workspace.WorkspaceResource
-import org.testeditor.web.backend.testexecution.TestExecutorResource
 import org.testeditor.web.backend.testexecution.TestSuiteResource
 import org.testeditor.web.dropwizard.DropwizardApplication
 
@@ -33,7 +32,6 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 		environment.jersey => [
 			register(DocumentResource)
 			register(WorkspaceResource)
-			register(TestExecutorResource)
 			register(PersistenceExceptionMapper)
 			register(TestSuiteResource)
 		]

@@ -1,6 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
-import com.fasterxml.jackson.core.io.JsonStringEncoder
+import com.fasterxml.jackson.core.util.BufferRecyclers
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
@@ -37,7 +37,7 @@ import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 class TestSuiteResource {
 
 	private static val LONG_POLLING_TIMEOUT_SECONDS = 5
-	static val logger = LoggerFactory.getLogger(TestExecutorResource)
+	static val logger = LoggerFactory.getLogger(TestSuiteResource)
 
 	@Inject TestExecutorProvider executorProvider
 	@Inject TestStatusMapper statusMapper
@@ -67,7 +67,7 @@ class TestSuiteResource {
 			var warning = ''
 			try {
 				logLines.addAll(
-					logFinder.getLogLinesForTestStep(executionKey).map[new String(JsonStringEncoder.instance.quoteAsString(it))]
+					logFinder.getLogLinesForTestStep(executionKey).map[new String(BufferRecyclers.jsonStringEncoder.quoteAsString(it))]
 				)
 			} catch (FileNotFoundException e) {
 				warning = '''No log file for test execution key '«executionKey.toString»'.'''

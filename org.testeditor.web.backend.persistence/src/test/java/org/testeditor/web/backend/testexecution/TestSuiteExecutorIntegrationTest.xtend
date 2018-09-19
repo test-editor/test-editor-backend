@@ -547,7 +547,15 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			executable = true
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
-				sleep 12 # should timeout twice w/ timeout = 5 sec
+				echo "doing something for 5s"
+				sleep 5
+				echo "doing something for 5s, again"
+				sleep 5
+				echo "doing something for only 2s)"
+				sleep 2 # should timeout twice w/ timeout = 5 sec
+				echo "done"
+				echo "ok" > test.ok.txt
+				exit 0
 			''')
 		]
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
@@ -557,16 +565,19 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val statusList = <String>newLinkedList('RUNNING')
 
 		// when
-		for (var i = 0; i < 4 && statusList.head.equals('RUNNING'); i++) {
+		// wait until either the status inidcates it is no longer running, or until near infinity (100) was reached
+		for (var i = 0; i < 100 && statusList.head.equals('RUNNING'); i++) {
 			val future = longPollingRequest.get
 			val pollResponse = future.get(120, TimeUnit.SECONDS)
 			assertThat(pollResponse.status).isEqualTo(Status.OK.statusCode)
 			statusList.offerFirst(pollResponse.readEntity(String))
 			pollResponse.close
+			System.out.println('still running, sleeping 5 seconds ...')
 			Thread.sleep(5000)
 		}
 
 		// then
+		System.out.println('no longer running.')
 		assertThat(statusList.size).isGreaterThan(3)
 		assertThat(statusList.tail).allMatch['RUNNING'.equals(it)]
 		assertThat(statusList.head).isEqualTo('SUCCESS')

@@ -88,9 +88,12 @@ abstract class AbstractPersistenceIntegrationTest {
 
 	protected def Builder createRequest(String relativePath) {
 		val uri = '''http://localhost:«dropwizardAppRule.localPort»/«relativePath»'''
+		return createUrlRequest(uri)
+	}
+
+	protected def Builder createUrlRequest(String uri) {
 		val builder = dropwizardAppRule.client.target(uri).request
 		builder.header('Authorization', '''Bearer «token»''')
 		return builder
 	}
-
 }
