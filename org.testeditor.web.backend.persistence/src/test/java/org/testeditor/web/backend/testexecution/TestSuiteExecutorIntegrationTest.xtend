@@ -565,8 +565,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val statusList = <String>newLinkedList('RUNNING')
 
 		// when
-		// wait until either the file test.ok.txt appears, the status is no longer running, or until near infinity (1000) was reached
-		for (var i = 0; i < 1000 && !new File(workspaceRoot.root.absolutePath, '''«userId»/test.ok.txt''').exists && statusList.head.equals('RUNNING'); i++) {
+		// wait until either the status inidcates it is no longer running, or until near infinity (100) was reached
+		for (var i = 0; i < 100 && statusList.head.equals('RUNNING'); i++) {
 			val future = longPollingRequest.get
 			val pollResponse = future.get(120, TimeUnit.SECONDS)
 			assertThat(pollResponse.status).isEqualTo(Status.OK.statusCode)
