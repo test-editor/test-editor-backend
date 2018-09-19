@@ -587,26 +587,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	def void testThatStatusOfAllRunningAndTerminatedTestsIsReturned() {
 		// given
 		workspaceRoot.newFolder(userId)
-		new File(workspaceRoot.root, '''«userId»/calledCount.txt''').delete
-		workspaceRoot.newFile('''«userId»/gradlew''') => [
-			executable = true
-			JGitTestUtil.write(it, '''
-				#!/bin/sh
-				echo "called" >> calledCount.txt
-				called=`cat calledCount.txt | wc -l`
-				echo "called $called times"
-				if [ "$called" = "3" ]; then
-				  echo "lastcall" > finished.txt
-				  sleep 7; exit 0
-				elif [ "$called" = "2" ]; then
-				  echo "secondcall" > finished.txt
-				  exit 0
-				elif [ "$called" = "1" ]; then
-				  echo "firstcall" > finished.txt
-				  exit 1
-				fi
-			''')
-		]
+		createGradleForMulticall(#['firstcall', 0, 1], #['secondcall', 0, 0], #["lastcall", 7, 0])
+		
 		val expectedStatusMap = #['FAILED', 'SUCCESS', 'RUNNING']
 		expectedStatusMap.map [ name |
 			workspaceRoot.newFile('''«userId»/Test«name».tcl''')
@@ -641,9 +623,73 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		})
 		assertThat(actualStatuses).size.isEqualTo(3)
 	}
+	
+	@Test
+	def void testListingTestSuites() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				sleep 7 # ensure test reads process's status while still running
+				echo "test was run" > test.ok.txt
+				exit 0
+			''')
+		]
+		val response = createLaunchNewRequest.post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
+		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+
+		// when
+		val listResponse = createTestSuiteListRequest.buildGet.invoke
+		val suiteList = listResponse.readEntity(String)
+
+		// then
+		assertThat(suiteList).isEqualTo('[{"suiteId":"0","suiteRunId":"0","caseRunId":"","callTreeId":""}]')
+	}
+	
+	@Test
+	def void testListingTestSuitesRunningAndSuccessfullyRun() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		createGradleForMulticall(#['firstcall', 0, 1], #['secondcall', 0, 0], #["lastcall", 7, 0])
+
+		val expectedStatusMap = #['FAILED', 'SUCCESS', 'RUNNING']
+		expectedStatusMap.map [ name |
+			workspaceRoot.newFile('''«userId»/Test«name».tcl''')
+			return '''Test«name».tcl'''
+		].forEach [ name, index |
+			new File(workspaceRoot.root, '''«userId»/finished.txt''').delete
+			val response = createLaunchNewRequest().post(Entity.entity(#[name], MediaType.APPLICATION_JSON_TYPE))
+			assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+			var threshold = 5
+			while (!new File(workspaceRoot.root, '''«userId»/finished.txt''').exists && threshold > 0) {
+				println('waiting for script to settle ...')
+				Thread.sleep(500) // give the script some time to settle
+				threshold--
+			}
+		]
+
+		// when
+		val listResponse = createTestSuiteListRequest.buildGet.invoke
+		val suiteList = listResponse.readEntity(String)
+
+		// then
+		assertThat(suiteList).isEqualTo('[{"suiteId":"0","suiteRunId":"0","caseRunId":"","callTreeId":""},'
+			+ '{"suiteId":"0","suiteRunId":"1","caseRunId":"","callTreeId":""},'
+			+'{"suiteId":"0","suiteRunId":"2","caseRunId":"","callTreeId":""}]')
+	}
 
 	private def Builder createCallTreeRequest(TestExecutionKey key) {
 		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»''')
+	}
+
+	private def Builder createTestSuiteListRequest() {
+		return createRequest('''test-suite/list''')
 	}
 
 	private def Builder createLaunchNewRequest() {
@@ -660,6 +706,39 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 
 	private def Builder createNodeRequest(TestExecutionKey key) {
 		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»''')
+	}
+
+	/**
+	 * create a gradle file that will do the following for each of the passed triples:
+	 *   1. echo the id into finished.txt
+	 *   2. sleep the given amout of seconds
+	 *   3. exit with the given exit code
+	 * <br/><br/>
+	 * the triple itself is an iterable of &lt;id, sleep, exit&gt;
+	 */
+	private def void createGradleForMulticall(Iterable<Object>... idSleepExitCodeTriple) {
+		new File(workspaceRoot.root, '''«userId»/calledCount.txt''').delete
+		workspaceRoot.newFile('''«userId»/gradlew''') => [
+			executable = true
+			
+			var callIndex = 1
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo "called" >> calledCount.txt
+				called=`cat calledCount.txt | wc -l`
+				echo "called $called time(s)"
+				if [ "$called" = "«idSleepExitCodeTriple.length+1»" ]; then
+				  echo "ERROR" > finished.txt
+				  echo "ERROR"
+				  exit 1
+				«FOR triple : idSleepExitCodeTriple»
+				elif [ "$called" = "«callIndex++»" ]; then
+				  echo "«triple.get(0)»" > finished.txt
+				  sleep «triple.get(1)»; exit «triple.get(2)»
+				«ENDFOR»
+				fi
+			''')
+			]
 	}
 
 }

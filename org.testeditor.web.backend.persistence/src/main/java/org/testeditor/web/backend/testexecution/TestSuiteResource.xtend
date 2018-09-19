@@ -46,6 +46,13 @@ class TestSuiteResource {
 	@Inject TestExecutionCallTree testExecutionCallTree
 	@Inject ScreenshotFinder screenshotFinder
 	@Inject LogFinder logFinder
+	
+	@GET
+	@Path("list")
+	@Produces(MediaType.APPLICATION_JSON)
+	def Response listTestSuites() {
+		Response.ok(statusMapper.allTestSuites.map[key]).build
+	}
 
 	@GET
 	@Path("{suiteId}/{suiteRunId}/{caseRunId}/{callTreeId}")
