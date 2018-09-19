@@ -548,6 +548,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
 				sleep 12 # should timeout twice w/ timeout = 5 sec
+				echo "ok" > test.ok.txt
 			''')
 		]
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
@@ -557,7 +558,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val statusList = <String>newLinkedList('RUNNING')
 
 		// when
-		for (var i = 0; i < 4 && statusList.head.equals('RUNNING'); i++) {
+		for (var i = 0; i < 1000 && !new File(workspaceRoot.root.absolutePath, '''«userId»/test.ok.txt''').exists && statusList.head.equals('RUNNING'); i++) {
 			val future = longPollingRequest.get
 			val pollResponse = future.get(120, TimeUnit.SECONDS)
 			assertThat(pollResponse.status).isEqualTo(Status.OK.statusCode)
