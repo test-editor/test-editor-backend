@@ -35,7 +35,7 @@ class DocumentProvider {
 
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
 	
-	private static val BACKUP_FILE_SUFFIX = '.local-backup'
+	private static val BACKUP_FILE_SUFFIX = 'local_backup'
 	private static val MAX_BACKUP_FILE_NUMBER_SUFFIX = 9
 
 	@Inject Provider<User> userProvider
@@ -232,21 +232,23 @@ class DocumentProvider {
 
 	private def createLocalBackup(String resourcePath, String content) {
 		val workspace = workspaceProvider.workspace
+		val resourceSuffix = resourcePath.split('\\.').last
+		val resourceWithoutSuffix = resourcePath.substring(0, resourcePath.length - resourceSuffix.length)
 		var fileSuffix = BACKUP_FILE_SUFFIX
-		var backupFile = new File(workspace, resourcePath + fileSuffix)
+		var backupFile = new File(workspace, resourceWithoutSuffix + fileSuffix + '.' + resourceSuffix)
 		if (!backupFile.create) {
 			val numberSuffix = (0 .. MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst [ i |
-				new File(workspace, '''«resourcePath»«BACKUP_FILE_SUFFIX»-«i»''').create
+				new File(workspace, '''«resourceWithoutSuffix»«BACKUP_FILE_SUFFIX»_«i».«resourceSuffix»''').create
 			]
 			if (numberSuffix !== null) {
-				fileSuffix = '''«BACKUP_FILE_SUFFIX»-«numberSuffix»'''
-				backupFile = new File(workspace, '''«resourcePath»«fileSuffix»''')
+				fileSuffix = '''«BACKUP_FILE_SUFFIX»_«numberSuffix»'''
+				backupFile = new File(workspace, '''«resourceWithoutSuffix»«fileSuffix».«resourceSuffix»''')
 			} else {
 				throw new IllegalStateException('''Could not create a backup file for '«resourcePath»': backup file limit reached.''')
 			}
 		}
 		Files.asCharSink(backupFile, UTF_8).write(content)
-		return resourcePath + fileSuffix
+		return resourceWithoutSuffix + fileSuffix + '.' + resourceSuffix
 	}
 
 	private def Optional<StageState> pull() {

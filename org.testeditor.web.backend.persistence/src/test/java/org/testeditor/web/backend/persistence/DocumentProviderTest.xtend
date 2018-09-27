@@ -320,6 +320,8 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void saveWithRemoteChangesCreatesUnversionedBackupFileAndRaisesException() {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
+		val suffix = existingFileName.split('\\.').last
+		val filenameWithoutSuffix = existingFileName.substring(0, existingFileName.length - suffix.length)
 		val localGit = gitProvider.git
 		localGit.pull.call
 		
@@ -336,7 +338,7 @@ class DocumentProviderTest extends AbstractGitTest {
 			// then			
 			fail('Expected ConflictingModificationsException, but none was thrown.')
 		} catch (ConflictingModificationsException exception) {
-			val backupFileName = existingFileName + '.local-backup'
+			val backupFileName = filenameWithoutSuffix + 'local_backup.' + suffix
 			val backupFile = new File(localGitRoot.root, backupFileName)
 			val existingFile = new File(localGitRoot.root, existingFileName)
 
@@ -358,6 +360,8 @@ class DocumentProviderTest extends AbstractGitTest {
 		// given
 		config.useDiffMarkersInBackups = true
 		val existingFileName = createPreExistingFileInRemoteRepository
+		val suffix = existingFileName.split('\\.').last
+		val filenameWithoutSuffix = existingFileName.substring(0, existingFileName.length - suffix.length)
 		val localGit = gitProvider.git
 		localGit.pull.call
 		
@@ -380,7 +384,7 @@ class DocumentProviderTest extends AbstractGitTest {
 			// then			
 			fail('Expected ConflictingModificationsException, but none was thrown.')
 		} catch (ConflictingModificationsException exception) {
-			val backupFileName = existingFileName + '.local-backup'
+			val backupFileName = filenameWithoutSuffix + 'local_backup.' + suffix
 			val backupFile = new File(localGitRoot.root, backupFileName)
 
 			assertThat(backupFile).hasContent('''
@@ -399,12 +403,14 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void saveWithRemoteChangesFindsNextFreeFileNameForBackupFile() {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository
+		val suffix = existingFileName.split('\\.').last
+		val filenameWithoutSuffix = existingFileName.substring(0, existingFileName.length - suffix.length)
 		val localGit = gitProvider.git
 		localGit.pull.call
 		val previousBackupFiles = #[
-			existingFileName + '.local-backup',
-			existingFileName + '.local-backup-0',
-			existingFileName + '.local-backup-2']
+			filenameWithoutSuffix + 'local_backup.' + suffix,
+			filenameWithoutSuffix + 'local_backup_0.' + suffix,
+			filenameWithoutSuffix + 'local_backup_2.' + suffix]
 		previousBackupFiles.forEach[localGitRoot.newFile(it)]
 		
 		
@@ -421,7 +427,7 @@ class DocumentProviderTest extends AbstractGitTest {
 			// then			
 			fail('Expected ConflictingModificationsException, but none was thrown.')
 		} catch (ConflictingModificationsException exception) {
-			val expectedBackupFileName = existingFileName + '.local-backup-1'
+			val expectedBackupFileName = filenameWithoutSuffix + 'local_backup_1.' + suffix
 			val expectedBackupFile = new File(localGitRoot.root, expectedBackupFileName)
 
 			new SoftAssertions => [
@@ -439,6 +445,8 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void saveRemotelyDeletedFileCreatesBackupFileAndRaisesException() {
 		// given
 		val existingFileName = createPreExistingFileInRemoteRepository('tmp/test.txt')
+		val suffix = existingFileName.split('\\.').last
+		val filenameWithoutSuffix = existingFileName.substring(0, existingFileName.length - suffix.length)
 		val localChange = 'Contents of file after local change'
 		val localGit = gitProvider.git
 		localGit.pull.call
@@ -453,7 +461,7 @@ class DocumentProviderTest extends AbstractGitTest {
 			// then			
 			fail('Expected ConflictingModificationsException, but none was thrown.')
 		} catch (ConflictingModificationsException exception) {
-			val backupFileName = existingFileName + '.local-backup'
+			val backupFileName = filenameWithoutSuffix + 'local_backup.' + suffix
 			val backupFile = new File(localGitRoot.root, backupFileName)
 
 			new SoftAssertions => [
@@ -474,6 +482,8 @@ class DocumentProviderTest extends AbstractGitTest {
 		val localGit = gitProvider.git
 		
 		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', 'Lorem Ipsum')
+		val suffix = existingFileName.split('\\.').last
+		val filenameWithoutSuffix = existingFileName.substring(0, existingFileName.length - suffix.length)
 		val localContent = 'Lorem Ipsum dolor sit amet'
 
 		// when
@@ -483,7 +493,7 @@ class DocumentProviderTest extends AbstractGitTest {
 			// then			
 			fail('Expected ConflictingModificationsException, but none was thrown.')
 		} catch (ConflictingModificationsException exception) {
-			val backupFileName = existingFileName + '.local-backup'
+			val backupFileName = filenameWithoutSuffix + 'local_backup.' + suffix
 			val backupFile = new File(localGitRoot.root, backupFileName)
 			
 			new SoftAssertions => [
@@ -504,6 +514,8 @@ class DocumentProviderTest extends AbstractGitTest {
 		gitProvider.git
 		
 		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', '')
+		val suffix = existingFileName.split('\\.').last
+		val filenameWithoutSuffix = existingFileName.substring(0, existingFileName.length - suffix.length)
 		val remoteChange = 'Contents of file after remote change'
 		remoteGitFolder.root.write(existingFileName, remoteChange)
 		remoteGit.addAndCommit(existingFileName, "change on remote")
@@ -516,7 +528,7 @@ class DocumentProviderTest extends AbstractGitTest {
 			// then			
 			fail('Expected ConflictingModificationsException, but none was thrown.')
 		} catch (ConflictingModificationsException exception) {
-			val backupFileName = existingFileName + '.local-backup'
+			val backupFileName = filenameWithoutSuffix + 'local_backup.' + suffix
 			val backupFile = new File(localGitRoot.root, backupFileName)
 			
 			new SoftAssertions => [
@@ -534,6 +546,8 @@ class DocumentProviderTest extends AbstractGitTest {
 		gitProvider.git
 		
 		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', '')
+		val suffix = existingFileName.split('\\.').last
+		val filenameWithoutSuffix = existingFileName.substring(0, existingFileName.length - suffix.length)
 
 		// when
 		documentProvider.create(existingFileName, null)
@@ -541,7 +555,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		// then
 		val localFile = new File(localGitRoot.root, existingFileName)
 		val remoteFile = new File(remoteGitFolder.root, existingFileName)
-		val backupFileName = existingFileName + '.local-backup'
+		val backupFileName = filenameWithoutSuffix + 'local_backup.' + suffix
 		val backupFile = new File(localGitRoot.root, backupFileName)
 			
 		new SoftAssertions => [
@@ -558,6 +572,8 @@ class DocumentProviderTest extends AbstractGitTest {
 		gitProvider.git
 		
 		val existingFileName = createPreExistingFileInRemoteRepository('newFile.txt', '')
+		val suffix = existingFileName.split('\\.').last
+		val filenameWithoutSuffix = existingFileName.substring(0, existingFileName.length - suffix.length)
 		val localContent = 'Lorem ipsum dolor sit amet'
 
 		// when	
@@ -568,7 +584,7 @@ class DocumentProviderTest extends AbstractGitTest {
 			fail('Expected ConflictingModificationsException, but none was thrown.')
 		} catch (ConflictingModificationsException exception) {
 			val localFile = new File(localGitRoot.root, existingFileName)
-			val backupFileName = existingFileName + '.local-backup'
+			val backupFileName = filenameWithoutSuffix + 'local_backup.' + suffix
 			val backupFile = new File(localGitRoot.root, backupFileName)
 			
 			new SoftAssertions => [
