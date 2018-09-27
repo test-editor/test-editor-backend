@@ -10,7 +10,7 @@ cache:
   - "./.odcdb"
 script:
 - "./gradlew check"
-- "./.travis-cat_owasp_depcheck_reports.sh"
+- "timeout 300 ./.travis-cat_owasp_depcheck_reports.sh || true"
 - if [[ ( "$TRAVIS_PULL_REQUEST" = "false" ) && (( "$TRAVIS_BRANCH" = "master" ) || ( "$TRAVIS_TAG" != "" )) ]]; then ./gradlew docker && export TE_DEPLOY=true; fi
 deploy:
   provider: script

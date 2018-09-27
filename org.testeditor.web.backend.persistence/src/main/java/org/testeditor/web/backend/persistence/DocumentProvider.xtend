@@ -43,6 +43,25 @@ class DocumentProvider {
 	@Inject WorkspaceProvider workspaceProvider
 	@Inject PersistenceConfiguration configuration
 
+	def void copy(String resourcePath, String newPath) throws ConflictingModificationsException {
+		val file = getWorkspaceFile(resourcePath)
+		val newFile = getWorkspaceFile(newPath)
+		if (!file.exists) {
+			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
+		} else if (newFile.exists) {
+			throw new ExistingFileException('''target file '«newPath»' does already exist''')
+		} else {
+			if(file.isDirectory) {
+				FileUtils.copyDirectory(file, newFile)
+				FileUtils.listFiles(newFile, null, true).commit('''copied subdirectory '«resourcePath»' to '«newFile»' ''')
+			} else {
+				FileUtils.copyFile(file, newFile)
+				#[newFile].commit('''copied file '«resourcePath»' to '«newPath»'. ''')
+			}
+			repoSync[onConflict|onConflict.resetToRemoteNoBackup(resourcePath)]
+		}
+	}
+
 	def void rename(String resourcePath, String newPath) throws ConflictingModificationsException {
 		val file = getWorkspaceFile(resourcePath)
 		val newFile = getWorkspaceFile(newPath)

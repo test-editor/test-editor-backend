@@ -47,6 +47,50 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 	
 	@Test
+	def void copyFolderCommitsAsAddDiff() {
+		// given
+		folderSetupForRenameTests
+		val numberOfCommitsBefore = remoteGit.log.call.size
+
+		// when
+		documentProvider.copy('src/main/java', 'src/main/resource')
+		
+		//then
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, 'src/main/resource/Hello.txt')
+		new File(localGitRoot.root, 'src/main/resource/Hello.txt').exists.assertTrue
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
+	}
+	
+	@Test
+	def void copyPushesChanges() {
+		// given
+		val numberOfCommitsBefore = remoteGit.log.call.size
+		val oldFileName = 'README.md' // existing because of abstract test class setup
+		val newFileName = 'NEW-NAME.md'
+
+		// when
+		documentProvider.copy(oldFileName, newFileName)
+
+		// then
+		remoteGit.assertSingleCommit(numberOfCommitsBefore, ADD, newFileName)
+	}
+	
+	
+	@Test
+	def void copyFileCommitsAsAddDiff() {
+		folderSetupForRenameTests
+		val numberOfCommitsBefore = remoteGit.log.call.size
+
+		// when
+		documentProvider.copy('src/main/java/Hello.txt', 'src/main/resource/Hello.txt')
+		
+		//then
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, 'src/main/resource/Hello.txt')
+		new File(localGitRoot.root, 'src/main/resource/Hello.txt').exists.assertTrue
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
+	}
+	
+	@Test
 	def void renameFolderCommitsARenameDiff() {
 		// given
 		folderSetupForRenameTests

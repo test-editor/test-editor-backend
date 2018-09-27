@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets
 import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.MediaType
+import javax.ws.rs.core.UriBuilder
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.junit.JGitTestUtil
@@ -22,8 +23,10 @@ import static extension org.apache.commons.io.IOUtils.contentEquals
 class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	val resourcePath = "some/parent/folder/example.tsl"
+	val copyResourcePath = "third/folder/example_to_copy.tsl"
 	val preRenamedResourcePath = "other/parent/folder/example_toberenamed.tsl"
 	val renamedResource = "other/parent/folder/example_renamed.tsl"
+	val copiedResource = "other/parent/folder/example_copied.tsl"
 	val simpleTsl = '''
 		package org.example
 		
@@ -43,6 +46,24 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		JGitTestUtil.writeTrashFile(git.repository, preRenamedResourcePath, 'some content')
 		git.add.addFilepattern(preRenamedResourcePath).call
 		git.commit.setMessage("Commit for rename tests").call
+
+		JGitTestUtil.writeTrashFile(git.repository, copyResourcePath, 'some other content')
+		git.add.addFilepattern(copyResourcePath).call
+		git.commit.setMessage("Commit for copy tests").call
+	}
+	
+	@Test
+	def void canCopyDocument() {
+		// given
+		val request = createCopyDocumentRequest(copiedResource, copyResourcePath).buildPost(null)
+
+		// when
+		val response = request.submit.get
+
+		// then
+		response.status.assertEquals(CREATED.statusCode)
+		val resultingResource = response.readEntity(String)
+		resultingResource.assertEquals(copiedResource)
 	}
 
 	@Test
@@ -418,6 +439,10 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 	private def Builder createRenameDocumentRequest(String resourcePath) {
 		return createRequest('''documents/«resourcePath»?rename''')
+	}
+
+	private def Builder createCopyDocumentRequest(String resourcePath, String sourcePath) {
+		return createRequest('''documents/«resourcePath»«UriBuilder.fromUri('').queryParam('source', sourcePath)»''')
 	}
 
 }

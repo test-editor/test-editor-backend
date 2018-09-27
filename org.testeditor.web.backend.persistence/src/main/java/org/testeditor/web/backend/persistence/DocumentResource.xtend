@@ -25,9 +25,12 @@ class DocumentResource {
 	@Inject DocumentProvider documentProvider
 
 	@POST
-	def Response create(@PathParam("resourcePath") String resourcePath, @QueryParam("type") String type, String content,
+	def Response create(@PathParam("resourcePath") String resourcePath, @QueryParam("source") String source, @QueryParam("type") String type, String content,
 		@Context HttpHeaders headers) {
-		if (type == "folder") {
+		if (source !== null) {
+			documentProvider.copy(source, resourcePath);
+			return status(CREATED).entity(resourcePath).build
+		} else if (type == "folder") {
 			val created = documentProvider.createFolder(resourcePath)
 			return createdOrBadRequest(created, resourcePath)
 		} else {
