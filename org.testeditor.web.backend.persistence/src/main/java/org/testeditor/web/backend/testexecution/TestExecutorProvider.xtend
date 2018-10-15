@@ -179,11 +179,11 @@ class TestExecutorProvider {
 	}
 
 	private def String[] constructCommandLine(String testClass) {
-		return #['/bin/sh', '-c', testClass.gradleTestCommandLine]
+		return #['/usr/bin/nice', '-n', '10', '/bin/sh', '-c', testClass.gradleTestCommandLine]
 	}
 
 	private def String[] constructCommandLine(TestExecutionKey key, Iterable<String> testCases) {
-		return #['/bin/sh', '-c', key.gradleTestCommandLine(testCases)]
+		return #['/usr/bin/nice', '-n', '10', '/bin/sh', '-c', key.gradleTestCommandLine(testCases)]
 	}
 
 	private def String createNewLogFileName(TestExecutionKey key, String dateString) {

@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
@@ -164,7 +165,7 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		val testProcess = mock(Process)
 		val testKey = new TestExecutionKey('a')
 		when(testProcess.exitValue).thenReturn(0)
-		when(testProcess.waitFor).thenReturn(0)
+		when(testProcess.waitFor(5, TimeUnit.SECONDS)).thenReturn(false)
 		when(testProcess.alive).thenReturn(true)
 
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
@@ -173,7 +174,7 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		statusMapperUnderTest.waitForStatus(testKey)
 
 		// then
-		verify(testProcess).waitFor
+		verify(testProcess).waitFor(5, TimeUnit.SECONDS)
 	}
 
 	@Test
