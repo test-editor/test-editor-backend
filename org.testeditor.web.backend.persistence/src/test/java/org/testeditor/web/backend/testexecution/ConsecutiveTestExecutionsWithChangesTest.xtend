@@ -19,31 +19,31 @@ import static org.mockito.Mockito.when
 
 @RunWith(MockitoJUnitRunner)
 class ConsecutiveTestExecutionsWithChangesTest {
-	private static val WORKSPACE_DIR = 'src/test/resources/consecutive-test-executions-with-changes-bug'
-	private static val TESTFILE_PATH = 'src/test/java/sample/SampleTest.tcl'
-	private static val BACKUP_FILE = new File('SampleTest.tcl.bak') 
+	static val WORKSPACE_DIR = 'src/test/resources/consecutive-test-executions-with-changes-bug'
+	static val TESTFILE_PATH = 'src/test/java/sample/SampleTest.tcl'
+	static val BACKUP_FILE = new File('SampleTest.tcl.bak') 
 	
 	@Mock WorkspaceProvider mockWorkspaceProvider
 	@InjectMocks TestExecutorProvider executorUnderTest
 	
 	@Before
-	public def void backupTestFile() {
+	def void backupTestFile() {
 		FileUtils.copyFile(new File(WORKSPACE_DIR + '/' + TESTFILE_PATH), BACKUP_FILE)
 	}
 	
 	@After
-	public def void restoreTestFile() {
+	def void restoreTestFile() {
 		FileUtils.copyFile(BACKUP_FILE, new File(WORKSPACE_DIR, TESTFILE_PATH))
 		BACKUP_FILE.delete
 	}
 	
 	@After
-	public def void deleteBuildDir() {
+	def void deleteBuildDir() {
 		FileUtils.deleteDirectory(new File(WORKSPACE_DIR + '/build'))
 	}
 	
 	@Test
-	public def void consecutiveTestExecutionAfterChangeTest() {
+	def void consecutiveTestExecutionAfterChangeTest() {
 		// given
 		val workspace = new File(WORKSPACE_DIR)
 		when(mockWorkspaceProvider.workspace).thenReturn(workspace)

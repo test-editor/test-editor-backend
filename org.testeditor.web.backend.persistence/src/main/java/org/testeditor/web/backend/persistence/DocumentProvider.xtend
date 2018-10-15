@@ -34,9 +34,9 @@ import static extension java.nio.file.Files.probeContentType
 class DocumentProvider {
 
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
-	
-	private static val BACKUP_FILE_SUFFIX = 'local_backup'
-	private static val MAX_BACKUP_FILE_NUMBER_SUFFIX = 9
+
+	static val BACKUP_FILE_SUFFIX = 'local_backup'
+	static val MAX_BACKUP_FILE_NUMBER_SUFFIX = 9
 
 	@Inject Provider<User> userProvider
 	@Inject extension GitProvider gitProvider

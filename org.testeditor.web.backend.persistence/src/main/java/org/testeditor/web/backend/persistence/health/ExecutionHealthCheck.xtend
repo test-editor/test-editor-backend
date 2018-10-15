@@ -16,12 +16,12 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS
  */
 class ExecutionHealthCheck extends HealthCheck {
 
-	private static val HEALTH_CHECK_SCRIPT = '.healthCheck.sh'
-	private static val HEALTH_CHECK_OUTPUT = 'Test Editor Persistence Backend: execution health check'
-	private static val HEALTH_CHECK_TIMEOUT_MILLIS = 5000
+	static val HEALTH_CHECK_SCRIPT = '.healthCheck.sh'
+	static val HEALTH_CHECK_OUTPUT = 'Test Editor Persistence Backend: execution health check'
+	static val HEALTH_CHECK_TIMEOUT_MILLIS = 5000
 
 	@Inject
-	private ProcessBuilder processBuilder
+	ProcessBuilder processBuilder
 
 	override protected check() throws Exception {
 		var result = healthy

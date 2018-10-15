@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat
 
 class TestExecutionCallTreeTest extends AbstractTest {
 
-	private static val objectMapper = new ObjectMapper(new YAMLFactory)
+	static val objectMapper = new ObjectMapper(new YAMLFactory)
 
 	@Inject
 	TestExecutionCallTree testExecutionCallTreeUnderTest

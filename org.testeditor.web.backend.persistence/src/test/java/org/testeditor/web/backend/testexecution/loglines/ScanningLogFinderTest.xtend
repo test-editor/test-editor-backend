@@ -23,8 +23,8 @@ import static org.mockito.Mockito.when
 @RunWith(MockitoJUnitRunner)
 class ScanningLogFinderTest {
 
-	private static val SAMPLE_LOG_FILE_PATH = Paths.get('src/test/resources/sample.log')
-	private static val ROOT_LOG_LINES = #[
+	static val SAMPLE_LOG_FILE_PATH = Paths.get('src/test/resources/sample.log')
+	static val ROOT_LOG_LINES = #[
 		"    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase ****************************************************",
 		"    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase Running test for sample.LoginTest",
 		"    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase ****************************************************",

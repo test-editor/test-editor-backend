@@ -12,7 +12,7 @@ import org.testeditor.web.dropwizard.testing.AbstractTest
 class ValueOfInvalidTestExecutionKeyTest extends AbstractTest {
 
 	@Parameters
-	public static def Collection<Object> data() {
+	static def Collection<Object> data() {
 		#[
 			'-1-2-3-4',
 			'1-2-3-4-',
