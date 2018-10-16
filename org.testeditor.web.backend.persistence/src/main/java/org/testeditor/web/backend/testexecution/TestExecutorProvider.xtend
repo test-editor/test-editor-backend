@@ -118,8 +118,10 @@ class TestExecutorProvider {
 		val testRunDateString = createTestRunDateString
 		val logFile = executionKey.createNewLogFileName(testRunDateString)
 		val callTreeYamlFile = executionKey.createNewCallTreeYamlFileName(testRunDateString)
+		val commandLine = constructCommandLine(executionKey, testCases)
+		logger.info('''Starting test execution '«commandLine.toString»' in folder '«workingDir»'.''')
 		val processBuilder = new ProcessBuilder => [
-			command(constructCommandLine(executionKey, testCases))
+			command(commandLine)
 			directory(workingDir)
 			environment.put(LOGFILE_ENV_KEY, workingDir + "/" + logFile)
 			environment.put(CALL_TREE_YAML_FILE, workingDir + "/" + callTreeYamlFile)
