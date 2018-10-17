@@ -3,7 +3,8 @@ with import <nixpkgs> {};
 stdenv.mkDerivation {
     name = "test-editor-xtext-gradle";
     buildInputs = [
-        jdk10
+        # jdk10
+        zulu
         travis
         git
     ];
