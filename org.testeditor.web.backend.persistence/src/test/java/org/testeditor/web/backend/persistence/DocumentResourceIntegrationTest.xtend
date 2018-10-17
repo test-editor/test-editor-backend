@@ -23,6 +23,7 @@ import static extension org.apache.commons.io.IOUtils.contentEquals
 class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	val resourcePath = "some/parent/folder/example.tsl"
+	val backupPath = "some/parent/folder/example.local_backup.tsl"	
 	val copyResourcePath = "third/folder/example_to_copy.tsl"
 	val preRenamedResourcePath = "other/parent/folder/example_toberenamed.tsl"
 	val renamedResource = "other/parent/folder/example_renamed.tsl"
@@ -299,7 +300,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		response.status.assertEquals(CONFLICT.statusCode)
 		readRemote(resourcePath).assertEquals(simpleTsl)
 		readLocal(resourcePath).assertEquals(simpleTsl)
-		new File(workspaceRoot.root, resourcePath + '.local-backup').exists.assertFalse
+		new File(workspaceRoot.root, backupPath).exists.assertFalse
 	}
 
 	@Test
@@ -316,7 +317,6 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		val response = request.submit.get
 
 		// then
-		val backupPath = resourcePath + '.local-backup'
 		response.status.assertEquals(CONFLICT.statusCode)
 		response.readEntity(String).assertEquals('''The file '«resourcePath»' could not be saved due to concurrent modifications. ''' +
 			'''Local changes were instead backed up to '«backupPath»'.''')
@@ -342,7 +342,6 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		val response = request.submit.get
 
 		// then
-		val backupPath = resourcePath + '.local-backup'
 		response.status.assertEquals(CONFLICT.statusCode)
 		response.readEntity(String).assertEquals('''The file '«resourcePath»' could not be saved as it was concurrently being deleted.''' +
 			''' Local changes were instead backed up to '«backupPath»'.'''.toString)
@@ -364,7 +363,6 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		val response = request.delete
 
 		// then
-		val backupPath = resourcePath + '.local-backup'
 		response.status.assertEquals(CONFLICT.statusCode)
 		response.readEntity(String).assertEquals('''The file '«resourcePath»' could not be deleted as it was concurrently modified.'''.toString)
 		response.headers.containsKey('content-location').assertFalse
