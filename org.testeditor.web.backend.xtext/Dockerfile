@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk
+FROM openjdk:10-jdk
 
 # This image needs four environment variables upon execution:
 # * TARGET_REPO

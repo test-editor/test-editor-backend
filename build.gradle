@@ -1,16 +1,7 @@
-buildscript {
-    repositories {
-        jcenter()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'org.xtext:xtext-gradle-plugin:1.0.20'
-        classpath 'org.owasp:dependency-check-gradle:3.1.0'
-    }
-}
-
 plugins {
+    id 'org.owasp.dependencycheck' version '3.1.0'
     id 'net.researchgate.release' version '2.6.0'
+    id 'org.xtext.xtend' version '2.0.1'
 }
 
 subprojects {
@@ -47,14 +38,14 @@ subprojects {
     ext.versions = new HashMap<String,String>()
     
     setVersionDefaults(ext, [
-        dropwizard: '1.3.5',
-        testEditorDropwizard: '0.17.0',
+        dropwizard: '1.3.7',
+        testEditorDropwizard: '0.18.1',
         xtext: '2.15.0',
-        testEditorLanguage: '2.0.+'
+        testEditorLanguage: '2.1.+'
     ])
 
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
+    sourceCompatibility = '1.10'
+    targetCompatibility = '1.10'
     
     dependencyCheck {
         autoUpdate=true
@@ -103,10 +94,6 @@ release {
     tagCommitMessage = '[release]'
     newVersionCommitMessage = '[release] new version'
     tagTemplate = 'v${version}'
-}
-
-task build {
-    dependsOn = subprojects.collect{it.tasks['build']}
 }
 
 task docker {
