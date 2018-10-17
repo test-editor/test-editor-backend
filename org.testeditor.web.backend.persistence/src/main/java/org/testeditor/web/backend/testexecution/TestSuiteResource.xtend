@@ -36,7 +36,7 @@ import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
 class TestSuiteResource {
 
-	private static val LONG_POLLING_TIMEOUT_SECONDS = 5
+	public static val LONG_POLLING_TIMEOUT_SECONDS = 5
 	static val logger = LoggerFactory.getLogger(TestSuiteResource)
 
 	@Inject TestExecutorProvider executorProvider

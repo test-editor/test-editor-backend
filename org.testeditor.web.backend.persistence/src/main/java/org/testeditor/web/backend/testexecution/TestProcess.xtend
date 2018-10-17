@@ -1,7 +1,8 @@
 package org.testeditor.web.backend.testexecution
 
-import static org.testeditor.web.backend.testexecution.TestStatus.*
+import java.util.concurrent.TimeUnit
 
+import static org.testeditor.web.backend.testexecution.TestStatus.*
 
 /**
  * Keeps track of the status of a single test execution.
@@ -49,7 +50,9 @@ class TestProcess {
 	def TestStatus waitForStatus() {
 		val processRef = this.process
 		if (processRef !== null && processRef.alive) {
-			processRef.waitFor.markCompleted
+			if (processRef.waitFor(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+				processRef.exitValue.markCompleted
+			}
 		}
 		return this.getStatus
 	}

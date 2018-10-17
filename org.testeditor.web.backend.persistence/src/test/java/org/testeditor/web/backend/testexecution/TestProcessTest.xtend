@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
+import java.util.concurrent.TimeUnit
 import org.junit.Test
 
 import static org.assertj.core.api.Assertions.assertThat
@@ -94,14 +95,14 @@ class TestProcessTest {
 		val aProcess = mock(Process)
 		when(aProcess.alive).thenReturn(true).thenReturn(false)
 		when(aProcess.exitValue).thenReturn(0)
-		when(aProcess.waitFor).thenReturn(0)
+		when(aProcess.waitFor(5, TimeUnit.SECONDS)).thenReturn(true)
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
 		val actualStatus = testProcessUnderTest.waitForStatus
 
 		// then
-		verify(aProcess).waitFor
+		verify(aProcess).waitFor(5, TimeUnit.SECONDS)
 
 		assertThat(actualStatus).isEqualTo(TestStatus.SUCCESS)
 	}
