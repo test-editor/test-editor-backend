@@ -9,9 +9,9 @@ import java.util.Map
 
 class TestExecutionCallTree {
 
-	private static val objectMapper = new ObjectMapper(new YAMLFactory)
-	private static val childrenKey = 'children'
-	private static val idKey = 'id'
+	static val objectMapper = new ObjectMapper(new YAMLFactory)
+	static val childrenKey = 'children'
+	static val idKey = 'id'
 
 	var TestExecutionKey executionKey
 	var Map<String, Object> yamlObject

@@ -11,30 +11,30 @@ class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 
 	@NotEmpty
 	@Accessors
-	private String remoteRepoUrl
+	String remoteRepoUrl
 	
 	@Accessors
-	private RepositoryConnectionMode repoConnectionMode = RepositoryConnectionMode.pullPush
+	RepositoryConnectionMode repoConnectionMode = RepositoryConnectionMode.pullPush
 	
 	@Accessors
-	private Boolean separateUserWorkspaces = true
+	Boolean separateUserWorkspaces = true
 
 	@NotEmpty
 	@Accessors
-	private String localRepoFileRoot = 'repo'
+	String localRepoFileRoot = 'repo'
 	
 	@NotEmpty 
 	@Accessors
-	private String branchName = 'master'
+	String branchName = 'master'
 	
 	@Accessors
-	private String privateKeyLocation
+	String privateKeyLocation
 
 	@Accessors
-	private String knownHostsLocation
+	String knownHostsLocation
 	
 	@Accessors
-	private Boolean useDiffMarkersInBackups = false
+	Boolean useDiffMarkersInBackups = false
 	
 	
 	/**
@@ -52,5 +52,5 @@ class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 	 * will still be removed, though.
 	 */
 	@Accessors
-	private Boolean filterTestSubStepsFromLogs = false
+	Boolean filterTestSubStepsFromLogs = false
 }

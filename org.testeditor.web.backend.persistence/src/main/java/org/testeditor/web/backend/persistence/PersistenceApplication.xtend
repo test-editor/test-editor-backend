@@ -39,7 +39,7 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 		environment.healthChecks.register('execution', executionHealthCheckProvider.get)
 	}
 
-	override def Dynamic configureCorsFilter(PersistenceConfiguration configuration, Environment environment) {
+	override Dynamic configureCorsFilter(PersistenceConfiguration configuration, Environment environment) {
 		return super.configureCorsFilter(configuration, environment) => [
 			// Configure additional CORS parameters
 			setInitParameter(EXPOSED_HEADERS_PARAM, "Content-Location, Location")

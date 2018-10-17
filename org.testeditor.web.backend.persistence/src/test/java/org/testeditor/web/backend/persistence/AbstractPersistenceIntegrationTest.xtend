@@ -54,7 +54,7 @@ abstract class AbstractPersistenceIntegrationTest {
 
 	protected extension val AssertionHelper = AssertionHelper.instance
 
-	public def setupRemoteGitRepository() {
+	def setupRemoteGitRepository() {
 		remoteGitFolder = new TemporaryFolder => [create]
 
 		val git = Git.init.setDirectory(remoteGitFolder.root).call

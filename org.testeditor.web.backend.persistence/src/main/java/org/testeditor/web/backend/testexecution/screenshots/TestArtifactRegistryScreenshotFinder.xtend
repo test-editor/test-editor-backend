@@ -16,11 +16,11 @@ class TestArtifactRegistryScreenshotFinder implements ScreenshotFinder {
 
 	@Inject extension WorkspaceProvider
 
-	private static val logger = LoggerFactory.getLogger(TestArtifactRegistryScreenshotFinder)
+	static val logger = LoggerFactory.getLogger(TestArtifactRegistryScreenshotFinder)
 
-	private static val BASE_PATH = ".testexecution/artifacts"
-	private static val FILE_EXTENSION = ".yaml"
-	private static val ENTRY_PATTERN = Pattern.compile('"screenshot": "([^"]*)"')
+	static val BASE_PATH = ".testexecution/artifacts"
+	static val FILE_EXTENSION = ".yaml"
+	static val ENTRY_PATTERN = Pattern.compile('"screenshot": "([^"]*)"')
 
 	override getScreenshotPathsForTestStep(TestExecutionKey key) {
 		val filePath = artifactRegistryPath.resolve(key.toPath)
