@@ -65,12 +65,16 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void copyPushesChanges() {
 		// given
 		val numberOfCommitsBefore = remoteGit.log.call.size
-		val oldFileName = 'README.md' // existing because of abstract test class setup
+		val oldFileName = 'RÜDME.md' // existing because of abstract test class setup
 		val newFileName = 'NEW-NAME.md'
 
 		// when
-		documentProvider.copy(oldFileName, newFileName)
-
+		try {
+			documentProvider.copy(oldFileName, newFileName)
+		} catch (Exception e) {
+			// System.out.println('sleeping after exception')
+			// Thread.sleep(60000)
+		}
 		// then
 		remoteGit.assertSingleCommit(numberOfCommitsBefore, ADD, newFileName)
 	}
@@ -108,7 +112,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void renameFileCommitsARenameDiff() {
 		// given
 		val numberOfCommitsBefore = remoteGit.log.call.size
-		val oldFileName = 'README.md' // existing because of abstract test class setup
+		val oldFileName = 'RÜDME.md' // existing because of abstract test class setup
 		val newFileName = 'NEW-NAME.md'
 		
 		// when
@@ -123,7 +127,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	def void renamePushesChanges() {
 		// given
 		val numberOfCommitsBefore = remoteGit.log.call.size
-		val oldFileName = 'README.md' // existing because of abstract test class setup
+		val oldFileName = 'RÜDME.md' // existing because of abstract test class setup
 		val newFileName = 'NEW-NAME.md'
 
 		// when

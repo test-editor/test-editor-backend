@@ -5,6 +5,7 @@ stdenv.mkDerivation {
     buildInputs = [
         jdk10
         travis
+        git
     ];
     shellHook = ''
         # do some gradle "finetuning"
