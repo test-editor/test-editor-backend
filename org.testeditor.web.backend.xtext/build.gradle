@@ -1,31 +1,29 @@
 dependencies {
     compile "io.dropwizard:dropwizard-client:$versions.dropwizard"
-    compile "org.testeditor:org.testeditor.tsl.dsl.web:$versions.testEditorLanguage"
-    compile "org.testeditor:org.testeditor.dsl.common.model:$versions.testEditorLanguage"
-    compile "org.testeditor.web:org.testeditor.web.dropwizard.xtext:$versions.testEditorDropwizard"
-    testCompile "org.testeditor.web:org.testeditor.web.dropwizard.xtext.testing:$versions.testEditorDropwizard"
 
-    compile ("org.testeditor:org.testeditor.tcl.dsl:$versions.testEditorLanguage") {
-        // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
-        exclude group: "org.apache.logging.log4j"
-    }
-    compile ("org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage")  {
-        // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
-        exclude group: "org.apache.logging.log4j"
-    }
-    compile "org.testeditor:org.testeditor.tcl.dsl.ide:$versions.testEditorLanguage"
+    compile "org.testeditor.web:org.testeditor.web.dropwizard.xtext:$versions.testEditorDropwizard"
+
     compile "org.testeditor:org.testeditor.aml.dsl:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.aml.dsl.ide:$versions.testEditorLanguage"
     compile "org.testeditor:org.testeditor.aml.model:$versions.testEditorLanguage"
-    compile ("org.testeditor:org.testeditor.dsl.common:$versions.testEditorLanguage") {
-        // workaround to avoid classpath conflicts which potentially lead to an exception when trying to acquire the logger context
-        exclude group: "org.apache.logging.log4j"
-    }
+    compile "org.testeditor:org.testeditor.dsl.common:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.dsl.common.model:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.tcl.dsl:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.tcl.model:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.tcl.dsl.ide:$versions.testEditorLanguage"
+    compile "org.testeditor:org.testeditor.tsl.dsl.web:$versions.testEditorLanguage"
 
     compile "org.eclipse.xtend:org.eclipse.xtend.core:$versions.xtext"
-    testCompile "org.eclipse.xtext:org.eclipse.xtext.testing:$versions.xtext"
+
     compile 'org.gradle:gradle-tooling-api:4.4.1'
+
+    testCompile "org.eclipse.xtext:org.eclipse.xtext.testing:$versions.xtext"
+    testCompile "org.testeditor.web:org.testeditor.web.dropwizard.xtext.testing:$versions.testEditorDropwizard"
     testCompile "com.github.tomakehurst:wiremock:2.13.0"
+}
+
+configurations.all {
+    exclude group: 'org.apache.logging.log4j'
 }
 
 mainClassName = 'org.testeditor.web.backend.xtext.TestEditorApplication'
