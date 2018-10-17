@@ -26,6 +26,7 @@ import org.testeditor.web.dropwizard.auth.User
 import static java.nio.charset.StandardCharsets.*
 
 import static extension java.nio.file.Files.probeContentType
+import java.nio.file.Paths
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
@@ -44,7 +45,11 @@ class DocumentProvider {
 	@Inject PersistenceConfiguration configuration
 
 	def void copy(String resourcePath, String newPath) throws ConflictingModificationsException {
+		logger.debug('''copy «resourcePath» to «newPath»''')
+		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
 		val file = getWorkspaceFile(resourcePath)
+		logger.debug('''file is «file.toString»''')
+		logger.debug('''found «Paths.get(file.parent.toString).toFile.list.toString»''')
 		val newFile = getWorkspaceFile(newPath)
 		if (!file.exists) {
 			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
@@ -63,7 +68,11 @@ class DocumentProvider {
 	}
 
 	def void rename(String resourcePath, String newPath) throws ConflictingModificationsException {
+		logger.debug('''rename «resourcePath» to «newPath»''')
+		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
 		val file = getWorkspaceFile(resourcePath)
+		logger.debug('''file is «file.toString»''')
+		logger.debug('''found «Paths.get(file.parent.toString).toFile.list.toString»''')
 		val newFile = getWorkspaceFile(newPath)
 		if (!file.exists) {
 			throw new MissingFileException('''source file '«resourcePath»' does not exist''')

@@ -24,7 +24,7 @@ class GitProviderTest extends AbstractGitTest {
 		
 		// then
 		getRemoteUrl(git).assertEquals('file://' + remoteGitFolder.root.absolutePath)
-		new File(localGitRoot.root, "README.md").exists.assertTrue
+		new File(localGitRoot.root, "RÜDME.md").exists.assertTrue
 		verify(workspaceProvider).workspace
 		git.repository.branch.assertEquals(config.branchName)
 	}	
@@ -39,7 +39,7 @@ class GitProviderTest extends AbstractGitTest {
 
 		// then
 		getRemoteUrl(git).assertNull
-		new File(localGitRoot.root, "README.md").exists.assertFalse
+		new File(localGitRoot.root, "RÜDME.md").exists.assertFalse
 		verify(workspaceProvider).workspace
 	}
 
