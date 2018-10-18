@@ -20,7 +20,7 @@ fi
 # * "XX:+UseParallelGC", "XX:MinHeapFreeRatio=5", "XX:MaxHeapFreeRatio=10", "XX:GCTimeRatio=4", and "XX:AdaptiveSizePolicyWeight=90" tailor the JVM to more eagerly return free memory to the operating system.
 ##
 export JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Dsun.zip.disableMemoryMapping=true -XX:+UseParallelGC -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90"
-keytool -importkeystore -srckeystore $JAVA_HOME/jre/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
+keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
 if [ "$PROXY_CERT" != "" ]; then
   echo "importing certificate into java certificate store"
   keytool -importcert -file $PROXY_CERT -keystore ${PROG_DIR}/testeditor.certs -storepass changeit -noprompt -trustcacerts
