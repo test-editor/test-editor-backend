@@ -19,7 +19,7 @@ fi
 #     * In Java 9, the implementation of class ZipFile was adapted to remove the crash risk, and the above option will not be needed anymore. See https://bugs.openjdk.java.net/browse/JDK-8142508, https://bugs.openjdk.java.net/browse/JDK-8175192
 # * "XX:+UseParallelGC", "XX:MinHeapFreeRatio=5", "XX:MaxHeapFreeRatio=10", "XX:GCTimeRatio=4", and "XX:AdaptiveSizePolicyWeight=90" tailor the JVM to more eagerly return free memory to the operating system.
 ##
-export JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Dsun.zip.disableMemoryMapping=true -XX:+UseParallelGC -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90"
+export JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Dsun.zip.disableMemoryMapping=true -XX:+UseParallelGC -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90"
 keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
 if [ "$PROXY_CERT" != "" ]; then
   echo "importing certificate into java certificate store"
