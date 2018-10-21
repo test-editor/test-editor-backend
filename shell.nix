@@ -6,16 +6,24 @@ let openjdk10_0_2 = stdenv.mkDerivation rec {
     url = "https://download.java.net/java/GA/jdk10/10.0.2/19aef61b38124481863b1413dce1855f/13/openjdk-10.0.2_linux-x64_bin.tar.gz";
     sha256 = "f3b26abc9990a0b8929781310e14a339a7542adfd6596afb842fa0dd7e3848b2";
   };
-  buildInputs = [ pkgconfig gnutar gzip zlib glib setJavaClassPath libxml2 ]; #  stdenv lib fetchurl setJavaClassPath glib libxml2 libav_0_8 ffmpeg libxslt libGL alsaLib fontconfig freetype gnome2 cairo gdk_pixbuf atk xorg ];
+  buildInputs = [ pkgconfig gnutar gzip zlib stdenv.cc.libc glib setJavaClassPath libxslt libxml2
+    alsaLib fontconfig freetype ]; #  stdenv lib fetchurl setJavaClassPath glib libxml2 libav_0_8 ffmpeg libxslt libGL alsaLib fontconfig freetype gnome2 cairo gdk_pixbuf atk xorg ];
   installPhase = ''
     mkdir -p $out
     cp -r ./* "$out/"
     # correct interpreter and rpath for binaries to work
-    interpreter=$(echo ${stdenv.glibc.out}/lib/ld-linux*.so.2)
-    for i in $out/bin/*; do
-      patchelf --set-interpreter $interpreter $i
-      patchelf --set-rpath ${stdenv.lib.makeLibraryPath [ zlib ]}:$out/lib/jli:$out/lib/server:$out/lib $i
-    done
+    # interpreter=$(echo ${stdenv.glibc.out}/lib/ld-linux*.so.2)
+    # for i in $out/bin/*; do
+    #   patchelf --set-interpreter $interpreter $i
+    #   patchelf --set-rpath ${stdenv.lib.makeLibraryPath [ zlib ]}:$out/lib/jli:$out/lib/server:$out/lib $i
+    # done
+    # set all the dynamic linkers
+    rpath="${stdenv.lib.makeLibraryPath [ zlib ]}:$out/lib/jli:$out/lib/server:$out/lib"
+    find $out -type f -perm -0100 \
+        -exec patchelf --interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
+        --set-rpath "$rpath" {} \;
+    find $out -name "*.so" -exec patchelf --set-rpath "$rpath" {} \;
+
     mkdir -p $out/nix-support
     printWords ${setJavaClassPath} > $out/nix-support/propagated-build-inputs
     # Set JAVA_HOME automatically.
