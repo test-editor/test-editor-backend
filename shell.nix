@@ -6,7 +6,7 @@ let openjdk10_0_2 = stdenv.mkDerivation rec {
     url = "https://download.java.net/java/GA/jdk10/10.0.2/19aef61b38124481863b1413dce1855f/13/openjdk-10.0.2_linux-x64_bin.tar.gz";
     sha256 = "f3b26abc9990a0b8929781310e14a339a7542adfd6596afb842fa0dd7e3848b2";
   };
-  buildInputs = [ pkgconfig gnutar gzip zlib stdenv.cc.libc glib setJavaClassPath libxslt libxml2
+  buildInputs = [ glibcLocales pkgconfig gnutar gzip zlib stdenv.cc.libc glib setJavaClassPath libxslt libxml2
     alsaLib fontconfig freetype ]; #  stdenv lib fetchurl setJavaClassPath glib libxml2 libav_0_8 ffmpeg libxslt libGL alsaLib fontconfig freetype gnome2 cairo gdk_pixbuf atk xorg ];
   installPhase = ''
     mkdir -p $out
@@ -42,6 +42,7 @@ stdenv.mkDerivation {
         openjdk10_0_2
         travis
         git
+        glibcLocales
     ];
     shellHook = ''
         # do some gradle "finetuning"
