@@ -14,7 +14,7 @@ fi
 
 # Additional options to be passed to the JVM can be provided via the
 # TE_JAVA_OPTIONS environment variable
-export JAVA_TOOL_OPTIONS="${TE_JAVA_OPTIONS} -Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs"
+export JAVA_TOOL_OPTIONS="${TE_JAVA_OPTIONS} -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs"
 keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
 if [ "$PROXY_CERT" != "" ]; then
   echo "importing certificate into java certificate store"
