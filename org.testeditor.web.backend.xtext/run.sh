@@ -4,14 +4,9 @@ if [ "$BRANCH_NAME" == "" ]; then
   export BRANCH_NAME="master"
 fi
 
-##
-# Options configuring JVM memory settings:
-# * "XX:+UnlockExperimentalVMOptions" and "-XX:+UseCGroupMemoryLimitForHeap" instruct the JVM to base its heap memory limits on cgroups (/sys/fs/cgroup/memory/memory.limit_in_bytes), rather than the machine's total available RAM.
-# * "Dsun.zip.disableMemoryMapping=true" disables memory mapping when handling zips and jars to alleviate a crash risk.
-#     * In Java 9, the implementation of class ZipFile was adapted to remove the crash risk, and the above option will not be needed anymore. See https://bugs.openjdk.java.net/browse/JDK-8142508, https://bugs.openjdk.java.net/browse/JDK-8175192
-# * "XX:+UseParallelGC", "XX:MinHeapFreeRatio=5", "XX:MaxHeapFreeRatio=10", "XX:GCTimeRatio=4", and "XX:AdaptiveSizePolicyWeight=90" tailor the JVM to more eagerly return free memory to the operating system.
-##
-export JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes= -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Dsun.zip.disableMemoryMapping=true -XX:+UseParallelGC -XX:MinHeapFreeRatio=5 -XX:MaxHeapFreeRatio=10 -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90"
+# Additional options to be passed to the JVM can be provided via the
+# TE_JAVA_OPTIONS environment variable
+export JAVA_TOOL_OPTIONS="${TE_JAVA_OPTIONS} -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs"
 keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
 if [ "$PROXY_CERT" != "" ]; then
   echo "importing certificate into java certificate store"
