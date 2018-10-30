@@ -1,6 +1,8 @@
 package org.testeditor.web.backend.testexecution
 
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
@@ -33,7 +35,39 @@ class TestExecutorProvider {
 	static val JAVA_TEST_SOURCE_PREFIX = 'src/test/java'
 	static val TEST_CASE_FILE_SUFFIX = 'tcl'
 
+	val String whichNice
+	val String whichSh
+
 	@Inject WorkspaceProvider workspaceProvider
+
+	new() {
+		whichNice = runShellCommand('which', 'nice')
+		whichSh = runShellCommand('which', 'sh')
+	}
+
+	private def String runShellCommand(String ... commands) {
+		val whichNiceProcess = new ProcessBuilder => [
+			command(commands)
+			redirectOutput
+		]
+		val process = whichNiceProcess.start
+		val processOutput = new StringBuilder
+		var BufferedReader processOutputReader = null
+		try {
+			processOutputReader = new BufferedReader(new InputStreamReader(process.inputStream))
+			var String readLine
+			while ((readLine = processOutputReader.readLine) !== null) {
+				processOutput.append(readLine + System.lineSeparator)
+			}
+			process.waitFor
+		} finally {
+			if (processOutputReader !== null) {
+				processOutputReader.close
+			}
+		}
+
+		return processOutput.toString.trim
+	}
 
 	def ProcessBuilder testExecutionBuilder(String testCase) {
 		val testClass = testCase.testClass
@@ -55,7 +89,7 @@ class TestExecutorProvider {
 	}
 	
 	private def cleanBuildDir(File workingDir) {
-		return new File(workingDir, 'build') => [ 
+		return new File(workingDir, 'build') => [
 			if (exists) {
 				deleteDirectory
 			}
@@ -112,7 +146,8 @@ class TestExecutorProvider {
 		'''.toString.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
 	}
 
-	def ProcessBuilder testExecutionBuilder(TestExecutionKey executionKey, Iterable<String> testCases, String commitId) {
+	def ProcessBuilder testExecutionBuilder(TestExecutionKey executionKey, Iterable<String> testCases,
+		String commitId) {
 		val workingDir = workspaceProvider.workspace.absoluteFile
 		workingDir.ensureBuildingToolsInPlace
 		val testRunDateString = createTestRunDateString
@@ -177,15 +212,16 @@ class TestExecutorProvider {
 	}
 
 	private def String toTestClassName(String fileName) {
-		return fileName.replaceAll('''«JAVA_TEST_SOURCE_PREFIX»/''', '').replaceAll('''.«TEST_CASE_FILE_SUFFIX»$''', '').replaceAll('/', '.')
+		return fileName.replaceAll('''«JAVA_TEST_SOURCE_PREFIX»/''', '').replaceAll('''.«TEST_CASE_FILE_SUFFIX»$''',
+			'').replaceAll('/', '.')
 	}
 
 	private def String[] constructCommandLine(String testClass) {
-		return #['/usr/bin/nice', '-n', '10', '/bin/sh', '-c', testClass.gradleTestCommandLine]
+		return #[whichNice, '-n', '10', whichSh, '-c', testClass.gradleTestCommandLine]
 	}
 
 	private def String[] constructCommandLine(TestExecutionKey key, Iterable<String> testCases) {
-		return #['/usr/bin/nice', '-n', '10', '/bin/sh', '-c', key.gradleTestCommandLine(testCases)]
+		return #[whichNice, '-n', '10', whichSh, '-c', key.gradleTestCommandLine(testCases)]
 	}
 
 	private def String createNewLogFileName(TestExecutionKey key, String dateString) {
