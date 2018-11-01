@@ -31,6 +31,8 @@ import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
+import javax.ws.rs.DefaultValue
+import org.testeditor.web.backend.testexecution.loglines.LogLevel
 
 @Path("/test-suite")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
@@ -54,31 +56,36 @@ class TestSuiteResource {
 		@PathParam("suiteId") String suiteId,
 		@PathParam("suiteRunId") String suiteRunId,
 		@PathParam("caseRunId") String caseRunId,
-		@PathParam("callTreeId") String callTreeId
+		@PathParam("callTreeId") String callTreeId,
+		@QueryParam("logOnly") boolean logOnly,
+		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
 	) {
 		var response = Response.status(Status.NOT_FOUND).build
 		val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].last
 		if (latestCallTree !== null) {
 			val executionKey = new TestExecutionKey(suiteId, suiteRunId, caseRunId, callTreeId)
-			testExecutionCallTree.readFile(executionKey, latestCallTree)
-			val callTreeResultString = testExecutionCallTree.getNodeJson(executionKey)
-
 			var logLines = newLinkedList
 			var warning = ''
 			try {
 				logLines.addAll(
-					logFinder.getLogLinesForTestStep(executionKey).map[new String(BufferRecyclers.jsonStringEncoder.quoteAsString(it))]
+					logFinder.getLogLinesForTestStep(executionKey, logLevel).map[new String(BufferRecyclers.jsonStringEncoder.quoteAsString(it))]
 				)
 			} catch (FileNotFoundException e) {
 				warning = '''No log file for test execution key '«executionKey.toString»'.'''
 				logger.warn(warning, e)
 			}
-
-			val jsonResultString = '[' + (
-				#['''{ "type": "properties", "content": «callTreeResultString» }'''] + screenshotFinder.getScreenshotPathsForTestStep(executionKey).map [
-				'''{ "type": "image", "content": "«it»" }'''
-			] + #['''{ "type": "text", "content": ["«logLines.join('", "')»"]}''']
-			).join(',') + ']'
+			
+			val resultList = newLinkedList('''{ "type": "text", "content": ["«logLines.join('", "')»"]}''')
+			
+			if (!logOnly) {
+				testExecutionCallTree.readFile(executionKey, latestCallTree)
+				val callTreeResultString = testExecutionCallTree.getNodeJson(executionKey)
+				resultList += '''{ "type": "properties", "content": «callTreeResultString» }'''
+				resultList += screenshotFinder.getScreenshotPathsForTestStep(executionKey).map [
+					'''{ "type": "image", "content": "«it»" }'''
+				]
+			}
+			val jsonResultString = '[' + resultList.join(',') + ']'
 
 			val responseBuilder = Response.ok(jsonResultString)
 			response = if (warning.nullOrEmpty) {
