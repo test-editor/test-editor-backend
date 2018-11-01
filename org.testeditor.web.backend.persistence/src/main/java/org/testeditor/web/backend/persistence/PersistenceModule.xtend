@@ -10,6 +10,8 @@ import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.loglines.ScanningLogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 import org.testeditor.web.backend.testexecution.screenshots.SubStepAggregatingScreenshotFinder
+import org.testeditor.web.backend.testexecution.loglines.LogFilter
+import org.testeditor.web.backend.testexecution.loglines.Log4JDefaultFilter
 
 class PersistenceModule extends AbstractModule {
 
@@ -19,6 +21,7 @@ class PersistenceModule extends AbstractModule {
 			bind(ScreenshotFinder).to(SubStepAggregatingScreenshotFinder)
 			bind(LogFinder).to(ScanningLogFinder)
 			bind(HierarchicalLineSkipper).to(RecursiveHierarchicalLineSkipper)
+			bind(LogFilter).to(Log4JDefaultFilter)
 		]
 	}
 
