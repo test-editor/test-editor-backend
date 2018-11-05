@@ -29,7 +29,7 @@ let openjdk_10_0_2 = stdenv.mkDerivation rec {
 in
 
 stdenv.mkDerivation {
-    name = "test-editor-xtext-gradle";
+    name = "test-editor-backend";
     buildInputs = [
         openjdk_10_0_2
         travis
