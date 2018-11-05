@@ -18,7 +18,7 @@ ENV PROG_DIR=/opt/testeditor \
     REPO_ROOT=/repo \
     JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes="
 
-COPY testeditor/ \
+COPY build/docker/ \
      config.template.yml \
      run.sh \
      gradle.properties \

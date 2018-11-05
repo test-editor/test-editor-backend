@@ -25,13 +25,13 @@ task docker(type:Exec) {
     dependsOn(build)
     executable 'sh'
     args '-c', """
-      (([ -d testeditor ] && rm -Rf testeditor) || true) &&
+      (([ -d build/docker ] && rm -Rf build/docker) || true) &&
       cd build/distributions && (rm persistence.tar || true) &&
       rm org.testeditor.*.zip &&
       mv org.testeditor.web.backend.persistence-*.tar persistence.tar &&
       tar -xf persistence.tar &&
-      mv org.testeditor.web.backend.persistence* ../../testeditor &&
+      mv org.testeditor.web.backend.persistence* ../../build/docker &&
       cd ../.. &&
-      docker build -t testeditor/persistence:snapshot .
+      docker build -t build/docker/persistence:snapshot .
     """
 }
