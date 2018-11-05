@@ -8,7 +8,7 @@ class Log4JDefaultFilter implements LogFilter {
 
 	static val log4jLevelNames = #{'FATAL' -> CRITICAL, 'ERROR' -> ERROR, 'WARN' -> WARNING, 'INFO' -> INFO, 'DEBUG' -> DEBUG, 'TRACE' -> TRACE}
 	static val log4jPattern = Pattern.compile(
-		'\\s+\\d{1,2}:\\d{1,2}:\\d{1,2}\\s+([A-Z]{4,5})\\s+\\[Test worker\\]\\s+\\[TE-Test:\\s+[^\\]]+\\]\\s+[^\\s]+.*')
+		'\\s+\\d{1,2}:\\d{1,2}:\\d{1,2}\\s+([A-Z]{4,5})\\s+\\[[^\\]]*\\]\\s+\\[TE-Test:\\s+[^\\]]+\\]\\s+[^\\s]+.*')
 
 	override isVisibleOn(String logLine, LogLevel logLevel) {
 		if (logLevel === TRACE) {
