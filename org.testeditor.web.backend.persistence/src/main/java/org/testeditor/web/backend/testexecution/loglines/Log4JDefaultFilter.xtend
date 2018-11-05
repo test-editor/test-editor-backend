@@ -15,7 +15,7 @@ class Log4JDefaultFilter implements LogFilter {
 			return true
 		} else {
 			val matcher = log4jPattern.matcher(logLine)
-			return matcher.find && log4jLevelNames.get(matcher.group(1)) <= logLevel
+			return matcher.find && log4jLevelNames.getOrDefault(matcher.group(1), TRACE) <= logLevel
 		}
 	}
 

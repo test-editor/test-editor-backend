@@ -27,6 +27,7 @@ class Log4JDefaultFilterTest {
 		TRACE -> '    23:42:00 TRACE [Test worker]  [TE-Test: TestName] ReportingClass Message part.'
 	}
 	static val unformattedLogLine = 'FATAL ERROR WARN INFO DEBUG TRACE unformatted log line'
+	static val unknownLogLevelLine = '    23:42:00 WRONG [Test worker]  [TE-Test: TestName] Will match regex.'
 
 	@Parameters(name='log line: "{0}"; log level: {1}; accept? {2}')
 	def static Collection<Object[]> data() {
@@ -72,7 +73,13 @@ class Log4JDefaultFilterTest {
 			#[unformattedLogLine, WARNING, false],
 			#[unformattedLogLine, INFO, false],
 			#[unformattedLogLine, DEBUG, false],
-			#[unformattedLogLine, TRACE, true]
+			#[unformattedLogLine, TRACE, true],
+			#[unknownLogLevelLine, CRITICAL, false],
+			#[unknownLogLevelLine, ERROR, false],
+			#[unknownLogLevelLine, WARNING, false],
+			#[unknownLogLevelLine, INFO, false],
+			#[unknownLogLevelLine, DEBUG, false],
+			#[unknownLogLevelLine, TRACE, true]
 		]
 	}
 
