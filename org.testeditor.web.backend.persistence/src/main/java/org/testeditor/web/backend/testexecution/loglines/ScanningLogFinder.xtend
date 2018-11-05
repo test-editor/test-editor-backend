@@ -46,12 +46,13 @@ class ScanningLogFinder implements LogFinder {
 		Validate.notBlank(key?.suiteRunId, ILLEGAL_TEST_EXECUTION_KEY_MESSAGE, key?.toString)
 
 		val callTreeId = key.callTreeIdOrRoot
+		val isSuiteRunId = key.caseRunId.nullOrEmpty
 		return key.logFile.readAllLines(UTF_8) //
-		.dropWhile[!Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:«callTreeId»''').matcher(it).find] //
-		.drop(1) //
-		.filter[it.isVisibleOn(logLevel)]
-		.takeWhile[!Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:«callTreeId»''').matcher(it).find] //
+		.dropWhile[!isSuiteRunId && !Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:«callTreeId»''').matcher(it).find] //
+		.drop(if(isSuiteRunId){0}else{1}) //
+		.takeWhile[isSuiteRunId || !Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:«callTreeId»''').matcher(it).find] //
 		.skipMarkerAndSubStepLines //
+		.filter[it.isVisibleOn(logLevel)]
 	}
 
 	private def Path getLogFile(TestExecutionKey key) {
