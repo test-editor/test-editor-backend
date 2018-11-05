@@ -34,8 +34,14 @@ class ScanningLogFinder implements LogFinder {
 	@Inject extension WorkspaceProvider
 	@Inject extension PersistenceConfiguration
 	@Inject extension HierarchicalLineSkipper
-
+	@Inject extension LogFilter
+	
+	
 	override getLogLinesForTestStep(TestExecutionKey key) {
+		return getLogLinesForTestStep(key, LogLevel.TRACE)
+	}
+
+	override getLogLinesForTestStep(TestExecutionKey key, LogLevel logLevel) {
 		Validate.notBlank(key?.suiteId, ILLEGAL_TEST_EXECUTION_KEY_MESSAGE, key?.toString)
 		Validate.notBlank(key?.suiteRunId, ILLEGAL_TEST_EXECUTION_KEY_MESSAGE, key?.toString)
 
@@ -43,6 +49,7 @@ class ScanningLogFinder implements LogFinder {
 		return key.logFile.readAllLines(UTF_8) //
 		.dropWhile[!Pattern.compile('''@[A-Z_]+:ENTER:[0-9a-f]+:«callTreeId»''').matcher(it).find] //
 		.drop(1) //
+		.filter[it.isVisibleOn(logLevel)]
 		.takeWhile[!Pattern.compile('''@[A-Z_]+:LEAVE:[0-9a-f]+:«callTreeId»''').matcher(it).find] //
 		.skipMarkerAndSubStepLines //
 	}

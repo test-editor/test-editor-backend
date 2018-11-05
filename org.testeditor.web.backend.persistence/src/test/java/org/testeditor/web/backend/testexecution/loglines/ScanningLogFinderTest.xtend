@@ -18,6 +18,9 @@ import org.testeditor.web.backend.testexecution.TestExecutionKey
 
 import static org.assertj.core.api.Assertions.assertThat
 import static org.junit.Assert.fail
+import static org.mockito.ArgumentMatchers.anyString
+import static org.mockito.ArgumentMatchers.eq
+import static org.mockito.ArgumentMatchers.matches
 import static org.mockito.Mockito.when
 
 @RunWith(MockitoJUnitRunner)
@@ -41,6 +44,7 @@ class ScanningLogFinderTest {
 	@Mock WorkspaceProvider mockWorkspace
 	@Mock PersistenceConfiguration mockConfig
 	@Spy HierarchicalLineSkipper lineSkipper = new RecursiveHierarchicalLineSkipper
+	@Mock LogFilter mockLogFilter
 
 	@InjectMocks
 	ScanningLogFinder logFinder
@@ -56,6 +60,8 @@ class ScanningLogFinderTest {
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
 
 		// when
 		val actualLogLines = logFinder.getLogLinesForTestStep(key)
@@ -84,6 +90,33 @@ class ScanningLogFinderTest {
 	}
 
 	@Test
+	def void shouldReturnRelevantLogLinesOfInfoLevelOrAbove() {
+		// given
+		val key = new TestExecutionKey('0', '0', '0', 'ID3')
+		val arbitraryDateAndTime = '20180716111612603'
+		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
+
+		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		val logPath = testRoot.newFolder('logs').toPath
+		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
+		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(matches('^    11:16:3\\d (INFO|WARN).+'), eq(LogLevel.INFO))).thenReturn(true)
+		
+		// when
+		val actualLogLines = logFinder.getLogLinesForTestStep(key, LogLevel.INFO)
+
+		// then
+		assertThat(actualLogLines).containsExactly(#[
+			'    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Starting browser: firefox',
+			'    11:16:34 WARN  [Test worker]  [TE-Test: LoginTest] WebDriverManager Network not available. Forcing the use of cache',
+			'    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverManager Found geckodriver in cache: /home/sampleUser/.m2/repository/webdriver/geckodriver/linux64/0.21.0/geckodriver ',
+			'    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverManager Exporting webdriver.gecko.driver as /home/sampleUser/.m2/repository/webdriver/geckodriver/linux64/0.21.0/geckodriver',
+			'    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture The file with the name browserSetup.json can not be found in the resource folder.'
+		])
+	}
+
+	@Test
 	def void shouldSkipLogLinesOfSubSteps() {
 		// given
 		val key = new TestExecutionKey('0', '0', '0', 'ID2')
@@ -94,6 +127,8 @@ class ScanningLogFinderTest {
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
 
 		// when
 		val actualLogLines = logFinder.getLogLinesForTestStep(key)
@@ -116,6 +151,8 @@ class ScanningLogFinderTest {
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
 
 		// when
 		val actualLogLines = logFinder.getLogLinesForTestStep(key)
@@ -155,6 +192,8 @@ class ScanningLogFinderTest {
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
 
 		// when
 		val actualLogLines = logFinder.getLogLinesForTestStep(key)
