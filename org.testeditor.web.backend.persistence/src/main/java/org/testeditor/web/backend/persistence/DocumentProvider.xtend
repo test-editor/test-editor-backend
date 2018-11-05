@@ -5,6 +5,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.InputStream
+import java.nio.file.Paths
 import java.util.Optional
 import java.util.function.Consumer
 import javax.inject.Inject
@@ -26,7 +27,6 @@ import org.testeditor.web.dropwizard.auth.User
 import static java.nio.charset.StandardCharsets.*
 
 import static extension java.nio.file.Files.probeContentType
-import java.nio.file.Paths
 
 /**
  * Similar to the default Xtext implementation but the calculated file URI needs to
