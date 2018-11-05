@@ -49,9 +49,11 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 	@Before
 	def void setupRemoteGitRepository() {
 		// setup remote Git repository
+		System.out.println('''setting up remote git repository''')
 		remoteGit = Git.init.setDirectory(remoteGitFolder.root).call
-		JGitTestUtil.writeTrashFile(remoteGit.repository, 'README.md', '# Readme')
-		remoteGit.add.addFilepattern("README.md").call
+		System.out.println('''using fileencoding «System.getProperty("file.encoding")»''')
+		JGitTestUtil.writeTrashFile(remoteGit.repository, 'RÜDME.md', '# Readme')
+		remoteGit.add.addFilepattern("RÜDME.md").call
 		remoteGit.commit.setMessage("Initial commit").call
 		additionalRemoteBranchesToSetup.forEach[
 			remoteGit.branchCreate.setName(it).call
