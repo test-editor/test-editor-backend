@@ -35,6 +35,7 @@ class TestCaseResource {
 	static class SerializableCallTreeNode {
 
 		var String displayName
+		var String treeId
 		var List<SerializableCallTreeNode> children
 
 	}
@@ -92,6 +93,7 @@ class TestCaseResource {
 	private def SerializableCallTreeNode transformToSerializableCallTree(CallTreeNode someTree) {
 		return new SerializableCallTreeNode => [
 			displayName = someTree.displayname
+			treeId = someTree.treeId
 			children = someTree.children.map[transformToSerializableCallTree]
 		]
 	}
