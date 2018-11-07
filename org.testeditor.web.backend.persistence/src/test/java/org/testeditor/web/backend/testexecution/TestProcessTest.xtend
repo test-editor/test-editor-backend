@@ -1,12 +1,12 @@
 package org.testeditor.web.backend.testexecution
 
 import java.util.concurrent.TimeUnit
+import org.apache.commons.lang3.mutable.MutableBoolean
 import org.junit.Test
 
 import static org.assertj.core.api.Assertions.assertThat
 import static org.assertj.core.api.Assertions.fail
 import static org.mockito.Mockito.*
-import org.apache.commons.lang3.mutable.MutableBoolean
 
 class TestProcessTest {
 
