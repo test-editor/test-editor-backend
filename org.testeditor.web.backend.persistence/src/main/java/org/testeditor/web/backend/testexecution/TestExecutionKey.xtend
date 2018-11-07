@@ -1,12 +1,20 @@
 package org.testeditor.web.backend.testexecution
 
+import java.io.File
+import java.io.FileNotFoundException
+import java.nio.file.FileSystems
+import java.nio.file.Path
+import java.util.regex.Pattern
 import org.eclipse.xtend.lib.annotations.Data
 import org.eclipse.xtend.lib.annotations.EqualsHashCode
-import java.util.regex.Pattern
+import org.slf4j.LoggerFactory
+
+import static extension java.nio.file.Files.list
 
 @EqualsHashCode
 @Data
 class TestExecutionKey {
+	static val logger = LoggerFactory.getLogger(TestExecutionKey)
 
 	static val PATTERN = Pattern.compile('([^-\\s]+)(-([^-\\s]*)(-([^-\\s]*)(-([^-\\s]*))?)?)?')
 	
@@ -79,4 +87,20 @@ class TestExecutionKey {
 			matcher.group(7)?:"")
 	}
 	
+	def Path getLogFile(File workspace) {
+		val keyName = this.toString
+		logger.debug('getting log file for test execution key "{}".', keyName)
+
+		val matcher = FileSystems.^default.getPathMatcher('''glob:testrun.«this.suiteId»-«this.suiteRunId»--.*.log''')
+		val logFile = workspace.toPath.resolve('logs').list //
+		.filter[matcher.matches(fileName)] //
+		.findFirst //
+		.orElseThrow [
+			new FileNotFoundException('''No log file for test execution key '«keyName»' found.''')
+		]
+
+		logger.debug('retrieved log file "{}" for test execution key "{}".', logFile.fileName, keyName)
+
+		return logFile
+	}
 }

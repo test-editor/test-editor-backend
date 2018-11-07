@@ -50,7 +50,7 @@ class TestSuiteResource {
 	@Inject LogFinder logFinder
 
 	@GET
-	@Path("{suiteId}/{suiteRunId}/{caseRunId}/{callTreeId}")
+	@Path("{suiteId}/{suiteRunId}/{caseRunId : ([^?/]+)?}/{callTreeId : ([^?/]+)?}")
 	@Produces(MediaType.APPLICATION_JSON)
 	def Response testSuiteCalltreeNode(
 		@PathParam("suiteId") String suiteId,
@@ -61,9 +61,15 @@ class TestSuiteResource {
 		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
 	) {
 		var response = Response.status(Status.NOT_FOUND).build
-		val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].last
+		var executionKey = new TestExecutionKey(suiteId, suiteRunId)
+		val latestCallTree = executorProvider.getTestFiles(executionKey).filter[name.endsWith('.yaml')].sortBy[name].last
 		if (latestCallTree !== null) {
-			val executionKey = new TestExecutionKey(suiteId, suiteRunId, caseRunId, callTreeId)
+			if (!caseRunId.nullOrEmpty) {
+				executionKey = executionKey.deriveWithCaseRunId(caseRunId)
+				if (!callTreeId.nullOrEmpty) {
+					executionKey = executionKey.deriveWithCallTreeId(callTreeId)
+				}
+			}
 			var logLines = newLinkedList
 			var warning = ''
 			try {
