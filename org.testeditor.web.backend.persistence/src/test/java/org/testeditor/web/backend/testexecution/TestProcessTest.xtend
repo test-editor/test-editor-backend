@@ -1,6 +1,7 @@
 package org.testeditor.web.backend.testexecution
 
 import java.util.concurrent.TimeUnit
+import org.apache.commons.lang3.mutable.MutableBoolean
 import org.junit.Test
 
 import static org.assertj.core.api.Assertions.assertThat
@@ -108,6 +109,40 @@ class TestProcessTest {
 	}
 	
 	@Test
+	def void waitForStatusExecutesCallbackAfterProcessTerminatedSuccessfully() {
+		// given
+		val aProcess = mock(Process)
+		when(aProcess.alive).thenReturn(true).thenReturn(false)
+		when(aProcess.exitValue).thenReturn(0)
+		when(aProcess.waitFor(5, TimeUnit.SECONDS)).thenReturn(true)
+		val callbackExecuted = new MutableBoolean(false)
+		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
+
+		// when
+		testProcessUnderTest.waitForStatus
+
+		// then
+		assertThat(callbackExecuted.booleanValue).isTrue
+	}
+	
+	@Test
+	def void waitForStatusExecutesCallbackAfterProcessTerminatedUnsuccessfully() {
+		// given
+		val aProcess = mock(Process)
+		when(aProcess.alive).thenReturn(true).thenReturn(false)
+		when(aProcess.exitValue).thenReturn(1)
+		when(aProcess.waitFor(5, TimeUnit.SECONDS)).thenReturn(true)
+		val callbackExecuted = new MutableBoolean(false)
+		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
+
+		// when
+		testProcessUnderTest.waitForStatus
+
+		// then
+		assertThat(callbackExecuted.booleanValue).isTrue
+	}
+	
+	@Test
 	def void getStatusCorrectAfterWaitForStatus() {
 		// given
 		val aProcess = mock(Process)
@@ -139,6 +174,34 @@ class TestProcessTest {
 
 		// then
 		verifyNoMoreInteractions(aProcess)
+	}
+	
+	@Test
+	def void setCompletedAfterProcessTerminatedSuccessfullyExecutesCallback() {
+		// given
+		val callbackExecuted = new MutableBoolean(false)
+		val aProcess = mock(Process).thatTerminatedSuccessfully
+		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
+
+		// when
+		testProcessUnderTest.setCompleted
+
+		// then
+		assertThat(callbackExecuted.booleanValue).isTrue
+	}
+	
+	@Test
+	def void setCompletedAfterProcessTerminatedUnsuccessfullyExecutesCallback() {
+		// given
+		val callbackExecuted = new MutableBoolean(false)
+		val aProcess = mock(Process).thatTerminatedWithAnError
+		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
+
+		// when
+		testProcessUnderTest.setCompleted
+
+		// then
+		assertThat(callbackExecuted.booleanValue).isTrue
 	}
 
 	private def Process thatIsRunning(Process mockProcess) {

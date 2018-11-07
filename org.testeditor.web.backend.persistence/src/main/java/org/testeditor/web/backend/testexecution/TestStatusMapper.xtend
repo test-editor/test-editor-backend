@@ -31,15 +31,15 @@ import static org.testeditor.web.backend.testexecution.TestStatus.*
  * which also takes care of removing references to 
  * {@link Process Process} classes once they have terminated.
  */
- @Singleton
+@Singleton
 class TestStatusMapper {
 
 	public static val TEST_STATUS_MAP_NAME = "testStatusMap"
-	
+
 	var AtomicLong runningTestSuiteRunId = new AtomicLong(0)
 
 	val suiteStatusMap = new ConcurrentHashMap<TestExecutionKey, TestProcess>
-	
+
 	def TestExecutionKey deriveFreshRunId(TestExecutionKey suiteKey) {
 		return suiteKey.deriveWithSuiteRunId(Long.toString(runningTestSuiteRunId.andIncrement))
 	}
@@ -61,22 +61,27 @@ class TestStatusMapper {
 	}
 
 	def void addTestSuiteRun(TestExecutionKey testExecutionKey, Process runningTestSuite) {
+		addTestSuiteRun(testExecutionKey, runningTestSuite)[]
+	}
+
+	def void addTestSuiteRun(TestExecutionKey testExecutionKey, Process runningTestSuite, (TestStatus)=>void onCompleted) {
 		if (testExecutionKey.isRunning) {
 			throw new IllegalStateException('''TestSuite "«testExecutionKey»" is still running.''')
 		} else {
-			val testProcess = new TestProcess(runningTestSuite)
+			val testProcess = new TestProcess(runningTestSuite, onCompleted)
 			suiteStatusMap.put(testExecutionKey, testProcess)
 		}
 	}
-	
+
 	def Iterable<TestSuiteStatusInfo> getAllTestSuites() {
 		// iterating should be thread-safe, see e.g.
 		// https://stackoverflow.com/questions/3768554/is-iterating-concurrenthashmap-values-thread-safe
-
-		return this.suiteStatusMap.entrySet.map[entry|new TestSuiteStatusInfo => [
-			key = entry.key
-			status = entry.value.status.name
-		]]
+		return this.suiteStatusMap.entrySet.map [ entry |
+			new TestSuiteStatusInfo => [
+				key = entry.key
+				status = entry.value.status.name
+			]
+		]
 	}
 
 	private def boolean isRunning(TestExecutionKey executionKey) {
