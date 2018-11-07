@@ -478,6 +478,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
 				echo ">>>>>>>>>>>>>>>> got the following test class: org.testeditor.Minimal with id 1.5.1"
+				echo "@TESTRUN:ENTER:0.0.1"
 				echo ""
 				echo "org.testeditor.Minimal > execute STANDARD_OUT"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:ENTER:2e86865c:IDROOT"
@@ -510,7 +511,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration."
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:LEAVE:2e86865c:IDROOT"
-				echo ":testTask2Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes="
+				echo "@TESTRUN:LEAVE:0.0.1"
 			''')
 		]
 
@@ -562,6 +563,12 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
 				echo ">>>>>>>>>>>>>>>> got the following test class: org.testeditor.Minimal with id 1.5.1"
+				echo "@TESTRUN:ENTER:0.0.0"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:ENTER:44e5ddd2:ID9"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] same local ID, different test case!"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:LEAVE:44e5ddd2:ID9"
+				echo "@TESTRUN:LEAVE:0.0.0"
+				echo "@TESTRUN:ENTER:0.0.1"
 				echo ""
 				echo "org.testeditor.Minimal > execute STANDARD_OUT"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:ENTER:2e86865c:IDROOT"
@@ -584,7 +591,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
 				echo "    08:24:02 DEBUG [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
 				echo "    08:24:02 TRACE [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
-				echo "  gibberish! ERROR WARN INFO DEBUG TRACE This line should only be included in the response for TRACE-level logging
+				echo "  gibberish! ERROR WARN INFO DEBUG TRACE This line should only be included in the response for TRACE-level logging"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:LEAVE:44e5ddd2:ID9"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                 @COMPONENT:LEAVE:2aa6f5bc:ID8"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase               @MACRO:LEAVE:d295d64c:ID7"
@@ -599,7 +606,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration."
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:LEAVE:2e86865c:IDROOT"
-				echo ":testTask2Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes="
+				echo "@TESTRUN:LEAVE:0.0.1"
 			''')
 		]
 
@@ -657,6 +664,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				printf '"screenshot": "«screenshotPath»"\n' > ${targetDir}/ID9.yaml
 				
 				echo ">>>>>>>>>>>>>>>> got the following test class: org.testeditor.Minimal with id 1.5.1"
+				echo "@TESTRUN:ENTER:0.0.1"
 				echo ""
 				echo "org.testeditor.Minimal > execute STANDARD_OUT"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:ENTER:2e86865c:IDROOT"
@@ -689,7 +697,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration."
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:LEAVE:2e86865c:IDROOT"
-				echo ":testTask2Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes="
+				echo "@TESTRUN:LEAVE:0.0.1"
 			''')
 		]
 
