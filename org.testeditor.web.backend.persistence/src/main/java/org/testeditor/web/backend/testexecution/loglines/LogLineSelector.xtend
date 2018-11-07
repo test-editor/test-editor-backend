@@ -56,10 +56,7 @@ class PatternBasedLogLineSelector extends LogLineSelector {
 	}
 
 	override protected findStart(Stream<String> lines) {
-		return this.preSelector.findStart(lines).dropWhile[
-			println
-			!compiledEnterPattern.matcher(it).find
-		].skip(1)
+		return this.preSelector.findStart(lines).dropWhile[!compiledEnterPattern.matcher(it).find].skip(1)
 	}
 
 	override protected findEnd(Stream<String> lines) {
