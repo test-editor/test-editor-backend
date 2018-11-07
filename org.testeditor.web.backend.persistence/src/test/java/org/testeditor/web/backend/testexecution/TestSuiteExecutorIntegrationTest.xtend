@@ -324,6 +324,34 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	@Test
+	def void testThatRootNodeStatusIsWrittenAfterTestTerminates() {
+		// given
+		val mapper = new ObjectMapper(new JsonFactory)
+		val testKey = TestExecutionKey.valueOf('0-0')
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFolder(userId, 'logs')
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo "Dummy test execution"
+			''')
+		]
+
+		val launchResponse = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
+		launchResponse.status.assertEquals(Status.CREATED.statusCode)
+		createTestStatusRequest(testKey).get // wait for completion
+		// when
+		val jsonString = createCallTreeRequest(testKey).buildGet.submit.get.readEntity(String)
+
+		// then
+		val overallTestStatus = mapper.readTree(jsonString).get('status').asText
+		assertThat(overallTestStatus).isEqualTo('SUCCESS')
+	}
+
+	@Test
 	def void testThatScreenshotDetailsAreProvided() {
 		val testKey = TestExecutionKey.valueOf('0-0')
 		val screenshotPath = 'screenshots/test/hello.png'
@@ -529,7 +557,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			#['    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)'])
 
 	}
-	
+
 	@Test
 	def void testThatLogLinesAreFilteredToTheSpecifiedLogLevel() {
 		val testKey = TestExecutionKey.valueOf('0-0')
@@ -622,8 +650,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		].assertInstanceOf(Map)
 		properties.get("content").assertInstanceOf(List).assertEquals(
 			#['    08:24:02 ERROR [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)',
-			  '    08:24:02 WARN  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)',
-			  '    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)'])
+				'    08:24:02 WARN  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)',
+				'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)'])
 	}
 
 	@Test
@@ -717,7 +745,6 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		properties.get('type').assertEquals('text')
 		properties.get('content').assertEquals(#['    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)'])
 	}
-
 
 	@Test
 	def void testThatLogLinesForTestSuiteRunCanBeRetrieved() {
@@ -823,7 +850,6 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			':testTask2Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes='
 		])
 	}
-
 
 	@Test
 	def void testThatStatusRequestIsReturnedEventuallyForLongRunningTests() {
