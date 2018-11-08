@@ -42,6 +42,15 @@ import javax.ws.rs.DELETE
 class TestSuiteResource {
 
 	public static val LONG_POLLING_TIMEOUT_SECONDS = 5
+	
+	/**
+	 * If the client has no concept of test suites, i.e. there is always a
+	 * one-to-one relation between a test suite and a test case, this switch
+	 * will case the caseRunId to be ignored when test execution details are
+	 * requested. When details for a test case are requested, the details for
+	 * the test suite are returned instead.
+	 */
+	static val IDENTIFY_SUITE_AND_TEST_RUN = true //TODO make this properly configurable, or remove when not needed anymore
 	static val logger = LoggerFactory.getLogger(TestSuiteResource)
 
 	@Inject TestExecutorProvider executorProvider
@@ -74,7 +83,7 @@ class TestSuiteResource {
 		@QueryParam("logOnly") boolean logOnly,
 		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
 	) {
-		return getTestExecutionDetails(suiteId, suiteRunId, caseRunId, null, logOnly, logLevel)
+		return getTestExecutionDetails(suiteId, suiteRunId, if (IDENTIFY_SUITE_AND_TEST_RUN) null else caseRunId, null, logOnly, logLevel)
 	}
 
 	@GET
