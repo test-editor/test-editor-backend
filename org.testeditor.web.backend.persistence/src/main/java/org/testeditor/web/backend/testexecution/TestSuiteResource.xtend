@@ -53,15 +53,46 @@ class TestSuiteResource {
 	@Inject LogFinder logFinder
 
 	@GET
-	@Path("details/{suiteId}/{suiteRunId}/{caseRunId : ([^?/]+)?}/{callTreeId : ([^?/]+)?}")
+	@Path("details/{suiteId}/{suiteRunId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	def Response testSuiteCalltreeNode(
+	def Response testSuiteRunDetails(
+		@PathParam("suiteId") String suiteId,
+		@PathParam("suiteRunId") String suiteRunId,
+		@QueryParam("logOnly") boolean logOnly,
+		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
+	) {
+		return getTestExecutionDetails(suiteId, suiteRunId, null, null, logOnly, logLevel)
+	}
+	
+	@GET
+	@Path("details/{suiteId}/{suiteRunId}/{caseRunId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	def Response testCaseRunDetails(
+		@PathParam("suiteId") String suiteId,
+		@PathParam("suiteRunId") String suiteRunId,
+		@PathParam("caseRunId") String caseRunId,
+		@QueryParam("logOnly") boolean logOnly,
+		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
+	) {
+		return getTestExecutionDetails(suiteId, suiteRunId, caseRunId, null, logOnly, logLevel)
+	}
+
+	@GET
+	@Path("details/{suiteId}/{suiteRunId}/{caseRunId}/{callTreeId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	def Response testCallTreeNodeDetails(
 		@PathParam("suiteId") String suiteId,
 		@PathParam("suiteRunId") String suiteRunId,
 		@PathParam("caseRunId") String caseRunId,
 		@PathParam("callTreeId") String callTreeId,
 		@QueryParam("logOnly") boolean logOnly,
 		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
+	) {
+		return getTestExecutionDetails(suiteId, suiteRunId, caseRunId, callTreeId, logOnly, logLevel)
+	}
+
+	def Response getTestExecutionDetails(String suiteId, String suiteRunId, String caseRunId, String callTreeId,
+		boolean logOnly, LogLevel logLevel
 	) {
 		var response = Response.status(Status.NOT_FOUND).build
 		var executionKey = new TestExecutionKey(suiteId, suiteRunId)
