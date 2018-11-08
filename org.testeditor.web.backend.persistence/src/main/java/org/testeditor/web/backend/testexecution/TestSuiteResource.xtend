@@ -53,7 +53,7 @@ class TestSuiteResource {
 	@Inject LogFinder logFinder
 
 	@GET
-	@Path("{suiteId}/{suiteRunId}/{caseRunId : ([^?/]+)?}/{callTreeId : ([^?/]+)?}")
+	@Path("details/{suiteId}/{suiteRunId}/{caseRunId : ([^?/]+)?}/{callTreeId : ([^?/]+)?}")
 	@Produces(MediaType.APPLICATION_JSON)
 	def Response testSuiteCalltreeNode(
 		@PathParam("suiteId") String suiteId,

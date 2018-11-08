@@ -1040,11 +1040,11 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	private def Builder createNodeRequest(TestExecutionKey key) {
-		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»''')
+		return createRequest('''test-suite/details/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»''')
 	}
 
 	private def Builder createNodeRequest(TestExecutionKey key, String queryParams) {
-		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»?«queryParams»''')
+		return createRequest('''test-suite/details/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»?«queryParams»''')
 	}
 
 }
