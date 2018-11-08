@@ -112,17 +112,17 @@ class TestExecutorProvider {
 			        	if (System.props.get("skipUnchanged") == null) {
 			            	outputs.upToDateWhen { false }
 			            }
-			            taskNum++
-			            if (taskNum != 1) {
-			                dependsOn "testTask${taskNum-1}"
-			            }
-			
 			            environment "TE_TESTCASENAME", "${testcase}"
 			            environment "TE_SUITERUNID", "${System.props.get('TE_SUITERUNID')}"
 			            environment "TE_SUITEID", "${System.props.get('TE_SUITEID')}"
 			            environment "TE_TESTRUNID", "${taskNum}"
 			            environment "TE_TESTRUNCOMMITID", "${System.props.get('TE_TESTRUNCOMMITID')}"
-			
+
+			            taskNum++
+			            if (taskNum != 1) {
+			                dependsOn "testTask${taskNum-1}"
+			            }
+
 			            include "${testcase}.class"
 			            testLogging.showStandardStreams = true
 			            testLogging.exceptionFormat = 'full'
