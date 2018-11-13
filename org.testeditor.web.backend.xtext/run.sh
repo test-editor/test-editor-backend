@@ -41,6 +41,7 @@ if [ "$GIT_PRIVATE_KEY" != "" ]; then
   mkdir -p `dirname $KEY_LOCATION`
   echo "$GIT_PRIVATE_KEY" > $KEY_LOCATION
   chmod 600 $KEY_LOCATION
+  sha1sum $KEY_LOCATION
 fi
 
 if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
