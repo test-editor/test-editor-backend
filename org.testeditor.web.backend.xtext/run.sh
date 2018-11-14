@@ -49,6 +49,13 @@ if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
   KNOWN_HOSTS=${PROG_DIR}/ssh-keys/known_hosts
   mkdir -p `dirname $KNOWN_HOSTS`
   echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
+
+  if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
+    echo "configuring additional known host domains: $ADD_KNOWN_HOSTS_DOMAIN"
+    DOMAIN="${ADD_KNOWN_HOSTS_DOMAIN%:*}"
+    PORT="${ADD_KNOWN_HOSTS_DOMAIN/[a-z]*:/}"
+    ssh-keyscan -p $PORT $DOMAIN && >> $KNOWN_HOSTS
+  fi
 fi
 
 sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
@@ -60,4 +67,4 @@ sed -i "s|%KNOWN_HOSTS%|$KNOWN_HOSTS|g" config.yml
 
 export HOME=/opt/testeditor
 
-bin/org.testeditor.web.backend.xtext server config.yml
+exec bin/org.testeditor.web.backend.xtext server config.yml

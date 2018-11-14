@@ -57,6 +57,13 @@ if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
   KNOWN_HOSTS=${PROG_DIR}/ssh-keys/known_hosts
   mkdir -p `dirname $KNOWN_HOSTS`
   echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
+
+  if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
+    echo "configuring additional known host domains: $ADD_KNOWN_HOSTS_DOMAIN"
+    DOMAIN="${ADD_KNOWN_HOSTS_DOMAIN%:*}"
+    PORT="${ADD_KNOWN_HOSTS_DOMAIN/[a-z]*:/}"
+    ssh-keyscan -p $PORT $DOMAIN && >> $KNOWN_HOSTS
+  fi
 fi
 
 sed -i "s|%REPO_MODE%|$REPO_MODE|g" config.yml
@@ -73,4 +80,4 @@ export DISPLAY=:99.0
 
 /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1920x1080x16
 
-bin/org.testeditor.web.backend.persistence server config.yml
+exec bin/org.testeditor.web.backend.persistence server config.yml
