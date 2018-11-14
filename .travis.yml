@@ -18,7 +18,8 @@ before_cache:
 script:
 - nix-shell --command "./gradlew check"
 - nix-shell --command "timeout 300 ./.travis-cat_owasp_depcheck_reports.sh || true"
-- if [[ ( "$TRAVIS_PULL_REQUEST" = "false" ) && (( "$TRAVIS_BRANCH" = "master" ) || ( "$TRAVIS_TAG" != "" )) ]]; then nix-shell --command "./gradlew docker" && export TE_DEPLOY=true; fi
+- nix-shell --command "./gradlew docker"
+- if [[ ( "$TRAVIS_PULL_REQUEST" = "false" ) && (( "$TRAVIS_BRANCH" = "master" ) || ( "$TRAVIS_TAG" != "" )) ]]; then export TE_DEPLOY=true; fi
 deploy:
   provider: script
   script: nix-shell --command "bash docker_push"
