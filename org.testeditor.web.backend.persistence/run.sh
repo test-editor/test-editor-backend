@@ -52,18 +52,21 @@ if [ "$GIT_PRIVATE_KEY" != "" ]; then
   sha1sum $KEY_LOCATION
 fi
 
+KNOWN_HOSTS=${PROG_DIR}/ssh-keys/known_hosts
+touch $KNOWN_HOSTS
 if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
   echo "configuring known hosts"
-  KNOWN_HOSTS=${PROG_DIR}/ssh-keys/known_hosts
   mkdir -p `dirname $KNOWN_HOSTS`
   echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
+fi
 
-  if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
-    echo "configuring additional known host domains: $ADD_KNOWN_HOSTS_DOMAIN"
-    DOMAIN="${ADD_KNOWN_HOSTS_DOMAIN%:*}"
-    PORT="${ADD_KNOWN_HOSTS_DOMAIN/[a-z]*:/}"
-    ssh-keyscan -p $PORT $DOMAIN && >> $KNOWN_HOSTS
-  fi
+if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
+  echo "configuring additional known host domains: $ADD_KNOWN_HOSTS_DOMAIN"
+  mkdir -p `dirname $KNOWN_HOSTS`
+  DOMAIN="${ADD_KNOWN_HOSTS_DOMAIN%:*}"
+  PORT="${ADD_KNOWN_HOSTS_DOMAIN/[a-z]*:/}"
+  echo "using domain: $DOMAIN port: $PORT"
+  ssh-keyscan -p $PORT $DOMAIN >> $KNOWN_HOSTS
 fi
 
 sed -i "s|%REPO_MODE%|$REPO_MODE|g" config.yml
