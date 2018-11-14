@@ -37,6 +37,8 @@ RUN \
                 ffmpeg \
                 tmux \
                 xvfb \
+                xauth \
+                xfonts-base \
 	&& rm -rf /var/lib/apt/lists/* && \
     \
     echo "Installing firefox $FIREFOX_VERSION" && \
