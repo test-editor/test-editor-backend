@@ -81,6 +81,7 @@ export HOME=/opt/testeditor
 
 export DISPLAY=:99.0
 
-/sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1920x1080x16
+# /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac -screen 0 1920x1080x16
 
-exec bin/org.testeditor.web.backend.persistence server config.yml
+
+exec xvfb-run --server-args="-screen 0 1920x1080x16" bin/org.testeditor.web.backend.persistence server config.yml
