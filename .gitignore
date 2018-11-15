@@ -32,3 +32,6 @@ xtend-gen/
 init.gradle
 config.local.yml
 /org.testeditor.web.backend.xtext/repo/
+
+### test executions ###
+xvfb.error.log

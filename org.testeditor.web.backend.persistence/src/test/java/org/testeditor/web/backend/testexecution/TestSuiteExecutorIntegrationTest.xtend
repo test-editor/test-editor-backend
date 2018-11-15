@@ -929,7 +929,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			new File(workspaceRoot.root, '''«userId»/finished.txt''').delete
 			val response = createLaunchNewRequest().post(Entity.entity(#[name], MediaType.APPLICATION_JSON_TYPE))
 			assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
-			var threshold = 5
+			var threshold = 20
 			while (!new File(workspaceRoot.root, '''«userId»/finished.txt''').exists && threshold > 0) {
 				println('waiting for script to settle ...')
 				Thread.sleep(500) // give the script some time to settle
