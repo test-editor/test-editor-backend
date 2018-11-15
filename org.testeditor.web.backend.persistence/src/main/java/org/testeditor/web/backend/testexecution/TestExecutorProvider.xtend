@@ -219,11 +219,19 @@ class TestExecutorProvider {
 	}
 
 	private def String[] constructCommandLine(String testClass) {
-		return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', testClass.gradleTestCommandLine]
+		if (System.getenv('TRAVIS').isNullOrEmpty) {
+			return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', testClass.gradleTestCommandLine]
+		} else {
+			return #[whichSh, '-c', testClass.gradleTestCommandLine]
+		}
 	}
 
 	private def String[] constructCommandLine(TestExecutionKey key, Iterable<String> testCases) {
-		return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', key.gradleTestCommandLine(testCases)]
+		if (System.getenv('TRAVIS').isNullOrEmpty) {
+			return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', key.gradleTestCommandLine(testCases)]
+		} else {
+			return #[whichSh, '-c', key.gradleTestCommandLine(testCases)]
+		}
 	}
 
 	private def String createNewLogFileName(TestExecutionKey key, String dateString) {
