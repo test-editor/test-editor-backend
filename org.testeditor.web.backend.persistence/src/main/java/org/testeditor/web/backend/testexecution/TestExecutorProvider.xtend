@@ -37,20 +37,22 @@ class TestExecutorProvider {
 
 	val String whichNice
 	val String whichSh
+	val String whichXvfbrun
 
 	@Inject WorkspaceProvider workspaceProvider
 
 	new() {
 		whichNice = runShellCommand('which', 'nice')
 		whichSh = runShellCommand('which', 'sh')
+		whichXvfbrun = runShellCommand('which', 'xvfb-run')
 	}
 
 	private def String runShellCommand(String ... commands) {
-		val whichNiceProcess = new ProcessBuilder => [
+		val processBuilder = new ProcessBuilder => [
 			command(commands)
 			redirectOutput
 		]
-		val process = whichNiceProcess.start
+		val process = processBuilder.start
 		val processOutput = new StringBuilder
 		var BufferedReader processOutputReader = null
 		try {
@@ -217,11 +219,11 @@ class TestExecutorProvider {
 	}
 
 	private def String[] constructCommandLine(String testClass) {
-		return #[whichNice, '-n', '10', whichSh, '-c', testClass.gradleTestCommandLine]
+		return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', testClass.gradleTestCommandLine]
 	}
 
 	private def String[] constructCommandLine(TestExecutionKey key, Iterable<String> testCases) {
-		return #[whichNice, '-n', '10', whichSh, '-c', key.gradleTestCommandLine(testCases)]
+		return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', key.gradleTestCommandLine(testCases)]
 	}
 
 	private def String createNewLogFileName(TestExecutionKey key, String dateString) {
