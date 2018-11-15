@@ -59,7 +59,7 @@ RUN \
     chown --recursive testeditor:root ${PROG_DIR} && \
     chmod --recursive ug+rw,o-rwX ${REPO_ROOT} && \
     chown --recursive testeditor:root ${REPO_ROOT} && \
-    chmod --recursive ugo+rw /tmp/.X11-unix
+    chmod --recursive 1777 /tmp/.X11-unix
 
 # group testeditor:
 #   -r : group of a system account
