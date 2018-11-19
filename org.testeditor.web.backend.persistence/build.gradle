@@ -22,7 +22,7 @@ dependencyCheck {
 }
 
 task docker(type:Exec) {
-    dependsOn(build)
+    dependsOn(assemble)
     executable 'sh'
     args '-c', """
       (([ -d testeditor ] && rm -Rf testeditor) || true) &&
