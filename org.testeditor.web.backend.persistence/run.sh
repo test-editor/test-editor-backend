@@ -67,6 +67,8 @@ if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
   PORT="${ADD_KNOWN_HOSTS_DOMAIN/[a-z]*:/}"
   echo "using domain: $DOMAIN port: $PORT"
   ssh-keyscan -p $PORT $DOMAIN >> $KNOWN_HOSTS
+  cat $KNOWN_HOSTS | sort | uniq -u > TEMP
+  mv TEMP $KNOWN_HOSTS
 fi
 
 sed -i "s|%REPO_MODE%|$REPO_MODE|g" config.yml
