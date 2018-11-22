@@ -45,11 +45,11 @@ if [ "$GIT_PRIVATE_KEY" != "" ]; then
 fi
 
 KNOWN_HOSTS=${PROG_DIR}/ssh-keys/known_hosts
+mkdir -p `dirname $KNOWN_HOSTS`
 touch $KNOWN_HOSTS
 if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
   echo "configuring known hosts"
-  mkdir -p `dirname $KNOWN_HOSTS`
-  echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
+  echo "$KNOWN_HOSTS_CONTENT" >> $KNOWN_HOSTS
 fi
 
 if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
@@ -62,6 +62,9 @@ if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
   cat $KNOWN_HOSTS | sort | uniq -u > TEMP
   mv TEMP $KNOWN_HOSTS
 fi
+
+echo "using known hosts:"
+cat $KNOWN_HOSTS
 
 sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
 sed -i "s|%REPO_ROOT%|$REPO_ROOT|g" config.yml
