@@ -53,7 +53,7 @@ if [ "$GIT_PRIVATE_KEY" != "" ]; then
 fi
 
 KNOWN_HOSTS_FILE=${PROG_DIR}/ssh-keys/known_hosts
-mkdir -p `dirname $KNOWN_HOSTS_FILE`
+mkdir -p ${PROG_DIR}/ssh-keys
 if [ "$KNOWN_HOSTS" != "" ]; then
   echo "copying passed known_hosts file from $KNOWN_HOSTS"
   cp $KNOWN_HOSTS $KNOWN_HOSTS_FILE
@@ -68,15 +68,14 @@ fi
 
 if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
   echo "configuring additional known host domains: $ADD_KNOWN_HOSTS_DOMAIN"
-  mkdir -p `dirname $KNOWN_HOSTS`
   DOMAIN="${ADD_KNOWN_HOSTS_DOMAIN%:*}"
   PORT="${ADD_KNOWN_HOSTS_DOMAIN/[a-z]*:/}"
   echo "using domain: $DOMAIN port: $PORT"
   ssh-keyscan -p $PORT $DOMAIN >> $KNOWN_HOSTS_FILE
-  cat $KNOWN_HOSTS_FILE | sort | uniq -u > TEMP
-  mv TEMP $KNOWN_HOSTS_FILE
 fi
 
+cat $KNOWN_HOSTS_FILE | sort | uniq -u > TEMP
+mv TEMP $KNOWN_HOSTS_FILE
 echo "using known hosts:"
 cat $KNOWN_HOSTS_FILE
 
