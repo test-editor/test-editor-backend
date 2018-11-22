@@ -56,7 +56,7 @@ KNOWN_HOSTS_FILE=${PROG_DIR}/ssh-keys/known_hosts
 mkdir -p `dirname $KNOWN_HOSTS_FILE`
 if [ "$KNOWN_HOSTS" != "" ]; then
   echo "copying passed known_hosts file from $KNOWN_HOSTS"
-  cp $KNOWN_HOSTS $KNOWN_HOST_FILE
+  cp $KNOWN_HOSTS $KNOWN_HOSTS_FILE
 else
   touch $KNOWN_HOSTS_FILE
 fi
