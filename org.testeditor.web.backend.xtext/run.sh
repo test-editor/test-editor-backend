@@ -66,7 +66,7 @@ if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
   ssh-keyscan -p $PORT $DOMAIN >> $KNOWN_HOSTS_FILE
 fi
 
-cat $KNOWN_HOSTS_FILE | sort | uniq -u > TEMP
+cat $KNOWN_HOSTS_FILE | sort | uniq > TEMP
 mv TEMP $KNOWN_HOSTS_FILE
 echo "using known hosts:"
 cat $KNOWN_HOSTS_FILE
