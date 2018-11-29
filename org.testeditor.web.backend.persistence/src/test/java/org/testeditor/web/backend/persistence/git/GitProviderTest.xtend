@@ -7,8 +7,6 @@ import org.junit.Test
 import static org.eclipse.jgit.lib.ConfigConstants.*
 import static org.eclipse.jgit.lib.Constants.DEFAULT_REMOTE_NAME
 
-import static extension org.mockito.Mockito.*
-
 class GitProviderTest extends AbstractGitTest {
 	
 	override protected additionalRemoteBranchesToSetup() {
@@ -25,7 +23,6 @@ class GitProviderTest extends AbstractGitTest {
 		// then
 		getRemoteUrl(git).assertEquals('file://' + remoteGitFolder.root.absolutePath)
 		new File(localGitRoot.root, "RÜDME.md").exists.assertTrue
-		verify(workspaceProvider).workspace
 		git.repository.branch.assertEquals(config.branchName)
 	}	
 
@@ -40,7 +37,6 @@ class GitProviderTest extends AbstractGitTest {
 		// then
 		getRemoteUrl(git).assertNull
 		new File(localGitRoot.root, "RÜDME.md").exists.assertFalse
-		verify(workspaceProvider).workspace
 	}
 
 	private def String getRemoteUrl(Git git) {
@@ -56,7 +52,6 @@ class GitProviderTest extends AbstractGitTest {
 
 		// then
 		git1.assertSame(git2)
-		verify(workspaceProvider, 2.times).workspace
 	}
 
 }
