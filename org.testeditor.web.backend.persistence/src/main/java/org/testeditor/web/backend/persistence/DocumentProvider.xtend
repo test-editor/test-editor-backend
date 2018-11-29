@@ -1,6 +1,5 @@
 package org.testeditor.web.backend.persistence
 
-import com.google.common.io.Files
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -18,13 +17,10 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.ConflictingModificationsException
 import org.testeditor.web.backend.persistence.exception.ExistingFileException
-import org.testeditor.web.backend.persistence.exception.MaliciousPathException
 import org.testeditor.web.backend.persistence.exception.MissingFileException
 import org.testeditor.web.backend.persistence.git.GitProvider
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.auth.User
-
-import static java.nio.charset.StandardCharsets.*
 
 import static extension java.nio.file.Files.probeContentType
 
@@ -36,9 +32,6 @@ class DocumentProvider {
 
 	static val logger = LoggerFactory.getLogger(DocumentProvider)
 
-	static val BACKUP_FILE_SUFFIX = 'local_backup'
-	static val MAX_BACKUP_FILE_NUMBER_SUFFIX = 9
-
 	@Inject Provider<User> userProvider
 	@Inject extension GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
@@ -47,10 +40,10 @@ class DocumentProvider {
 	def void copy(String resourcePath, String newPath) throws ConflictingModificationsException {
 		logger.debug('''copy «resourcePath» to «newPath»''')
 		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
-		val file = getWorkspaceFile(resourcePath)
+		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		logger.debug('''file is «file.toString»''')
 		logger.debug('''found «Paths.get(file.parent.toString).toFile.list.toString»''')
-		val newFile = getWorkspaceFile(newPath)
+		val newFile = workspaceProvider.getWorkspaceFile(newPath)
 		if (!file.exists) {
 			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
 		} else if (newFile.exists) {
@@ -70,10 +63,10 @@ class DocumentProvider {
 	def void rename(String resourcePath, String newPath) throws ConflictingModificationsException {
 		logger.debug('''rename «resourcePath» to «newPath»''')
 		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
-		val file = getWorkspaceFile(resourcePath)
+		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		logger.debug('''file is «file.toString»''')
 		logger.debug('''found «Paths.get(file.parent.toString).toFile.list.toString»''')
-		val newFile = getWorkspaceFile(newPath)
+		val newFile = workspaceProvider.getWorkspaceFile(newPath)
 		if (!file.exists) {
 			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
 		} else if (newFile.exists) {
@@ -86,12 +79,12 @@ class DocumentProvider {
 	}
 
 	def boolean create(String resourcePath, String content) throws ConflictingModificationsException {
-		val file = getWorkspaceFile(resourcePath)
+		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 
-		val created = create(file)
+		val created = workspaceProvider.create(file)
 		if (created) {
 			if (!content.isNullOrEmpty) {
-				Files.asCharSink(file, UTF_8).write(content)
+				workspaceProvider.write(file, content)
 			}
 			file.commit('''add file: «file.name»''')
 
@@ -102,12 +95,12 @@ class DocumentProvider {
 	}
 
 	def boolean createFolder(String folderPath) {
-		val folder = getWorkspaceFile(folderPath)
+		val folder = workspaceProvider.getWorkspaceFile(folderPath)
 		return folder.mkdirs
 	}
 
 	def InputStream load(String resourcePath) throws FileNotFoundException {
-		val file = getWorkspaceFile(resourcePath)
+		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		pull
 
 		if (file.exists) {
@@ -118,8 +111,8 @@ class DocumentProvider {
 	}
 
 	def void save(String resourcePath, String content) {
-		resourcePath.getWorkspaceFile => [
-			Files.asCharSink(it, UTF_8).write(content)
+		workspaceProvider.getWorkspaceFile(resourcePath) => [
+			workspaceProvider.write(it, content)
 			commit('''update file: «it.name»''')
 		]
 
@@ -148,16 +141,8 @@ class DocumentProvider {
 		]
 	}
 
-	private def getWorkspaceFile(String resourcePath) {
-		val workspace = workspaceProvider.workspace
-		val file = new File(workspace, resourcePath)
-		verifyFileIsWithinWorkspace(workspace, file)
-
-		return file
-	}
-
 	def boolean delete(String resourcePath) {
-		val file = getWorkspaceFile(resourcePath)
+		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		if (!file.exists) {
 			pull
 		}
@@ -174,7 +159,7 @@ class DocumentProvider {
 	}
 
 	def String getType(String resourcePath) {
-		val file = getWorkspaceFile(resourcePath)
+		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		return file.toPath.probeContentType
 	}
 
@@ -193,8 +178,7 @@ class DocumentProvider {
 	}
 
 	private def void stage(Git git, File file) {
-		val workspace = workspaceProvider.workspace
-		val filePattern = workspace.toPath.relativize(file.toPath).toString
+		val filePattern = workspaceProvider.patternFor(file)
 		if (file.exists) {
 			git.add.addFilepattern(filePattern).call
 		} else {
@@ -221,7 +205,7 @@ class DocumentProvider {
 
 	private def void resetToRemoteAndCreateBackup(StageState mergeConflictState, String resourcePath, String content) {
 		val backupFileContent = if (configuration.useDiffMarkersInBackups) {
-				Files.asCharSource(getWorkspaceFile(resourcePath), UTF_8).read
+				workspaceProvider.read(resourcePath)
 			} else {
 				content
 			}
@@ -230,34 +214,13 @@ class DocumentProvider {
 		var String backupFilePath = null
 		if (!content.isNullOrEmpty) {
 			try {
-				backupFilePath = createLocalBackup(resourcePath, backupFileContent)
+				backupFilePath = workspaceProvider.createLocalBackup(resourcePath, backupFileContent)
 				exceptionMessage = exceptionMessage.appendBackupNote(backupFilePath)
 			} catch (IllegalStateException exception) {
 				exceptionMessage += ' ' + exception.message
 			}
 		}
 		throw new ConflictingModificationsException(exceptionMessage, backupFilePath)
-	}
-
-	private def createLocalBackup(String resourcePath, String content) {
-		val workspace = workspaceProvider.workspace
-		val resourceSuffix = resourcePath.split('\\.').last
-		val resourceWithoutSuffix = resourcePath.substring(0, resourcePath.length - resourceSuffix.length)
-		var fileSuffix = BACKUP_FILE_SUFFIX
-		var backupFile = new File(workspace, resourceWithoutSuffix + fileSuffix + '.' + resourceSuffix)
-		if (!backupFile.create) {
-			val numberSuffix = (0 .. MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst [ i |
-				new File(workspace, '''«resourceWithoutSuffix»«BACKUP_FILE_SUFFIX»_«i».«resourceSuffix»''').create
-			]
-			if (numberSuffix !== null) {
-				fileSuffix = '''«BACKUP_FILE_SUFFIX»_«numberSuffix»'''
-				backupFile = new File(workspace, '''«resourceWithoutSuffix»«fileSuffix».«resourceSuffix»''')
-			} else {
-				throw new IllegalStateException('''Could not create a backup file for '«resourcePath»': backup file limit reached.''')
-			}
-		}
-		Files.asCharSink(backupFile, UTF_8).write(content)
-		return resourceWithoutSuffix + fileSuffix + '.' + resourceSuffix
 	}
 
 	private def Optional<StageState> pull() {
@@ -285,25 +248,6 @@ class DocumentProvider {
 		} else {
 			logger.info('''running NO git push against «configuration.remoteRepoUrl», since configuration repoConnectioNmode = '«configuration.repoConnectionMode.name»' prevents it''')
 		}
-	}
-
-	private def void verifyFileIsWithinWorkspace(File workspace, File workspaceFile) {
-		val workspacePath = workspace.canonicalPath
-		val filePath = workspaceFile.canonicalPath
-		val validPath = filePath.startsWith(workspacePath)
-		if (!validPath) {
-			throw new MaliciousPathException(workspacePath, filePath, userProvider.get.name)
-		}
-	}
-
-	private def boolean create(File file) {
-		val parent = new File(file.parent)
-		if (!parent.exists) {
-			logger.debug("Creating directory='{}'.", parent)
-			parent.mkdirs
-		}
-		logger.debug("Creating file='{}'.", file)
-		return file.createNewFile
 	}
 
 }
