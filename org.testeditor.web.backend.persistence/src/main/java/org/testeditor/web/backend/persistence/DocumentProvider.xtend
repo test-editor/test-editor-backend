@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.persistence
 
+import com.google.common.annotations.VisibleForTesting
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException
@@ -7,12 +8,14 @@ import java.io.InputStream
 import java.nio.file.Paths
 import java.util.Optional
 import java.util.function.Consumer
+import java.util.function.Function
 import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.ResetCommand.ResetType
 import org.eclipse.jgit.lib.IndexDiff.StageState
+import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.PersonIdent
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.exception.ConflictingModificationsException
@@ -37,6 +40,53 @@ class DocumentProvider {
 	@Inject WorkspaceProvider workspaceProvider
 	@Inject PersistenceConfiguration configuration
 
+	def boolean copyOnSyncedRepo(String resourcePath, String newPath) {
+		copyOnSyncedRepo(resourcePath, newPath, [git.push.configureTransport.call])
+	}
+	
+	@VisibleForTesting
+	def boolean  copyOnSyncedRepo(String resourcePath, String newPath, Function<Void, ?> pushAction) {
+		logger.debug('''copy «resourcePath» to «newPath»''')
+		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
+		val file = workspaceProvider.getWorkspaceFile(resourcePath)
+		logger.debug('''file is «file.toString»''')
+		logger.debug('''found «Paths.get(file.parent.toString).toFile.list.toString»''')
+		val newFile = workspaceProvider.getWorkspaceFile(newPath)
+		if (!file.exists) {
+			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
+		} else if (newFile.exists) {
+			throw new ExistingFileException('''target file '«newPath»' does already exist''')
+		} else {
+			val preCommit = git.repository.resolve('HEAD')
+			logger.trace('commitid before any action is taken is ' + preCommit.getName)
+			try {
+				val commitId = if (file.isDirectory) {
+						FileUtils.copyDirectory(file, newFile)
+						FileUtils.listFiles(newFile, null, true).
+							commit('''copied subdirectory '«resourcePath»' to '«newFile»' ''')
+					} else {
+						FileUtils.copyFile(file, newFile)
+						#[newFile].commit('''copied file '«resourcePath»' to '«newPath»'. ''')
+					}
+				val pullResult = git.pull.configureTransport.call
+				val newCommitId = git.repository.resolve('HEAD')
+				if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
+					pushAction.apply(null)
+					return true
+				}
+			} catch (Exception e) {
+				logger.error('exception during copy action', e)
+			}
+			logger.warn('resetting local repo to ' + preCommit.getName)
+			git.reset.setRef(preCommit.getName).setMode(ResetType.HARD).call
+			// for files not in the index, they must be deleted, too (since resetting the index won't help)
+			if (newFile.exists) {
+				FileUtils.deleteQuietly(newFile)
+			}
+		}
+		return false // did not work
+	}
+
 	def void copy(String resourcePath, String newPath) throws ConflictingModificationsException {
 		logger.debug('''copy «resourcePath» to «newPath»''')
 		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
@@ -49,9 +99,10 @@ class DocumentProvider {
 		} else if (newFile.exists) {
 			throw new ExistingFileException('''target file '«newPath»' does already exist''')
 		} else {
-			if(file.isDirectory) {
+			if (file.isDirectory) {
 				FileUtils.copyDirectory(file, newFile)
-				FileUtils.listFiles(newFile, null, true).commit('''copied subdirectory '«resourcePath»' to '«newFile»' ''')
+				FileUtils.listFiles(newFile, null, true).
+					commit('''copied subdirectory '«resourcePath»' to '«newFile»' ''')
 			} else {
 				FileUtils.copyFile(file, newFile)
 				#[newFile].commit('''copied file '«resourcePath»' to '«newPath»'. ''')
@@ -163,18 +214,20 @@ class DocumentProvider {
 		return file.toPath.probeContentType
 	}
 
-	private def void commit(Iterable<File> files, String message) {
+	private def ObjectId commit(Iterable<File> files, String message) {
 		val personIdent = new PersonIdent(userProvider.get.name, userProvider.get.email)
 		files.forEach[git.stage(it)]
-		git.commit //
+		val commit = git.commit //
 		.setMessage(message) //
 		.setAuthor(personIdent) //
 		.setCommitter(personIdent) //
 		.call
+
+		return commit.id
 	}
 
-	private def void commit(File file, String message) {
-		commit(#[file], message)
+	private def ObjectId commit(File file, String message) {
+		return commit(#[file], message)
 	}
 
 	private def void stage(Git git, File file) {
@@ -246,7 +299,8 @@ class DocumentProvider {
 				]
 			}
 		} else {
-			logger.info('''running NO git push against «configuration.remoteRepoUrl», since configuration repoConnectioNmode = '«configuration.repoConnectionMode.name»' prevents it''')
+			logger.
+				info('''running NO git push against «configuration.remoteRepoUrl», since configuration repoConnectioNmode = '«configuration.repoConnectionMode.name»' prevents it''')
 		}
 	}
 
