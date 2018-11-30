@@ -34,6 +34,7 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 			register(WorkspaceResource)
 			register(PersistenceExceptionMapper)
 			register(TestSuiteResource)
+			register(BuildVersionResource)
 		]
 
 		environment.healthChecks.register('execution', executionHealthCheckProvider.get)

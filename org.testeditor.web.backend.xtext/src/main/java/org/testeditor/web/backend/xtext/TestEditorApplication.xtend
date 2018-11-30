@@ -80,7 +80,8 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 	private def registerResources(Environment environment) {
 		#[
 			TestCaseResource,
-			IndexResource
+			IndexResource,
+			BuildVersionResource
 		] //
 		.forEach[environment.jersey.register(it)]
 	}

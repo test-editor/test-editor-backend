@@ -35,3 +35,18 @@ task docker(type:Exec) {
       docker build -t testeditor/persistence:snapshot .
     """
 }
+
+task logDependencies {
+    doLast {
+        outputs.upToDateWhen { false }
+        new File("${project.getBuildDir()}/resources/main").mkdirs()
+        ext.persistenceDependencyFile = new File("${project.getBuildDir()}/resources/main/dependencies.txt")
+        persistenceDependencyFile.text = "# ${project.name} dependencies: ${new Date().format('yyyyMMddHHmmss')} \n"
+        persistenceDependencyFile.text += "${project.group}:${project.name}:${project.version}\n"
+        configurations.compile.incoming.getResolutionResult().getAllDependencies().each {
+            persistenceDependencyFile.text += it.getSelected().toString() + "\n"
+        }
+    }
+}
+
+jar.dependsOn(logDependencies)

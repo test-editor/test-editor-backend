@@ -106,6 +106,10 @@ task docker {
     dependsOn = subprojects.collect{"${it.name}:docker"}
 }
 
+task logDependencies {
+    dependsOn = subprojects.collect{"${it.name}:logDependencies"}
+}
+
 def setVersionDefaults(ext, props) {
     props.each{ k,v -> setVersionDefault(ext, k, v) }
 }
