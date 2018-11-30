@@ -60,8 +60,8 @@ task docker(type:Exec) {
 }
 
 task logDependencies {
+    outputs.upToDateWhen { false }
     doLast {
-        outputs.upToDateWhen { false }
         new File("${project.getBuildDir()}/resources/main").mkdirs()
         ext.xtextDependencyFile = new File("${project.getBuildDir()}/resources/main/dependencies.txt")
         xtextDependencyFile.text = "# ${project.name} dependencies: ${new Date().format('yyyyMMddHHmmss')} \n"
@@ -73,3 +73,4 @@ task logDependencies {
 }
 
 jar.dependsOn(logDependencies)
+test.dependsOn(logDependencies)
