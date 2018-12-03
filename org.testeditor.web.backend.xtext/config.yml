@@ -1,5 +1,6 @@
 remoteRepoUrl: https://github.com/test-editor/test-editor-examples.git
 apiToken: secret
+applicationId: org.testeditor.web.backend.xtext
 server:
   applicationConnectors:
   - type: http 

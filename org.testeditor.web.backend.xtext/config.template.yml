@@ -3,6 +3,7 @@ branchName: %BRANCH_NAME%
 apiToken: %API_TOKEN_SECRET%
 privateKeyLocation: %KEY_LOCATION%
 knownHostsLocation: %KNOWN_HOSTS%
+applicationId: org.testeditor.web.backend.xtext
 server:
   applicationConnectors:
   - type: http 

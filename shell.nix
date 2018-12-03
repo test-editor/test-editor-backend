@@ -16,6 +16,7 @@ stdenv.mkDerivation {
         docker
         git
         glibcLocales
+        xvfb_run
     ];
     shellHook = ''
         # do some gradle "finetuning"
