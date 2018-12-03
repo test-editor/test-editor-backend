@@ -16,31 +16,93 @@ import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkip
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 
+import static java.nio.charset.StandardCharsets.UTF_8
 import static org.assertj.core.api.Assertions.assertThat
 import static org.junit.Assert.fail
+import static org.mockito.ArgumentMatchers.anyString
+import static org.mockito.ArgumentMatchers.eq
+import static org.mockito.ArgumentMatchers.matches
 import static org.mockito.Mockito.when
+
+import static extension java.nio.file.Files.readAllLines
 
 @RunWith(MockitoJUnitRunner)
 class ScanningLogFinderTest {
 
 	static val SAMPLE_LOG_FILE_PATH = Paths.get('src/test/resources/sample.log')
-	static val ROOT_LOG_LINES = #[
+	static val TEST_SUITE_RUN_LOG_LINES = Paths.get('src/test/resources/test-suite-run-expected-result.log').readAllLines(UTF_8)
+	static val TEST_SUITE_RUN_INFO_LOG_LINES = #[
 		"    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase ****************************************************",
 		"    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase Running test for sample.LoginTest",
 		"    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase ****************************************************",
+		"    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Starting browser: firefox",
+		"    11:16:34 WARN  [Test worker]  [TE-Test: LoginTest] WebDriverManager Network not available. Forcing the use of cache",
+		"    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverManager Found geckodriver in cache: /home/sampleUser/.m2/repository/webdriver/geckodriver/linux64/0.21.0/geckodriver ",
+		"    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverManager Exporting webdriver.gecko.driver as /home/sampleUser/.m2/repository/webdriver/geckodriver/linux64/0.21.0/geckodriver",
+		"    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture The file with the name browserSetup.json can not be found in the resource folder.",
+		"    11:16:38 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111638.751-Start_Firefox.LEAVE.png'.",
+		"    11:16:40 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111639.947-Browse_http_example.org.LEAVE.png'.",
+		"    11:16:40 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111640.127-WebBrowser.LEAVE.png'.",
 		"    11:16:40 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111640.221-_ffnen_eines_Browsers_und_auf_EXAMPLE-Test_navigieren.LEAVE.png'.",
+		"    11:16:40 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Lookup element login-form-username type ID",
+		"    11:16:40 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111640.485-Enter_test_into_UserName.LEAVE.png'.",
+		"    11:16:40 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Lookup element login-form-password type ID",
+		"    11:16:40 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111640.758-Enter_test_into_Password.LEAVE.png'.",
+		"    11:16:40 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Lookup element login type ID",
+		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111642.902-Click_LoginButton.LEAVE.png'.",
+		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111643.056-LoginPage.LEAVE.png'.",
 		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111643.194-Einloggen_als_user_test_pwd_test.LEAVE.png'.",
+		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Lookup element //div[@id = 'dashboard']//h1 type XPATH",
+		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111643.367-titel_Read_Header_java.lang.String.LEAVE.png'.",
+		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111643.501-assert_titel_System_Dashboard.LEAVE.png'.",
+		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111643.643-Dashboard.LEAVE.png'.",
 		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111643.788-Dashboard-Titel_sollte_System_Dashboard_sein..LEAVE.png'.",
+		"    11:16:43 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Lookup element header-details-user-fullname type ID",
+		"    11:16:44 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111644.232-Click_UserProfileIcon.LEAVE.png'.",
+		"    11:16:44 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Lookup element log_out type ID",
+		"    11:16:45 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111645.185-Click_LogoutButton.LEAVE.png'.",
+		"    11:16:45 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111645.507-TopBar.LEAVE.png'.",
 		"    11:16:45 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Wrote screenshot to file='screenshots/sample.LoginTest/20180716/111645.655-Ausloggen_aus_EXAMPLE..LEAVE.png'.",
 		"    11:16:50 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase ****************************************************",
 		"    11:16:50 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase Test sample.LoginTest finished with 17 sec. duration.",
-		"    11:16:50 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase ****************************************************"]
+		"    11:16:50 INFO  [Test worker]  [TE-Test: LoginTest] AbstractTestCase ****************************************************"
+	]
+	static val TEST_SUITE_RUN_WITHOUT_SUB_STEPS_LOG_LINES = #[
+		'Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes=',
+		'Gradle now uses separate output directories for each JVM language, but this build assumes a single directory for all classes from a source set. This behaviour has been deprecated and is scheduled to be removed in Gradle 5.0',
+		':generateXtext NO-SOURCE',
+		':compileJava',
+		':processResources NO-SOURCE',
+		':classes',
+		':generateTestXtextWarning: NLS unused message: line_separator_platform_mac_os_9 in: org.eclipse.core.internal.runtime.messages',
+		'Warning: NLS missing message: auth_alreadySpecified in: org.eclipse.core.internal.runtime.messages',
+		'Warning: NLS missing message: plugin_unableToGetActivator in: org.eclipse.core.internal.runtime.messages',
+		'',
+		':compileTestJava',
+		':processTestResources',
+		':testClasses',
+		':testTask1Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes=',
+		'',
+		'',
+		'sample.LoginTest STANDARD_ERROR',
+		'    SLF4J: Class path contains multiple SLF4J bindings.',
+		'    SLF4J: Found binding in [jar:file:/home/sampleUser/.gradle/caches/modules-2/files-2.1/org.apache.logging.log4j/log4j-slf4j-impl/2.5/d1e34a4525e08873703fdaad6c6284f944f8ca8f/log4j-slf4j-impl-2.5.jar!/org/slf4j/impl/StaticLoggerBinder.class]',
+		'    SLF4J: Found binding in [jar:file:/home/sampleUser/.gradle/caches/modules-2/files-2.1/ch.qos.logback/logback-classic/1.2.3/7c4f3c474fb2c041d8028740440937705ebb473a/logback-classic-1.2.3.jar!/org/slf4j/impl/StaticLoggerBinder.class]',
+		'    SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.',
+		'    SLF4J: Actual binding is of type [org.apache.logging.slf4j.Log4jLoggerFactory]',
+		'Starting test for the following test class: sample.LoginTest with id 0.0.0',
+		':testSuite',
+		'',
+		'BUILD SUCCESSFUL in 37s',
+		'5 actionable tasks: 5 executed'
+	]
 
 	@Rule public val TemporaryFolder testRoot = new TemporaryFolder
 
 	@Mock WorkspaceProvider mockWorkspace
 	@Mock PersistenceConfiguration mockConfig
 	@Spy HierarchicalLineSkipper lineSkipper = new RecursiveHierarchicalLineSkipper
+	@Mock LogFilter mockLogFilter
 
 	@InjectMocks
 	ScanningLogFinder logFinder
@@ -56,6 +118,8 @@ class ScanningLogFinderTest {
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
 
 		// when
 		val actualLogLines = logFinder.getLogLinesForTestStep(key)
@@ -84,6 +148,33 @@ class ScanningLogFinderTest {
 	}
 
 	@Test
+	def void shouldReturnRelevantLogLinesOfInfoLevelOrAbove() {
+		// given
+		val key = new TestExecutionKey('0', '0', '0', 'ID3')
+		val arbitraryDateAndTime = '20180716111612603'
+		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
+
+		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		val logPath = testRoot.newFolder('logs').toPath
+		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
+		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(matches('^    11:16:3\\d (INFO|WARN).+'), eq(LogLevel.INFO))).thenReturn(true)
+
+		// when
+		val actualLogLines = logFinder.getLogLinesForTestStep(key, LogLevel.INFO)
+
+		// then
+		assertThat(actualLogLines).containsExactly(#[
+			'    11:16:32 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture Starting browser: firefox',
+			'    11:16:34 WARN  [Test worker]  [TE-Test: LoginTest] WebDriverManager Network not available. Forcing the use of cache',
+			'    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverManager Found geckodriver in cache: /home/sampleUser/.m2/repository/webdriver/geckodriver/linux64/0.21.0/geckodriver ',
+			'    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverManager Exporting webdriver.gecko.driver as /home/sampleUser/.m2/repository/webdriver/geckodriver/linux64/0.21.0/geckodriver',
+			'    11:16:34 INFO  [Test worker]  [TE-Test: LoginTest] WebDriverFixture The file with the name browserSetup.json can not be found in the resource folder.'
+		])
+	}
+
+	@Test
 	def void shouldSkipLogLinesOfSubSteps() {
 		// given
 		val key = new TestExecutionKey('0', '0', '0', 'ID2')
@@ -94,6 +185,8 @@ class ScanningLogFinderTest {
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
 
 		// when
 		val actualLogLines = logFinder.getLogLinesForTestStep(key)
@@ -116,6 +209,8 @@ class ScanningLogFinderTest {
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
 
 		// when
 		val actualLogLines = logFinder.getLogLinesForTestStep(key)
@@ -145,7 +240,7 @@ class ScanningLogFinderTest {
 	}
 
 	@Test
-	def void shouldReturnRootLogForTestExecutionKeyWithoutCallTreeId() {
+	def void shouldReturnTestCaseLogForTestExecutionKeyWithoutCallTreeId() {
 		// given
 		val key = new TestExecutionKey('0', '0', '0')
 		val arbitraryDateAndTime = '20180716111612603'
@@ -156,11 +251,13 @@ class ScanningLogFinderTest {
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
 
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
+
 		// when
 		val actualLogLines = logFinder.getLogLinesForTestStep(key)
 
 		// then
-		assertThat(actualLogLines).containsExactly(ROOT_LOG_LINES)
+		assertThat(actualLogLines).containsExactly(#['', 'sample.LoginTest > execute STANDARD_OUT'])
 	}
 
 	@Test
@@ -205,6 +302,70 @@ class ScanningLogFinderTest {
 			assertThat(exception.message).isEqualTo(
 				"Provided test execution key must contain a test suite id and a test suite run id. (Key was: 'null'.)")
 		}
+	}
+
+	@Test
+	def void shouldReturnTestSuiteRunLogForTestExecutionKeyWithoutTestRunId() {
+		// given
+		val key = new TestExecutionKey('0', '0')
+		val arbitraryDateAndTime = '20180716111612603'
+		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(false)
+
+		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		val logPath = testRoot.newFolder('logs').toPath
+		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
+		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
+
+		// when
+		val actualLogLines = logFinder.getLogLinesForTestStep(key)
+
+		// then
+		assertThat(actualLogLines).containsExactly(TEST_SUITE_RUN_LOG_LINES)
+	}
+
+	@Test
+	def void shouldReturnTestSuiteRunLogFilteredToInfoLevelForTestExecutionKeyWithoutTestRunId() {
+		// given
+		val key = new TestExecutionKey('0', '0')
+		val arbitraryDateAndTime = '20180716111612603'
+		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(false)
+
+		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		val logPath = testRoot.newFolder('logs').toPath
+		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
+		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(matches('^    11:16:\\d\\d (INFO|WARN).+'), eq(LogLevel.INFO))).thenReturn(true)
+
+		// when
+		val actualLogLines = logFinder.getLogLinesForTestStep(key, LogLevel.INFO)
+
+		// then
+		assertThat(actualLogLines).containsExactly(TEST_SUITE_RUN_INFO_LOG_LINES)
+	}
+
+	@Test
+	def void shouldReturnTestSuiteRunLogWithoutSubstepsForTestExecutionKeyWithoutTestRunId() {
+		// given
+		val key = new TestExecutionKey('0', '0')
+		val arbitraryDateAndTime = '20180716111612603'
+
+		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
+
+		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		val logPath = testRoot.newFolder('logs').toPath
+		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
+		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
+
+		when(mockLogFilter.isVisibleOn(anyString, eq(LogLevel.TRACE))).thenReturn(true)
+
+		// when
+		val actualLogLines = logFinder.getLogLinesForTestStep(key)
+
+		// then
+		assertThat(actualLogLines).containsExactly(TEST_SUITE_RUN_WITHOUT_SUB_STEPS_LOG_LINES)
 	}
 
 }

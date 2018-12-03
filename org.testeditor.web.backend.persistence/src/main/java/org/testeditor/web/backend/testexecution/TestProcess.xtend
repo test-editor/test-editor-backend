@@ -25,18 +25,25 @@ class TestProcess {
 
 	var Process process
 	var TestStatus status
-
+	val (TestStatus)=>void onCompleted
+	
 	new(Process process) {
+		this(process)[]
+	}
+
+	new(Process process, (TestStatus)=>void onCompleted) {
 		if (process === null) {
 			throw new NullPointerException("Process must initially not be null")
 		}
 		this.process = process
 		this.status = RUNNING
+		this.onCompleted = onCompleted
 	}
 
 	private new() {
 		this.process = null
 		this.status = IDLE
+		this.onCompleted = []
 	}
 
 	def TestStatus getStatus() {
@@ -67,6 +74,7 @@ class TestProcess {
 	private def void markCompleted(int exitCode) {
 		this.process = null
 		this.status = exitCode.toTestStatus
+		this.onCompleted?.apply(this.status)
 	}
 	
 	private def TestStatus toTestStatus(int exitCode) {

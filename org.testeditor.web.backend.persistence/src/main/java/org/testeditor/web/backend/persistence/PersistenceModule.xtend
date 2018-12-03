@@ -6,6 +6,8 @@ import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
 import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
 import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkipper
+import org.testeditor.web.backend.testexecution.loglines.Log4JDefaultFilter
+import org.testeditor.web.backend.testexecution.loglines.LogFilter
 import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.loglines.ScanningLogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
@@ -19,6 +21,7 @@ class PersistenceModule extends AbstractModule {
 			bind(ScreenshotFinder).to(SubStepAggregatingScreenshotFinder)
 			bind(LogFinder).to(ScanningLogFinder)
 			bind(HierarchicalLineSkipper).to(RecursiveHierarchicalLineSkipper)
+			bind(LogFilter).to(Log4JDefaultFilter)
 		]
 	}
 

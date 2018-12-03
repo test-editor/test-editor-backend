@@ -22,6 +22,7 @@ COPY build/docker/ \
      config.template.yml \
      run.sh \
      gradle.properties \
+     wait-for-it.sh \
      ${PROG_DIR}/
 
 RUN \

@@ -1,21 +1,19 @@
 package org.testeditor.web.backend.testexecution
 
-import com.fasterxml.jackson.core.util.BufferRecyclers
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import java.io.File
 import java.io.FileNotFoundException
 import java.net.URI
 import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.nio.file.Files
-import java.nio.file.StandardOpenOption
 import java.time.Instant
 import java.util.List
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.ws.rs.Consumes
+import javax.ws.rs.DefaultValue
 import javax.ws.rs.GET
 import javax.ws.rs.POST
 import javax.ws.rs.Path
@@ -30,7 +28,13 @@ import javax.ws.rs.core.Response.Status
 import javax.ws.rs.core.UriBuilder
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.testexecution.loglines.LogFinder
+import org.testeditor.web.backend.testexecution.loglines.LogLevel
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
+
+import static java.nio.charset.StandardCharsets.UTF_8
+import static java.nio.file.StandardOpenOption.*
+
+import static extension com.fasterxml.jackson.core.util.BufferRecyclers.quoteAsJsonText
 
 @Path("/test-suite")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
@@ -48,37 +52,48 @@ class TestSuiteResource {
 	@Inject LogFinder logFinder
 
 	@GET
-	@Path("{suiteId}/{suiteRunId}/{caseRunId}/{callTreeId}")
+	@Path("{suiteId}/{suiteRunId}/{caseRunId : ([^?/]+)?}/{callTreeId : ([^?/]+)?}")
 	@Produces(MediaType.APPLICATION_JSON)
 	def Response testSuiteCalltreeNode(
 		@PathParam("suiteId") String suiteId,
 		@PathParam("suiteRunId") String suiteRunId,
 		@PathParam("caseRunId") String caseRunId,
-		@PathParam("callTreeId") String callTreeId
+		@PathParam("callTreeId") String callTreeId,
+		@QueryParam("logOnly") boolean logOnly,
+		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
 	) {
 		var response = Response.status(Status.NOT_FOUND).build
-		val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(suiteId, suiteRunId)).filter[name.endsWith('.yaml')].sortBy[name].last
+		var executionKey = new TestExecutionKey(suiteId, suiteRunId)
+		val latestCallTree = executorProvider.getTestFiles(executionKey).filter[name.endsWith('.yaml')].sortBy[name].last
 		if (latestCallTree !== null) {
-			val executionKey = new TestExecutionKey(suiteId, suiteRunId, caseRunId, callTreeId)
-			testExecutionCallTree.readFile(executionKey, latestCallTree)
-			val callTreeResultString = testExecutionCallTree.getNodeJson(executionKey)
-
+			if (!caseRunId.nullOrEmpty) {
+				executionKey = executionKey.deriveWithCaseRunId(caseRunId)
+				if (!callTreeId.nullOrEmpty) {
+					executionKey = executionKey.deriveWithCallTreeId(callTreeId)
+				}
+			}
 			var logLines = newLinkedList
 			var warning = ''
 			try {
 				logLines.addAll(
-					logFinder.getLogLinesForTestStep(executionKey).map[new String(BufferRecyclers.jsonStringEncoder.quoteAsString(it))]
+					logFinder.getLogLinesForTestStep(executionKey, logLevel).map[new String(quoteAsJsonText)]
 				)
 			} catch (FileNotFoundException e) {
 				warning = '''No log file for test execution key '«executionKey.toString»'.'''
 				logger.warn(warning, e)
 			}
 
-			val jsonResultString = '[' + (
-				#['''{ "type": "properties", "content": «callTreeResultString» }'''] + screenshotFinder.getScreenshotPathsForTestStep(executionKey).map [
-				'''{ "type": "image", "content": "«it»" }'''
-			] + #['''{ "type": "text", "content": ["«logLines.join('", "')»"]}''']
-			).join(',') + ']'
+			val resultList = newLinkedList('''{ "type": "text", "content": ["«logLines.join('", "')»"]}''')
+
+			if (!logOnly) {
+				testExecutionCallTree.readFile(executionKey, latestCallTree)
+				val callTreeResultString = testExecutionCallTree.getNodeJson(executionKey)
+				resultList += '''{ "type": "properties", "content": «callTreeResultString» }'''
+				resultList += screenshotFinder.getScreenshotPathsForTestStep(executionKey).map [
+					'''{ "type": "image", "content": "«it»" }'''
+				]
+			}
+			val jsonResultString = '[' + resultList.join(',') + ']'
 
 			val responseBuilder = Response.ok(jsonResultString)
 			response = if (warning.nullOrEmpty) {
@@ -136,12 +151,13 @@ class TestSuiteResource {
 		val executionKey = statusMapper.deriveFreshRunId(suiteKey)
 		val builder = executorProvider.testExecutionBuilder(executionKey, resourcePaths, '') // commit id unknown
 		val logFile = builder.environment.get(TestExecutorProvider.LOGFILE_ENV_KEY)
-		val callTreeFile = builder.environment.get(TestExecutorProvider.CALL_TREE_YAML_FILE)
+		val callTreeFileName = builder.environment.get(TestExecutorProvider.CALL_TREE_YAML_FILE)
 		logger.
-			info('''Starting test for resourcePaths='«resourcePaths.join(',')»' logging into logFile='«logFile»', callTreeFile='«callTreeFile»'.''')
-		new File(callTreeFile).writeCallTreeYamlPrefix(executorProvider.yamlFileHeader(executionKey, Instant.now, resourcePaths))
+			info('''Starting test for resourcePaths='«resourcePaths.join(',')»' logging into logFile='«logFile»', callTreeFile='«callTreeFileName»'.''')
+		val callTreeFile = new File(callTreeFileName)
+		callTreeFile.writeCallTreeYamlPrefix(executorProvider.yamlFileHeader(executionKey, Instant.now, resourcePaths))
 		val testProcess = builder.start
-		statusMapper.addTestSuiteRun(executionKey, testProcess)
+		statusMapper.addTestSuiteRun(executionKey, testProcess)[status|callTreeFile.writeCallTreeYamlSuffix(status)]
 		testProcess.logToStandardOutAndIntoFile(new File(logFile))
 		val uri = new URI(UriBuilder.fromResource(TestSuiteResource).build.toString +
 			'''/«URLEncoder.encode(executionKey.suiteId, "UTF-8")»/«URLEncoder.encode(executionKey.suiteRunId,"UTF-8")»''')
@@ -157,9 +173,12 @@ class TestSuiteResource {
 
 	private def File writeCallTreeYamlPrefix(File callTreeYamlFile, String fileHeader) {
 		callTreeYamlFile.parentFile.mkdirs
-		Files.write(callTreeYamlFile.toPath, fileHeader.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE,
-			StandardOpenOption.TRUNCATE_EXISTING)
+		Files.write(callTreeYamlFile.toPath, fileHeader.getBytes(UTF_8), CREATE, TRUNCATE_EXISTING)
 		return callTreeYamlFile
+	}
+
+	private def void writeCallTreeYamlSuffix(File callTreeYamlFile, TestStatus testStatus) {
+		Files.write(callTreeYamlFile.toPath, #['''"status": "«testStatus»"'''], UTF_8, APPEND)
 	}
 
 	private def void waitForStatus(TestExecutionKey executionKey, AsyncResponse response) {

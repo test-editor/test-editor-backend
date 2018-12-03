@@ -13,6 +13,17 @@ alternatively, start both in parallel: `./gradlew run --parallel`
 
 # Development
 
+## Setup development
+
+Make sure to have a working [nix](https://nixos.org/nix/) installation. Please ensure that the `nixpkgs-unstable` channel is available. It
+can be added with `nix-channel --add https://nixos.org/channels/nixpkgs-unstable`.
+
+To enter the development environment, execute `NIXPKGS_ALLOW_UNFREE=1 nix-shell` in this repos root directory. For even more convenience,
+please install [direnv](https://github.com/direnv/direnv) which will enter the development environment automatically for you.
+
+Once within the development environment, run the steps under `Running` to resolve all necessary dependencies.
+
+
 ## Release
 
 To release persistence and xtext backend, simply execute `./gradlew release` on the locally checked out master branch. This will build and test locally, and, if successful, tag the release with 'v${version}' (version is entered during the release process), commit it, write the new (entered) development version into `gradle.properties`, and commit again.

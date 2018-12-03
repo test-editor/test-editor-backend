@@ -37,20 +37,22 @@ class TestExecutorProvider {
 
 	val String whichNice
 	val String whichSh
+	val String whichXvfbrun
 
 	@Inject WorkspaceProvider workspaceProvider
 
 	new() {
 		whichNice = runShellCommand('which', 'nice')
 		whichSh = runShellCommand('which', 'sh')
+		whichXvfbrun = runShellCommand('which', 'xvfb-run')
 	}
 
 	private def String runShellCommand(String ... commands) {
-		val whichNiceProcess = new ProcessBuilder => [
+		val processBuilder = new ProcessBuilder => [
 			command(commands)
 			redirectOutput
 		]
-		val process = whichNiceProcess.start
+		val process = processBuilder.start
 		val processOutput = new StringBuilder
 		var BufferedReader processOutputReader = null
 		try {
@@ -112,17 +114,17 @@ class TestExecutorProvider {
 			        	if (System.props.get("skipUnchanged") == null) {
 			            	outputs.upToDateWhen { false }
 			            }
-			            taskNum++
-			            if (taskNum != 1) {
-			                dependsOn "testTask${taskNum-1}"
-			            }
-			
 			            environment "TE_TESTCASENAME", "${testcase}"
 			            environment "TE_SUITERUNID", "${System.props.get('TE_SUITERUNID')}"
 			            environment "TE_SUITEID", "${System.props.get('TE_SUITEID')}"
 			            environment "TE_TESTRUNID", "${taskNum}"
 			            environment "TE_TESTRUNCOMMITID", "${System.props.get('TE_TESTRUNCOMMITID')}"
-			
+
+			            taskNum++
+			            if (taskNum != 1) {
+			                dependsOn "testTask${taskNum-1}"
+			            }
+
 			            include "${testcase}.class"
 			            testLogging.showStandardStreams = true
 			            testLogging.exceptionFormat = 'full'
@@ -217,11 +219,19 @@ class TestExecutorProvider {
 	}
 
 	private def String[] constructCommandLine(String testClass) {
-		return #[whichNice, '-n', '10', whichSh, '-c', testClass.gradleTestCommandLine]
+		if (System.getenv('TRAVIS').isNullOrEmpty) {
+			return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', testClass.gradleTestCommandLine]
+		} else {
+			return #[whichSh, '-c', testClass.gradleTestCommandLine]
+		}
 	}
 
 	private def String[] constructCommandLine(TestExecutionKey key, Iterable<String> testCases) {
-		return #[whichNice, '-n', '10', whichSh, '-c', key.gradleTestCommandLine(testCases)]
+		if (System.getenv('TRAVIS').isNullOrEmpty) {
+			return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', key.gradleTestCommandLine(testCases)]
+		} else {
+			return #[whichSh, '-c', key.gradleTestCommandLine(testCases)]
+		}
 	}
 
 	private def String createNewLogFileName(TestExecutionKey key, String dateString) {

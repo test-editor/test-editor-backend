@@ -45,7 +45,7 @@ dependencyCheck {
 }
 
 task docker(type:Exec) {
-    dependsOn(build)
+    dependsOn(assemble)
     executable 'sh'
     args '-c', """
       (([ -d build/docker ] && rm -Rf build/docker) || true) &&

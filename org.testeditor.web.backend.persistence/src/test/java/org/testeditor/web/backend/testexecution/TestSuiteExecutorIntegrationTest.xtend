@@ -299,8 +299,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				echo "   tailing output"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase     @MACRO_LIB:LEAVE:f960cf39:ID2"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase   @SPECIFICATION_STEP:LEAVE:e9f5018e:ID1"
-				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************""
-				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration.""
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration."
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:LEAVE:2e86865c:IDROOT"
 				echo ":testTask2Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes="
@@ -310,19 +310,47 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
 		response.status.assertEquals(Status.CREATED.statusCode)
 		createTestStatusRequest(testKey).get // wait for completion
-		
 		// when
 		val result = createNodeRequest(testKey.deriveWithCaseRunId('1').deriveWithCallTreeId('ID2')).get.readEntity(String)
 
 		// then
-		val properties = new ObjectMapper().readValue(result, Object).assertInstanceOf(List).findFirst[map|"properties".equals((map as Map<String, Object>).get("type"))].
-			assertInstanceOf(Map)
+		val properties = new ObjectMapper().readValue(result, Object).assertInstanceOf(List).findFirst [ map |
+			"properties".equals((map as Map<String, Object>).get("type"))
+		].assertInstanceOf(Map)
 		val propertiesContent = properties.get("content").assertInstanceOf(Map)
 		propertiesContent.get("id").assertEquals("ID2")
 		propertiesContent.get("message").assertEquals("hello")
-		
+
 	}
-	
+
+	@Test
+	def void testThatRootNodeStatusIsWrittenAfterTestTerminates() {
+		// given
+		val mapper = new ObjectMapper(new JsonFactory)
+		val testKey = TestExecutionKey.valueOf('0-0')
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFolder(userId, 'logs')
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo "Dummy test execution"
+			''')
+		]
+
+		val launchResponse = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
+		launchResponse.status.assertEquals(Status.CREATED.statusCode)
+		createTestStatusRequest(testKey).get // wait for completion
+		// when
+		val jsonString = createCallTreeRequest(testKey).buildGet.submit.get.readEntity(String)
+
+		// then
+		val overallTestStatus = mapper.readTree(jsonString).get('status').asText
+		assertThat(overallTestStatus).isEqualTo('SUCCESS')
+	}
+
 	@Test
 	def void testThatScreenshotDetailsAreProvided() {
 		val testKey = TestExecutionKey.valueOf('0-0')
@@ -367,23 +395,20 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
 		response.status.assertEquals(Status.CREATED.statusCode)
 		createTestStatusRequest(testKey).get // wait for completion
-		new File(userDir, '.testexecution/artifacts/0/0/1/ID2.yaml').exists
-			.assertTrue('Mocked process did not write yaml file with screenshot information.')
-		
+		new File(userDir, '.testexecution/artifacts/0/0/1/ID2.yaml').exists.assertTrue(
+			'Mocked process did not write yaml file with screenshot information.')
+
 		// when
 		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID2')).get.readEntity(String)
 
 		// then
-		val properties = new ObjectMapper().readValue(result, Object)
-			.assertInstanceOf(List)
-			.findFirst[map|"image".equals((map as Map<String, Object>).get("type"))]
-			.assertInstanceOf(Map)
-		properties.get("content")
-			.assertInstanceOf(String)
-			.assertEquals(screenshotPath)
-		
+		val properties = new ObjectMapper().readValue(result, Object).assertInstanceOf(List).findFirst [ map |
+			"image".equals((map as Map<String, Object>).get("type"))
+		].assertInstanceOf(Map)
+		properties.get("content").assertInstanceOf(String).assertEquals(screenshotPath)
+
 	}
-	
+
 	@Test
 	def void testThatSubStepScreenshotDetailsAreProvided() {
 		val testKey = TestExecutionKey.valueOf('0-0')
@@ -421,8 +446,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				set -x
 				targetDir=".testexecution/artifacts/«testKey.suiteId»/«testKey.suiteRunId»/1"
 				mkdir -p ${targetDir}
-				«FOR id: childKeys»
-				printf '"screenshot": "screenshots/test/«id».png"\n' > ${targetDir}/«id».yaml
+				«FOR id : childKeys»
+					printf '"screenshot": "screenshots/test/«id».png"\n' > ${targetDir}/«id».yaml
 				«ENDFOR»
 			''')
 		]
@@ -430,26 +455,24 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
 		response.status.assertEquals(Status.CREATED.statusCode)
 		createTestStatusRequest(testKey).get // wait for completion
-		childKeys.forall[new File(userDir, '''.testexecution/artifacts/0/0/1/«it».yaml''').exists]
-			.assertTrue('Mocked process did not write yaml file with screenshot information.')
-		
+		childKeys.forall[new File(userDir, '''.testexecution/artifacts/0/0/1/«it».yaml''').exists].assertTrue(
+			'Mocked process did not write yaml file with screenshot information.')
+
 		// when
 		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID2')).get.readEntity(String)
 
 		// then
 		val propertiesList = newArrayList
-		propertiesList.addAll(new ObjectMapper().readValue(result, Object)
-			.assertInstanceOf(List)
-			.filter[map|'image'.equals((map as Map<String, Object>).get('type'))]
-			.assertSize(3))
-			
+		propertiesList.addAll(new ObjectMapper().readValue(result, Object).assertInstanceOf(List).filter [ map |
+			'image'.equals((map as Map<String, Object>).get('type'))
+		].assertSize(3))
+
 		propertiesList.get(0).assertInstanceOf(Map).get('content').assertInstanceOf(String).assertEquals('screenshots/test/IDXY.png')
 		propertiesList.get(1).assertInstanceOf(Map).get('content').assertInstanceOf(String).assertEquals('screenshots/test/IDXZ.png')
 		propertiesList.get(2).assertInstanceOf(Map).get('content').assertInstanceOf(String).assertEquals('screenshots/test/IDYZ.png')
-		
+
 	}
-	
-	
+
 	@Test
 	def void testThatLogLinesAreProvided() {
 		val testKey = TestExecutionKey.valueOf('0-0')
@@ -483,6 +506,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			JGitTestUtil.write(it, '''
 				#!/bin/sh
 				echo ">>>>>>>>>>>>>>>> got the following test class: org.testeditor.Minimal with id 1.5.1"
+				echo "@TESTRUN:ENTER:0.0.1"
 				echo ""
 				echo "org.testeditor.Minimal > execute STANDARD_OUT"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:ENTER:2e86865c:IDROOT"
@@ -511,8 +535,285 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				echo "   tailing output"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase     @MACRO_LIB:LEAVE:f960cf39:ID2"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase   @SPECIFICATION_STEP:LEAVE:e9f5018e:ID1"
-				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************""
-				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration.""
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration."
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:LEAVE:2e86865c:IDROOT"
+				echo "@TESTRUN:LEAVE:0.0.1"
+			''')
+		]
+
+		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
+		response.status.assertEquals(Status.CREATED.statusCode)
+		createTestStatusRequest(testKey).get // wait for completion
+		// when
+		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID9')).get.readEntity(String)
+
+		// then
+		val properties = new ObjectMapper().readValue(result, Object).assertInstanceOf(List).findFirst [ map |
+			"text".equals((map as Map<String, Object>).get("type"))
+		].assertInstanceOf(Map)
+		properties.get("content").assertInstanceOf(List).assertEquals(
+			#['    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)'])
+
+	}
+
+	@Test
+	def void testThatLogLinesAreFilteredToTheSpecifiedLogLevel() {
+		val testKey = TestExecutionKey.valueOf('0-0')
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFolder(userId, 'logs')
+		workspaceRoot.newFile(userId + '''/logs/testrun.«testKey».299900000000.yaml''') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				"testRuns":
+				- "source": "test.tcl"
+				  "testRunId": "1"
+				  "children" :
+				  - "node": "TEST"
+				    "id": "ID1"
+				    "children":
+				    - "node": "SPECIFICATION"
+				      "id": "ID2"
+				      "message": "hello"
+				      "children":
+				      - "id": "IDXY"
+				      - "id": "IDXZ"
+				      - "id": "IDYZ"
+				    - "node": "SPECIFICATION"
+				      "id": "ID9"
+			''')
+		]
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo ">>>>>>>>>>>>>>>> got the following test class: org.testeditor.Minimal with id 1.5.1"
+				echo "@TESTRUN:ENTER:0.0.0"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:ENTER:44e5ddd2:ID9"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] same local ID, different test case!"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:LEAVE:44e5ddd2:ID9"
+				echo "@TESTRUN:LEAVE:0.0.0"
+				echo "@TESTRUN:ENTER:0.0.1"
+				echo ""
+				echo "org.testeditor.Minimal > execute STANDARD_OUT"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:ENTER:2e86865c:IDROOT"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Running test for org.testeditor.Minimal"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase   @SPECIFICATION_STEP:ENTER:e9f5018e:ID1"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase     @MACRO_LIB:ENTER:f960cf39:ID2"
+				(>&2 echo "Test message to standard error")
+				echo "  some regular message"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase       @STEP:ENTER:c8b68596:ID3"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase         @MACRO:ENTER:1cbd1de8:ID4"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase           @MACRO_LIB:ENTER:f960cf39:ID5"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase             @STEP:ENTER:2f1c1f5f:ID6"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase               @MACRO:ENTER:d295d64c:ID7"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                 @COMPONENT:ENTER:2aa6f5bc:ID8"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:ENTER:44e5ddd2:ID9"
+				echo "    08:24:02 ERROR [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
+				echo "    08:24:02 WARN  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
+				echo "    08:24:02 DEBUG [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
+				echo "    08:24:02 TRACE [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
+				echo "  gibberish! ERROR WARN INFO DEBUG TRACE This line should only be included in the response for TRACE-level logging"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:LEAVE:44e5ddd2:ID9"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                 @COMPONENT:LEAVE:2aa6f5bc:ID8"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase               @MACRO:LEAVE:d295d64c:ID7"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase             @STEP:LEAVE:2f1c1f5f:ID6"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase           @MACRO_LIB:LEAVE:f960cf39:ID5"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase         @MACRO:LEAVE:1cbd1de8:ID4"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase       @STEP:LEAVE:c8b68596:ID3"
+				echo "   tailing output"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase     @MACRO_LIB:LEAVE:f960cf39:ID2"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase   @SPECIFICATION_STEP:LEAVE:e9f5018e:ID1"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration."
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:LEAVE:2e86865c:IDROOT"
+				echo "@TESTRUN:LEAVE:0.0.1"
+			''')
+		]
+
+		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
+		response.status.assertEquals(Status.CREATED.statusCode)
+		createTestStatusRequest(testKey).get // wait for completion
+		// when
+		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID9'), 'logLevel=INFO').get.readEntity(String)
+
+		// then
+		val properties = new ObjectMapper().readValue(result, Object).assertInstanceOf(List).findFirst [ map |
+			"text".equals((map as Map<String, Object>).get("type"))
+		].assertInstanceOf(Map)
+		properties.get("content").assertInstanceOf(List).assertEquals(
+			#['    08:24:02 ERROR [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)',
+				'    08:24:02 WARN  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)',
+				'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)'])
+	}
+
+	@Test
+	def void testThatOnlyLogLinesAreProvided() {
+		val testKey = TestExecutionKey.valueOf('0-0')
+		val screenshotPath = 'screenshots/test/hello.png'
+		val testFile = 'test.tcl'
+		val userDir = workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFolder(userId, 'logs')
+		workspaceRoot.newFile(userId + '''/logs/testrun.«testKey».299900000000.yaml''') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				"testRuns":
+				- "source": "test.tcl"
+				  "testRunId": "1"
+				  "children" :
+				  - "node": "TEST"
+				    "id": "ID1"
+				    "children":
+				    - "node": "SPECIFICATION"
+				      "id": "ID2"
+				      "children":
+				      - "id": "IDXY"
+				      - "id": "IDXZ"
+				      - "id": "IDYZ"
+				    - "node": "SPECIFICATION"
+				      "id": "ID9"
+				      "message": "hello"
+			''')
+		]
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				targetDir=".testexecution/artifacts/«testKey.suiteId»/«testKey.suiteRunId»/1"
+				mkdir -p ${targetDir}
+				printf '"screenshot": "«screenshotPath»"\n' > ${targetDir}/ID9.yaml
+				
+				echo ">>>>>>>>>>>>>>>> got the following test class: org.testeditor.Minimal with id 1.5.1"
+				echo "@TESTRUN:ENTER:0.0.1"
+				echo ""
+				echo "org.testeditor.Minimal > execute STANDARD_OUT"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:ENTER:2e86865c:IDROOT"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Running test for org.testeditor.Minimal"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase   @SPECIFICATION_STEP:ENTER:e9f5018e:ID1"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase     @MACRO_LIB:ENTER:f960cf39:ID2"
+				(>&2 echo "Test message to standard error")
+				echo "  some regular message"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase       @STEP:ENTER:c8b68596:ID3"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase         @MACRO:ENTER:1cbd1de8:ID4"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase           @MACRO_LIB:ENTER:f960cf39:ID5"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase             @STEP:ENTER:2f1c1f5f:ID6"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase               @MACRO:ENTER:d295d64c:ID7"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                 @COMPONENT:ENTER:2aa6f5bc:ID8"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:ENTER:44e5ddd2:ID9"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:LEAVE:44e5ddd2:ID9"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                 @COMPONENT:LEAVE:2aa6f5bc:ID8"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase               @MACRO:LEAVE:d295d64c:ID7"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase             @STEP:LEAVE:2f1c1f5f:ID6"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase           @MACRO_LIB:LEAVE:f960cf39:ID5"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase         @MACRO:LEAVE:1cbd1de8:ID4"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase       @STEP:LEAVE:c8b68596:ID3"
+				echo "   tailing output"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase     @MACRO_LIB:LEAVE:f960cf39:ID2"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase   @SPECIFICATION_STEP:LEAVE:e9f5018e:ID1"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration."
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:LEAVE:2e86865c:IDROOT"
+				echo "@TESTRUN:LEAVE:0.0.1"
+			''')
+		]
+
+		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
+		response.status.assertEquals(Status.CREATED.statusCode)
+		createTestStatusRequest(testKey).get // wait for completion
+		new File(userDir, '.testexecution/artifacts/0/0/1/ID9.yaml').exists.assertTrue(
+			'Mocked process did not write yaml file with screenshot information.')
+
+		// when
+		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID9'), 'logOnly=true').get.readEntity(String)
+
+		// then
+		val detailsList = new ObjectMapper().readValue(result, Object).assertInstanceOf(List)
+		detailsList.size.assertEquals(1)
+		val properties = detailsList.get(0).assertInstanceOf(Map)
+		properties.get('type').assertEquals('text')
+		properties.get('content').assertEquals(#['    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)'])
+	}
+
+	@Test
+	def void testThatLogLinesForTestSuiteRunCanBeRetrieved() {
+		val testKey = TestExecutionKey.valueOf('0-0')
+		val screenshotPath = 'screenshots/test/hello.png'
+		val testFile = 'test.tcl'
+		val userDir = workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFolder(userId, 'logs')
+		workspaceRoot.newFile(userId + '''/logs/testrun.«testKey».299900000000.yaml''') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				"testRuns":
+				- "source": "test.tcl"
+				  "testRunId": "1"
+				  "children" :
+				  - "node": "TEST"
+				    "id": "ID1"
+				    "children":
+				    - "node": "SPECIFICATION"
+				      "id": "ID2"
+				      "children":
+				      - "id": "IDXY"
+				      - "id": "IDXZ"
+				      - "id": "IDYZ"
+				    - "node": "SPECIFICATION"
+				      "id": "ID9"
+				      "message": "hello"
+			''')
+		]
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				targetDir=".testexecution/artifacts/«testKey.suiteId»/«testKey.suiteRunId»/1"
+				mkdir -p ${targetDir}
+				printf '"screenshot": "«screenshotPath»"\n' > ${targetDir}/ID9.yaml
+				
+				echo ">>>>>>>>>>>>>>>> got the following test class: org.testeditor.Minimal with id 1.5.1"
+				echo ""
+				echo "org.testeditor.Minimal > execute STANDARD_OUT"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:ENTER:2e86865c:IDROOT"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Running test for org.testeditor.Minimal"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase   @SPECIFICATION_STEP:ENTER:e9f5018e:ID1"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase     @MACRO_LIB:ENTER:f960cf39:ID2"
+				(>&2 echo "Test message to standard error")
+				echo "  some regular message"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase       @STEP:ENTER:c8b68596:ID3"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase         @MACRO:ENTER:1cbd1de8:ID4"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase           @MACRO_LIB:ENTER:f960cf39:ID5"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase             @STEP:ENTER:2f1c1f5f:ID6"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase               @MACRO:ENTER:d295d64c:ID7"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                 @COMPONENT:ENTER:2aa6f5bc:ID8"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:ENTER:44e5ddd2:ID9"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                   @STEP:LEAVE:44e5ddd2:ID9"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase                 @COMPONENT:LEAVE:2aa6f5bc:ID8"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase               @MACRO:LEAVE:d295d64c:ID7"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase             @STEP:LEAVE:2f1c1f5f:ID6"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase           @MACRO_LIB:LEAVE:f960cf39:ID5"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase         @MACRO:LEAVE:1cbd1de8:ID4"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase       @STEP:LEAVE:c8b68596:ID3"
+				echo "   tailing output"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase     @MACRO_LIB:LEAVE:f960cf39:ID2"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase   @SPECIFICATION_STEP:LEAVE:e9f5018e:ID1"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
+				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration."
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************"
 				echo "    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase @TEST:LEAVE:2e86865c:IDROOT"
 				echo ":testTask2Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes="
@@ -522,19 +823,32 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
 		response.status.assertEquals(Status.CREATED.statusCode)
 		createTestStatusRequest(testKey).get // wait for completion
-		
+		new File(userDir, '.testexecution/artifacts/0/0/1/ID9.yaml').exists.assertTrue(
+			'Mocked process did not write yaml file with screenshot information.')
+
 		// when
-		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID9')).get.readEntity(String)
+		val result = createNodeRequest(testKey, 'logLevel=TRACE&logOnly=true').get.readEntity(String)
 
 		// then
-		val properties = new ObjectMapper().readValue(result, Object)
-			.assertInstanceOf(List)
-			.findFirst[map|"text".equals((map as Map<String, Object>).get("type"))]
-			.assertInstanceOf(Map)
-		properties.get("content")
-			.assertInstanceOf(List)
-			.assertEquals(#['    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)'])
-		
+		val detailsList = new ObjectMapper().readValue(result, Object).assertInstanceOf(List)
+		val properties = detailsList.get(0).assertInstanceOf(Map)
+		properties.get('type').assertEquals('text')
+		properties.get('content').assertEquals(#[
+			'>>>>>>>>>>>>>>>> got the following test class: org.testeditor.Minimal with id 1.5.1',
+			'',
+			'org.testeditor.Minimal > execute STANDARD_OUT',
+			'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************',
+			'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Running test for org.testeditor.Minimal',
+			'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************',
+			'Test message to standard error',
+			'  some regular message',
+			'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] HftFixture actionWithStringParam(aString)',
+			'   tailing output',
+			'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************',
+			'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase Test org.testeditor.Minimal finished with 0 sec. duration.',
+			'    08:24:02 INFO  [Test worker]  [TE-Test: Minimal] AbstractTestCase ****************************************************',
+			':testTask2Picked up _JAVA_OPTIONS: -Djdk.http.auth.tunneling.disabledSchemes='
+		])
 	}
 
 	@Test
@@ -615,14 +929,13 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			new File(workspaceRoot.root, '''«userId»/finished.txt''').delete
 			val response = createLaunchNewRequest().post(Entity.entity(#[name], MediaType.APPLICATION_JSON_TYPE))
 			assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
-			var threshold = 5
+			var threshold = 20
 			while (!new File(workspaceRoot.root, '''«userId»/finished.txt''').exists && threshold > 0) {
 				println('waiting for script to settle ...')
 				Thread.sleep(500) // give the script some time to settle
 				threshold--
 			}
 		]
-
 
 		// when
 		val response = createRequest('''test-suite/status''').get
@@ -660,6 +973,10 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 
 	private def Builder createNodeRequest(TestExecutionKey key) {
 		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»''')
+	}
+
+	private def Builder createNodeRequest(TestExecutionKey key, String queryParams) {
+		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»?«queryParams»''')
 	}
 
 }

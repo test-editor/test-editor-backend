@@ -41,22 +41,43 @@ if [ "$GIT_PRIVATE_KEY" != "" ]; then
   mkdir -p `dirname $KEY_LOCATION`
   echo "$GIT_PRIVATE_KEY" > $KEY_LOCATION
   chmod 600 $KEY_LOCATION
+  sha1sum $KEY_LOCATION
+fi
+
+KNOWN_HOSTS_FILE=${PROG_DIR}/ssh-keys/known_hosts
+mkdir -p ${PROG_DIR}/ssh-keys
+if [ "$KNOWN_HOSTS" != "" ]; then
+  echo "copying passed known_hosts file from $KNOWN_HOSTS"
+  cp $KNOWN_HOSTS $KNOWN_HOSTS_FILE
+else
+  touch $KNOWN_HOSTS_FILE
 fi
 
 if [ "$KNOWN_HOSTS_CONTENT" != "" ]; then
   echo "configuring known hosts"
-  KNOWN_HOSTS=${PROG_DIR}/ssh-keys/known_hosts
-  mkdir -p `dirname $KNOWN_HOSTS`
-  echo "$KNOWN_HOSTS_CONTENT" > $KNOWN_HOSTS
+  echo "$KNOWN_HOSTS_CONTENT" >> $KNOWN_HOSTS_FILE
 fi
+
+if [ "$ADD_KNOWN_HOSTS_DOMAIN" != "" ]; then
+  echo "configuring additional known host domains: $ADD_KNOWN_HOSTS_DOMAIN"
+  DOMAIN="${ADD_KNOWN_HOSTS_DOMAIN%:*}"
+  PORT="${ADD_KNOWN_HOSTS_DOMAIN/[a-z]*:/}"
+  echo "using domain: $DOMAIN port: $PORT"
+  ssh-keyscan -p $PORT $DOMAIN >> $KNOWN_HOSTS_FILE
+fi
+
+cat $KNOWN_HOSTS_FILE | sort | uniq > TEMP
+mv TEMP $KNOWN_HOSTS_FILE
+echo "using known hosts:"
+cat $KNOWN_HOSTS_FILE
 
 sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
 sed -i "s|%REPO_ROOT%|$REPO_ROOT|g" config.yml
 sed -i "s|%BRANCH_NAME%|$BRANCH_NAME|g" config.yml
 sed -i "s|%API_TOKEN_SECRET%|$API_TOKEN_SECRET|g" config.yml
 sed -i "s|%KEY_LOCATION%|$KEY_LOCATION|g" config.yml
-sed -i "s|%KNOWN_HOSTS%|$KNOWN_HOSTS|g" config.yml
+sed -i "s|%KNOWN_HOSTS%|$KNOWN_HOSTS_FILE|g" config.yml
 
 export HOME=/opt/testeditor
 
-bin/org.testeditor.web.backend.xtext server config.yml
+exec bin/org.testeditor.web.backend.xtext server config.yml

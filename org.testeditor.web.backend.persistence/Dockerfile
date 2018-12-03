@@ -37,6 +37,8 @@ RUN \
                 ffmpeg \
                 tmux \
                 xvfb \
+                xauth \
+                xfonts-base \
 	&& rm -rf /var/lib/apt/lists/* && \
     \
     echo "Installing firefox $FIREFOX_VERSION" && \
@@ -49,13 +51,15 @@ RUN \
     \
     mkdir -p ${PROG_DIR} && \
     mkdir -p ${REPO_ROOT} && \
+    mkdir -p /tmp/.X11-unix && \
     \
     mv ${PROG_DIR}/config.template.yml ${PROG_DIR}/config.yml &&\
     \
     chmod --recursive ug+rwX,o-rwX ${PROG_DIR} && \
     chown --recursive testeditor:root ${PROG_DIR} && \
     chmod --recursive ug+rw,o-rwX ${REPO_ROOT} && \
-    chown --recursive testeditor:root ${REPO_ROOT}
+    chown --recursive testeditor:root ${REPO_ROOT} && \
+    chmod --recursive 1777 /tmp/.X11-unix
 
 # group testeditor:
 #   -r : group of a system account
