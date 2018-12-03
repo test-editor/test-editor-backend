@@ -48,13 +48,13 @@ task docker(type:Exec) {
     dependsOn(assemble)
     executable 'sh'
     args '-c', """
-      (([ -d testeditor ] && rm -Rf testeditor) || true) &&
+      (([ -d build/docker ] && rm -Rf build/docker) || true) &&
       cd build/distributions && (rm xtext.tar || true) &&
       rm org.testeditor.*.zip &&
       mv org.testeditor.web.backend.xtext-*.tar xtext.tar &&
       tar -xf xtext.tar &&
-      mv org.testeditor.web.backend.xtext* ../../testeditor &&
+      mv org.testeditor.web.backend.xtext* ../../build/docker &&
       cd ../.. &&
-      docker build -t testeditor/xtext:snapshot .
+      docker build -t build/docker/xtext:snapshot .
     """
 }

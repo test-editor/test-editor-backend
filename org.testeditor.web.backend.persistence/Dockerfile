@@ -24,7 +24,7 @@ ENV PROG_DIR=/opt/testeditor \
     FIREFOX_SOURCE_URL="https://download.mozilla.org/?product=firefox-latest&lang=en-US&os=linux64" \
     DISPLAY=:99.0
 
-COPY testeditor/ \
+COPY build/docker/ \
      config.template.yml \
      run.sh \
      gradle.properties \

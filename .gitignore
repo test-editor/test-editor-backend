@@ -5,7 +5,6 @@
 .metadata/
 bin/
 .odcdb/
-testeditor/
 
 ### IntelliJ ###
 *.iml
