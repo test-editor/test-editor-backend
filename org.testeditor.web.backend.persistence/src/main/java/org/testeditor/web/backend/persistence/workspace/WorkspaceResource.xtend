@@ -3,11 +3,13 @@ package org.testeditor.web.backend.persistence.workspace
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.Collection
 import java.util.List
 import java.util.Map
+import java.util.function.Function
 import javax.inject.Inject
 import javax.ws.rs.GET
-import javax.ws.rs.PUT
+import javax.ws.rs.POST
 import javax.ws.rs.Produces
 import javax.ws.rs.QueryParam
 import javax.ws.rs.core.MediaType
@@ -39,7 +41,24 @@ class WorkspaceResource {
 		return workspaceRoot
 	}
 
-	@PUT
+	/**
+	 * Execute an explicit pull on the repository.
+	 * 
+	 * The list of resources and dirtyResources are passed into this endpoint to: 
+	 * 1. get an information on whether a passed resource has changed through the pull
+	 * 2. create a backup file for dirtyResources that have changed through the pull
+	 * 
+	 * Note that the created backup files do not hold the contents of the dirtyResources,
+	 * since their contents are known to the front end only! The backup files created will hold the
+	 * same content as the respective file just pulled (as a default).
+	 * 
+	 * The frontend is expected to react accordingly, that is:
+	 * 1. it informs the user about resources that have changed
+	 * 2. it provides some resolution/information for files the user has changed and that have changed
+	 *    in the repository, too. The user must be given the chance to persisted his local changes into 
+	 *    the backup file instead of overwriting (unchecked) changes in the repo.
+	 */
+	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("pull")
 	def PullResponse pull(@QueryParam("resources") List<String> resources,
@@ -65,38 +84,42 @@ class WorkspaceResource {
 				diffs.forEach [
 					val oldDiffPath = getPath(Side.OLD)
 					val newDiffPath = getPath(Side.NEW)
-					if (resources.contains(oldDiffPath)) {
-						pullResponse.changedResources.add(oldDiffPath)
-					}
-					if (resources.contains(newDiffPath)) {
-						pullResponse.changedResources.add(newDiffPath)
-					}
-					if (dirtyResources.contains(oldDiffPath)) {
-						val backupFile = workspaceProvider.createLocalBackup(oldDiffPath,
-							workspaceProvider.read(oldDiffPath))
-						pullResponse.backedUpResources.add(new PullResponse.BackupEntry => [
-							resource = oldDiffPath
-							backupResource = backupFile
-						])
-					}
-					if (dirtyResources.contains(newDiffPath)) {
-						val backupFile = workspaceProvider.createLocalBackup(newDiffPath,
-							workspaceProvider.read(newDiffPath))
-						pullResponse.backedUpResources.add(new PullResponse.BackupEntry => [
-							resource = newDiffPath
-							backupResource = backupFile
-						])
-					}
+					pullResponse.changedResources.addIf(oldDiffPath, [resources.contains(oldDiffPath)])
+					pullResponse.changedResources.addIf(newDiffPath, [resources.contains(newDiffPath)])
+					pullResponse.backedUpResources.addBackupIf(oldDiffPath, [dirtyResources.contains(oldDiffPath)])
+					pullResponse.backedUpResources.addBackupIf(newDiffPath, [dirtyResources.contains(newDiffPath)])
 				]
 				pullResponse.failure = false
+			} else {
+				pullResponse.failure = true
 			}
 		} catch (Exception e) {
 			logger.error('exception during explicit pull', e)
-			logger.debug('reporting pull failure to caller')
+			logger.trace('reporting pull failure to caller')
 		}
 		return pullResponse
 	}
 
+	/** iff predicate holds true, add the resource to the collection */
+	private def void addIf(Collection<String> collection, String resource, Function<Void, Boolean> predicate) {
+		if (predicate.apply(null)) {
+			collection.add(resource)
+		}
+	}
+
+	/** iff predicate holds true, create a backup file based on the resource and add a corresponding PullResponse.BackupEntry */
+	private def void addBackupIf(Collection<PullResponse.BackupEntry> collection, String resource,
+		Function<Void, Boolean> predicate) {
+		if (predicate.apply(null)) {
+			val backupFile = workspaceProvider.createLocalBackup(resource, workspaceProvider.read(resource))
+			collection.add(new PullResponse.BackupEntry => [
+				it.resource = resource
+				it.backupResource = backupFile
+			])
+		}
+	}
+
+	/** create a tree iterator (for diff calculation) on given objectId (commit) */
 	private static def AbstractTreeIterator prepareTreeParser(Repository repository,
 		ObjectId objectId) throws IOException {
 		// from the commit we can build the tree which allows us to construct the TreeParser
@@ -121,6 +144,7 @@ class WorkspaceResource {
 		}
 	}
 
+	/** create all workspace elements of the given repository */
 	private def WorkspaceElement createWorkspaceElements() {
 		val workspaceRoot = git.repository.directory.toPath.parent
 		val Map<Path, WorkspaceElement> pathToElement = newHashMap
