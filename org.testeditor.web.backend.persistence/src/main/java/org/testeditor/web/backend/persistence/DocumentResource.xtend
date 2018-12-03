@@ -25,11 +25,19 @@ class DocumentResource {
 	@Inject DocumentProvider documentProvider
 
 	@POST
-	def Response create(@PathParam("resourcePath") String resourcePath, @QueryParam("source") String source, @QueryParam("type") String type, String content,
+	def Response create(@PathParam("resourcePath") String resourcePath, @QueryParam("clean") Boolean clean, @QueryParam("source") String source, @QueryParam("type") String type, String content,
 		@Context HttpHeaders headers) {
 		if (source !== null) {
-			documentProvider.copy(source, resourcePath);
-			return status(CREATED).entity(resourcePath).build
+			if (clean) { // new api
+				if (documentProvider.copyOnSyncedRepo(source, resourcePath)) {
+					return status(CREATED).entity(resourcePath).build
+				} else {
+					return status(BAD_REQUEST).build
+				}
+			} else {
+				documentProvider.copy(source, resourcePath);
+				return status(CREATED).entity(resourcePath).build
+			}
 		} else if (type == "folder") {
 			val created = documentProvider.createFolder(resourcePath)
 			return createdOrBadRequest(created, resourcePath)

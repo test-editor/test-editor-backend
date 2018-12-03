@@ -45,12 +45,13 @@ class DocumentProvider {
 	}
 	
 	@VisibleForTesting
-	def boolean  copyOnSyncedRepo(String resourcePath, String newPath, Function<Void, ?> pushAction) {
+	def boolean copyOnSyncedRepo(String resourcePath, String newPath, Function<Void, ?> pushAction) {
+		var copySuccessful = false
 		logger.debug('''copy «resourcePath» to «newPath»''')
-		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
+		logger.trace('''using file encoding «System.getProperty("file.encoding")»''')
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
-		logger.debug('''file is «file.toString»''')
-		logger.debug('''found «Paths.get(file.parent.toString).toFile.list.toString»''')
+		logger.trace('''file is «file.toString»''')
+		logger.trace('''found «Paths.get(file.parent.toString).toFile.list.toString»''')
 		val newFile = workspaceProvider.getWorkspaceFile(newPath)
 		if (!file.exists) {
 			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
@@ -60,31 +61,46 @@ class DocumentProvider {
 			val preCommit = git.repository.resolve('HEAD')
 			logger.trace('commitid before any action is taken is ' + preCommit.getName)
 			try {
-				val commitId = if (file.isDirectory) {
-						FileUtils.copyDirectory(file, newFile)
-						FileUtils.listFiles(newFile, null, true).
-							commit('''copied subdirectory '«resourcePath»' to '«newFile»' ''')
-					} else {
-						FileUtils.copyFile(file, newFile)
-						#[newFile].commit('''copied file '«resourcePath»' to '«newPath»'. ''')
-					}
-				val pullResult = git.pull.configureTransport.call
-				val newCommitId = git.repository.resolve('HEAD')
-				if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
-					pushAction.apply(null)
-					return true
-				}
+				copySuccessful = doCleanCopy(file, newFile, pushAction)
 			} catch (Exception e) {
 				logger.error('exception during copy action', e)
 			}
-			logger.warn('resetting local repo to ' + preCommit.getName)
-			git.reset.setRef(preCommit.getName).setMode(ResetType.HARD).call
-			// for files not in the index, they must be deleted, too (since resetting the index won't help)
-			if (newFile.exists) {
-				FileUtils.deleteQuietly(newFile)
+			if (!copySuccessful) {
+				logger.warn('resetting local repo to ' + preCommit.getName)
+				git.reset.setRef(preCommit.getName).setMode(ResetType.HARD).call
+				if (newFile.exists) {
+					// for files not in the index, they must be deleted, too (since resetting the index won't help)
+					logger.trace('''cleanup of remaining file '«newFile.absolutePath»' after reset hard necessary.''')
+					FileUtils.deleteQuietly(newFile)
+				}
 			}
 		}
-		return false // did not work
+		return copySuccessful
+	}
+
+	private def boolean doCleanCopy(File file, File newFile, Function<Void, ?> pushAction) {
+		val commitId = if (file.isDirectory) {
+				FileUtils.copyDirectory(file, newFile)
+				FileUtils.listFiles(newFile, null, true).commit('''copied subdirectory '«file»' to '«newFile»' ''')
+			} else {
+				FileUtils.copyFile(file, newFile)
+				#[newFile].commit('''copied file '«file»' to '«newFile»'. ''')
+			}
+		val pullResult = git.pull.configureTransport.call
+		val newCommitId = git.repository.resolve('HEAD')
+		if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
+			pushAction.apply(null)
+			return true
+		} else {
+			val exceptionMessage = if (!newCommitId.equals(commitId)) {
+					'''unexpected inequality: pulled commit id '«newCommitId.getName»' != local commit id '«commitId.getName»' '''
+				} else if (!pullResult.mergeResult.mergeStatus.successful) {
+					'''merge conflicts in files «pullResult.mergeResult.conflicts.entrySet.map[key].toSet.join(', ')».'''
+				} else {
+					'unknown cause'
+				}
+			throw new IllegalStateException(exceptionMessage.toString)
+		}
 	}
 
 	def void copy(String resourcePath, String newPath) throws ConflictingModificationsException {
