@@ -63,7 +63,7 @@ task logDependencies {
     outputs.upToDateWhen { false }
     doLast {
         new File("${project.getBuildDir()}/resources/main").mkdirs()
-        ext.xtextDependencyFile = new File("${project.getBuildDir()}/resources/main/dependencies.txt")
+        ext.xtextDependencyFile = new File("${project.getBuildDir()}/resources/main/${project.name}.dependencies.txt")
         xtextDependencyFile.text = "# ${project.name} dependencies: ${new Date().format('yyyyMMddHHmmss')} \n"
         xtextDependencyFile.text += "${project.group}:${project.name}:${project.version}\n"
         configurations.compile.incoming.getResolutionResult().getAllDependencies().each {

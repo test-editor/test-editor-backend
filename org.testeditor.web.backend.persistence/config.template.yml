@@ -3,6 +3,7 @@ branchName: %BRANCH_NAME%
 privateKeyLocation: %KEY_LOCATION%
 knownHostsLocation: %KNOWN_HOSTS%
 repoConnectionMode: %REPO_MODE%
+applicationId: org.testeditor.web.backend.persistence
 server:
   applicationConnectors:
   - type: http 
