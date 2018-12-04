@@ -37,10 +37,14 @@ abstract class AbstractPersistenceIntegrationTest {
 	}
 
 	static def String createToken() {
+		return createToken(userId, 'John Doe', 'john@example.org')
+	}
+
+	static def String createToken(String id, String name, String eMail) {
 		val builder = JWT.create => [
-			withClaim('id', userId)
-			withClaim('name', 'John Doe')
-			withClaim('email', 'john@example.org')
+			withClaim('id', id)
+			withClaim('name', name)
+			withClaim('email', eMail)
 		]
 		return builder.sign(Algorithm.HMAC256("secret"))
 	}
@@ -87,13 +91,22 @@ abstract class AbstractPersistenceIntegrationTest {
 	}
 
 	protected def Builder createRequest(String relativePath) {
+		return createRequest(relativePath, token)
+	}
+
+	protected def Builder createRequest(String relativePath, String customToken) {
 		val uri = '''http://localhost:«dropwizardAppRule.localPort»/«relativePath»'''
-		return createUrlRequest(uri)
+		return createUrlRequest(uri, customToken)
 	}
 
 	protected def Builder createUrlRequest(String uri) {
+		return createUrlRequest(uri, token)
+	}
+
+	protected def Builder createUrlRequest(String uri, String customToken) {
 		val builder = dropwizardAppRule.client.target(uri).request
-		builder.header('Authorization', '''Bearer «token»''')
+		builder.header('Authorization', '''Bearer «customToken»''')
 		return builder
 	}
+
 }

@@ -1,0 +1,4 @@
+{
+  "element": "path/to/element.ext",
+  "activities": [ "opened.file", "executed.test" ]
+}
