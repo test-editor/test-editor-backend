@@ -4,6 +4,7 @@ import javax.inject.Inject
 import org.eclipse.jgit.api.Git
 import org.junit.Test
 import org.testeditor.web.backend.persistence.git.AbstractGitTest
+import org.testeditor.web.backend.persistence.workspace.WorkspaceResource.OpenResources
 
 class WorkspaceResourceGitTest extends AbstractGitTest {
 
@@ -31,7 +32,7 @@ class WorkspaceResourceGitTest extends AbstractGitTest {
 		workspaceResource.listFiles // make sure local git is initialized
 
 		// when
-		val pullResponse = workspaceResource.pull(#['someFile.txt'], #['someOtherFile.tcl'])
+		val pullResponse = workspaceResource.pull(new OpenResources => [ resources = #['someFile.txt'] dirtyResources = #['someOtherFile.tcl']])
 
 		// then
 		pullResponse.backedUpResources.assertEmpty
@@ -46,7 +47,7 @@ class WorkspaceResourceGitTest extends AbstractGitTest {
 		val remoteFile = createPreExistingFileInRemoteRepository('initialFile.txt', 'content')
 
 		// when
-		val pullResponse = workspaceResource.pull(emptyList, emptyList)
+		val pullResponse = workspaceResource.pull(new OpenResources => [ resources = #[] dirtyResources = #[]])
 
 		// then
 		val content = workspaceProvider.read(remoteFile)
@@ -63,7 +64,7 @@ class WorkspaceResourceGitTest extends AbstractGitTest {
 		createPreExistingFileInRemoteRepository('initialFile.txt', 'content')
 
 		// when
-		val pullResponse = workspaceResource.pull(#['initialFile.txt'], emptyList)
+		val pullResponse = workspaceResource.pull(new OpenResources => [ resources = #['initialFile.txt'] dirtyResources = #[]])
 
 		// then
 		pullResponse.backedUpResources.assertEmpty
@@ -78,7 +79,7 @@ class WorkspaceResourceGitTest extends AbstractGitTest {
 		createPreExistingFileInRemoteRepository('initialFile.txt', 'content')
 
 		// when
-		val pullResponse = workspaceResource.pull(emptyList, #['initialFile.txt'])
+		val pullResponse = workspaceResource.pull(new OpenResources => [ resources = #[] dirtyResources = #['initialFile.txt']])
 
 		// then
 		pullResponse.backedUpResources.assertSingleElement => [
@@ -103,7 +104,7 @@ class WorkspaceResourceGitTest extends AbstractGitTest {
 		openFiles.forEach[createPreExistingFileInRemoteRepository(it,it)]
 
 		// when
-		val pullResponse = workspaceResource.pull(openFiles, openDirtyFiles)
+		val pullResponse = workspaceResource.pull(new OpenResources => [ resources = openFiles dirtyResources = openDirtyFiles ])
 
 		// then
 		pullResponse.backedUpResources.assertSize(3).forall[

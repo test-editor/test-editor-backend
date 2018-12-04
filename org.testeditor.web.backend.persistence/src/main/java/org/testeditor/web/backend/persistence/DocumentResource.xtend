@@ -35,7 +35,7 @@ class DocumentResource {
 				if (documentProvider.copyOnSyncedRepo(source, resourcePath)) {
 					return status(CREATED).entity(resourcePath).build
 				} else {
-					return status(BAD_REQUEST).build
+					return status(CONFLICT).entity('REPULL').build
 				}
 			}
 		} else if (type == "folder") {

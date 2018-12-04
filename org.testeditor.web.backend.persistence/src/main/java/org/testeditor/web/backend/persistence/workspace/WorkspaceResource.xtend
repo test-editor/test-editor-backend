@@ -8,10 +8,10 @@ import java.util.List
 import java.util.Map
 import java.util.function.Function
 import javax.inject.Inject
+import javax.ws.rs.Consumes
 import javax.ws.rs.GET
 import javax.ws.rs.POST
 import javax.ws.rs.Produces
-import javax.ws.rs.QueryParam
 import javax.ws.rs.core.MediaType
 import org.eclipse.jgit.diff.DiffEntry.Side
 import org.eclipse.jgit.lib.ObjectId
@@ -27,6 +27,11 @@ import org.testeditor.web.backend.persistence.git.GitProvider
 class WorkspaceResource {
 
 	static val logger = LoggerFactory.getLogger(WorkspaceResource)
+	
+	static class OpenResources {
+		public var List<String> resources;
+		public var List<String> dirtyResources;
+	}
 
 	@Inject extension GitProvider gitProvider
 	@Inject WorkspaceProvider workspaceProvider
@@ -59,13 +64,13 @@ class WorkspaceResource {
 	 *    the backup file instead of overwriting (unchecked) changes in the repo.
 	 */
 	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@javax.ws.rs.Path("pull")
-	def PullResponse pull(@QueryParam("resources") List<String> resources,
-		@QueryParam("dirtyResources") List<String> dirtyResources) {
+	def PullResponse pull(OpenResources openResources) {
 		logger.debug(
-			'explicit pull with resources = [' + resources.join(', ') + '], dirtyResources = [' +
-				dirtyResources.join(', ') + ']')
+			'explicit pull with resources = [' + openResources.resources.join(', ') + '], dirtyResources = [' +
+				openResources.dirtyResources.join(', ') + ']')
 
 		val pullResponse = new PullResponse => [
 			failure = true // pessimistic
@@ -84,10 +89,10 @@ class WorkspaceResource {
 				diffs.forEach [
 					val oldDiffPath = getPath(Side.OLD)
 					val newDiffPath = getPath(Side.NEW)
-					pullResponse.changedResources.addIf(oldDiffPath, [resources.contains(oldDiffPath)])
-					pullResponse.changedResources.addIf(newDiffPath, [resources.contains(newDiffPath)])
-					pullResponse.backedUpResources.addBackupIf(oldDiffPath, [dirtyResources.contains(oldDiffPath)])
-					pullResponse.backedUpResources.addBackupIf(newDiffPath, [dirtyResources.contains(newDiffPath)])
+					pullResponse.changedResources.addIf(oldDiffPath, [openResources.resources.contains(oldDiffPath)])
+					pullResponse.changedResources.addIf(newDiffPath, [openResources.resources.contains(newDiffPath)])
+					pullResponse.backedUpResources.addBackupIf(oldDiffPath, [openResources.dirtyResources.contains(oldDiffPath)])
+					pullResponse.backedUpResources.addBackupIf(newDiffPath, [openResources.dirtyResources.contains(newDiffPath)])
 				]
 				pullResponse.failure = false
 			} else {
