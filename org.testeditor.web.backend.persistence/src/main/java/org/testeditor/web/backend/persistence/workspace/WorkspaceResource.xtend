@@ -60,7 +60,7 @@ class WorkspaceResource {
 	 * The frontend is expected to react accordingly, that is:
 	 * 1. it informs the user about resources that have changed
 	 * 2. it provides some resolution/information for files the user has changed and that have changed
-	 *    in the repository, too. The user must be given the chance to persisted his local changes into 
+	 *    in the repository, too. The user must be given the chance to persist his local changes into 
 	 *    the backup file instead of overwriting (unchecked) changes in the repo.
 	 */
 	@POST
