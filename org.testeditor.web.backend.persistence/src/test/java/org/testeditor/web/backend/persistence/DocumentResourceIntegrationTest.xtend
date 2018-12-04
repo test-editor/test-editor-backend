@@ -389,6 +389,33 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		response.status.assertEquals(NOT_FOUND.statusCode)
 		response.readEntity(String).assertEquals('''The file '«resourcePath»' does not exist. It may have been concurrently deleted.'''.toString)
 	}
+	
+	@Test
+	def void cleanCopyWorksForCleanRepo() {
+		// given
+		val request = createCleanCopyDocumentRequest(copiedResource, copyResourcePath).buildPost(null)
+
+		// when
+		val response = request.submit.get
+
+		// then
+		response.status.assertEquals(CREATED.statusCode)
+		val resultingResource = response.readEntity(String)
+		resultingResource.assertEquals(copiedResource)
+	}
+	
+	@Test
+	def void cleanCopyFailsForDirtyRepo() {
+		// given
+		val request = createCleanCopyDocumentRequest(copiedResource, copyResourcePath).buildPost(null)
+		write('newFileOnRemote', 'some content') // making the remote repo 'dirty'
+		
+		// when
+		val response = request.submit.get
+
+		// then
+		response.status.assertEquals(CONFLICT.statusCode)
+	}
 
 	private def Entity<String> stringEntity(CharSequence charSequence) {
 		return Entity.entity(charSequence.toString, MediaType.TEXT_PLAIN)
@@ -441,6 +468,10 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 	private def Builder createCopyDocumentRequest(String resourcePath, String sourcePath) {
 		return createRequest('''documents/«resourcePath»«UriBuilder.fromUri('').queryParam('source', sourcePath)»''')
+	}
+
+	private def Builder createCleanCopyDocumentRequest(String resourcePath, String sourcePath) {
+		return createRequest('''documents/«resourcePath»«UriBuilder.fromUri('').queryParam('source', sourcePath).queryParam('clean', true)»''')
 	}
 
 }

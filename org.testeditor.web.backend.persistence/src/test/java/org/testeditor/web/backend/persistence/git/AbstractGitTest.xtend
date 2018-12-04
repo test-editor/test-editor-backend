@@ -1,23 +1,18 @@
 package org.testeditor.web.backend.persistence.git
 
 import com.google.common.io.Files
-import com.google.inject.Module
 import java.io.File
-import java.util.List
 import javax.inject.Inject
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
-import org.mockito.Mock
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.dropwizard.testing.files.FileTestUtils
 import org.testeditor.web.dropwizard.testing.git.JGitTestUtils
-
-import static org.mockito.Mockito.*
 
 abstract class AbstractGitTest extends AbstractPersistenceTest {
 
@@ -30,21 +25,12 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 	@Inject protected PersistenceConfiguration config
 
 	@Inject protected GitProvider gitProvider
-	@Mock protected WorkspaceProvider workspaceProvider
+	
+	protected WorkspaceProvider workspaceProvider // set by setupRemoteGitRepository
 
 	protected static val BINARY_FILE = new File("src/test/resources/sample-binary-file.png")
 
 	protected Git remoteGit
-
-	override protected collectModules(List<Module> modules) {
-		super.collectModules(modules)
-
-		// configure WorkspaceProvider mock
-		when(workspaceProvider.workspace).thenReturn(localGitRoot.root)
-		modules += [ binder |
-			binder.bind(WorkspaceProvider).toInstance(workspaceProvider)
-		]
-	}
 
 	@Before
 	def void setupRemoteGitRepository() {
@@ -67,7 +53,9 @@ abstract class AbstractGitTest extends AbstractPersistenceTest {
 	
 	@Before
 	def void setupConfiguration() {
+		config.separateUserWorkspaces = false
 		config.localRepoFileRoot = localGitRoot.root.absolutePath
+		workspaceProvider = new WorkspaceProvider(config) 
 	}
 
 	protected def createPreExistingFileInRemoteRepository() {
