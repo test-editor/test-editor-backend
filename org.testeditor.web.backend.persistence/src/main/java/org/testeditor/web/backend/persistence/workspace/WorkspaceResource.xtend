@@ -127,8 +127,6 @@ class WorkspaceResource {
 	/** create a tree iterator (for diff calculation) on given objectId (commit) */
 	private static def AbstractTreeIterator prepareTreeParser(Repository repository,
 		ObjectId objectId) throws IOException {
-		// from the commit we can build the tree which allows us to construct the TreeParser
-		// noinspection Duplicates
 		val walk = new RevWalk(repository)
 		try {
 			val commit = walk.parseCommit(repository.parseCommit(objectId))

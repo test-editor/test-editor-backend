@@ -1,6 +1,7 @@
 package org.testeditor.web.backend.persistence.workspace
 
 import com.google.common.io.Files
+import com.google.common.annotations.VisibleForTesting
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Provider
@@ -10,7 +11,6 @@ import org.testeditor.web.backend.persistence.exception.MaliciousPathException
 import org.testeditor.web.dropwizard.auth.User
 
 import static java.nio.charset.StandardCharsets.UTF_8
-import com.google.common.annotations.VisibleForTesting
 
 class WorkspaceProvider {
 

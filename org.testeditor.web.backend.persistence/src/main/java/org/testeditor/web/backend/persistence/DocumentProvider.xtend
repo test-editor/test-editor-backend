@@ -61,9 +61,11 @@ class DocumentProvider {
 			val preCommit = git.repository.resolve('HEAD')
 			logger.trace('commitid before any action is taken is ' + preCommit.getName)
 			try {
-				copySuccessful = doCleanCopy(file, newFile, pushAction)
+				doCleanCopy(file, newFile, pushAction)
+                copySuccessful = true;
 			} catch (Exception e) {
 				logger.error('exception during copy action', e)
+                copySuccessful = false;
 			}
 			if (!copySuccessful) {
 				logger.warn('resetting local repo to ' + preCommit.getName)
@@ -78,7 +80,7 @@ class DocumentProvider {
 		return copySuccessful
 	}
 
-	private def boolean doCleanCopy(File file, File newFile, Function<Void, ?> pushAction) {
+	private def void doCleanCopy(File file, File newFile, Function<Void, ?> pushAction) {
 		val commitId = if (file.isDirectory) {
 				FileUtils.copyDirectory(file, newFile)
 				FileUtils.listFiles(newFile, null, true).commit('''copied subdirectory '«file»' to '«newFile»' ''')
@@ -90,7 +92,6 @@ class DocumentProvider {
 		val newCommitId = git.repository.resolve('HEAD')
 		if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
 			pushAction.apply(null)
-			return true
 		} else {
 			val exceptionMessage = if (!newCommitId.equals(commitId)) {
 					'''unexpected inequality: pulled commit id '«newCommitId.getName»' != local commit id '«commitId.getName»' '''
@@ -315,8 +316,7 @@ class DocumentProvider {
 				]
 			}
 		} else {
-			logger.
-				info('''running NO git push against «configuration.remoteRepoUrl», since configuration repoConnectioNmode = '«configuration.repoConnectionMode.name»' prevents it''')
+			logger.info('''running NO git push against «configuration.remoteRepoUrl», since configuration repoConnectioNmode = '«configuration.repoConnectionMode.name»' prevents it''')
 		}
 	}
 

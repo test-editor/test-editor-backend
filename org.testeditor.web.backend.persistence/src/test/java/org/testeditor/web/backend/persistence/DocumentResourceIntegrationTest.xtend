@@ -414,7 +414,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		val response = request.submit.get
 
 		// then
-		response.status.assertEquals(BAD_REQUEST.statusCode)
+		response.status.assertEquals(CONFLICT.statusCode)
 	}
 
 	private def Entity<String> stringEntity(CharSequence charSequence) {
