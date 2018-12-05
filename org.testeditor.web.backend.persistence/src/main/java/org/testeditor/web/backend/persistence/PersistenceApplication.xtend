@@ -10,6 +10,7 @@ import org.testeditor.web.backend.persistence.exception.PersistenceExceptionMapp
 import org.testeditor.web.backend.persistence.health.ExecutionHealthCheck
 import org.testeditor.web.backend.persistence.workspace.WorkspaceResource
 import org.testeditor.web.backend.testexecution.TestSuiteResource
+import org.testeditor.web.backend.useractivity.UserActivityResource
 import org.testeditor.web.dropwizard.DropwizardApplication
 
 import static org.eclipse.jetty.servlets.CrossOriginFilter.*
@@ -34,6 +35,7 @@ class PersistenceApplication extends DropwizardApplication<PersistenceConfigurat
 			register(WorkspaceResource)
 			register(PersistenceExceptionMapper)
 			register(TestSuiteResource)
+			register(UserActivityResource)
 		]
 
 		environment.healthChecks.register('execution', executionHealthCheckProvider.get)

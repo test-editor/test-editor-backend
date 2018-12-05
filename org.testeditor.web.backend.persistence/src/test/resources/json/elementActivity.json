@@ -1,0 +1,12 @@
+{
+  "element": "path/to/element.ext",
+  "activities": [
+    {
+      "user": "john.doe",
+      "type": "opened.file"
+    }, {
+      "user": "jane.doe",
+      "type": "executed.test"
+    }
+  ]
+}
