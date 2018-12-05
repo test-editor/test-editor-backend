@@ -3,13 +3,16 @@ package org.testeditor.web.backend.useractivity
 import org.junit.Test
 
 import static org.assertj.core.api.Assertions.assertThat
+import de.xtendutils.junit.AssertionHelper
 
 class UserActivityBrokerTest {
+	
+	extension val AssertionHelper = AssertionHelper.instance
 	
 	@Test
 	def void isInitiallyEmpty() {
 		// given
-		val brokerUnderTest = new UserActivityBroker();
+		val brokerUnderTest = new UserActivityBroker
 		
 		// when
 		val actualActivities = brokerUnderTest.getCollaboratorActivities('john.doe')
@@ -21,8 +24,8 @@ class UserActivityBrokerTest {
 	@Test
 	def void containsCollaboratorActivitiesAfterTheyWereAdded() {
 		// given
-		val brokerUnderTest = new UserActivityBroker();
-		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity() => [
+		val brokerUnderTest = new UserActivityBroker
+		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['executed.test']
 		]])
@@ -31,25 +34,27 @@ class UserActivityBrokerTest {
 		val actualActivities = brokerUnderTest.getCollaboratorActivities('someone.else')
 		
 		// then
-		assertThat(actualActivities.size).isEqualTo(1)
-		assertThat(actualActivities.get(0).element).isEqualTo('path/to/element.ext')
-		assertThat(actualActivities.get(0).activities.size).isEqualTo(1)
-		assertThat(actualActivities.get(0).activities.get(0).user).isEqualTo('john.doe')
-		assertThat(actualActivities.get(0).activities.get(0).type).isEqualTo('executed.test')
+		actualActivities.assertSingleElement => [
+			element.assertEquals('path/to/element.ext')
+			activities.assertSingleElement => [
+				user.assertEquals('john.doe')
+				type.assertEquals('executed.test')
+			]
+		]
 	}
 	
 	@Test
 	def void containsActivitiesOfMultipleCollaboratorsAfterTheyWereAdded() {
 		// given
-		val brokerUnderTest = new UserActivityBroker();
-		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity() => [
+		val brokerUnderTest = new UserActivityBroker
+		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['executed.test']
 		]])
-		brokerUnderTest.updateUserActivities('jane.doe', #[new UserActivity() => [
+		brokerUnderTest.updateUserActivities('jane.doe', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['executed.test', 'opened.file']
-		], new UserActivity() => [
+		], new UserActivity => [
 			element = 'path/to/another/element.ext'
 			activities = #['deleted.file']
 		]])
@@ -77,10 +82,9 @@ class UserActivityBrokerTest {
 		]
 		assertThat(actualActivities).anySatisfy[
 			assertThat(element).isEqualTo('path/to/another/element.ext')
-			assertThat(activities.size).isEqualTo(1)
-			assertThat(activities).anySatisfy[
-				assertThat(user).isEqualTo('jane.doe')
-				assertThat(type).isEqualTo('deleted.file')
+			activities.assertSingleElement => [
+				user.assertEquals('jane.doe')
+				type.assertEquals('deleted.file')
 			]
 		]
 	}
@@ -88,16 +92,16 @@ class UserActivityBrokerTest {
 	@Test
 	def void replacesPreviousActivitiesOfTheUser() {
 		// given
-		val brokerUnderTest = new UserActivityBroker();
-		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity() => [
+		val brokerUnderTest = new UserActivityBroker
+		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['executed.test']
 		]])
-		brokerUnderTest.updateUserActivities('jane.doe', #[new UserActivity() => [
+		brokerUnderTest.updateUserActivities('jane.doe', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['executed.test']
 		]])
-		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity() => [
+		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['deleted.file']
 		]])
@@ -106,12 +110,10 @@ class UserActivityBrokerTest {
 		val actualActivities = brokerUnderTest.getCollaboratorActivities('someone.else')
 		
 		// then
-		assertThat(actualActivities.size).isEqualTo(1)
-		assertThat(actualActivities).anySatisfy[
+		actualActivities.assertSingleElement => [
 			assertThat(activities.exists[user === 'john.doe' && type === 'executed.test']).isFalse
-			
-			assertThat(element).isEqualTo('path/to/element.ext')
-			assertThat(activities.size).isEqualTo(2)
+			element.assertEquals('path/to/element.ext')
+			activities.assertSize(2)
 			assertThat(activities).anySatisfy[
 				assertThat(user).isEqualTo('jane.doe')
 				assertThat(type).isEqualTo('executed.test')
@@ -126,16 +128,16 @@ class UserActivityBrokerTest {
 	@Test
 	def void filtersOutActivitiesOfSpecifiedUser() {
 		// given
-		val brokerUnderTest = new UserActivityBroker();
-		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity() => [
+		val brokerUnderTest = new UserActivityBroker
+		brokerUnderTest.updateUserActivities('john.doe', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['executed.test']
 		]])
-		brokerUnderTest.updateUserActivities('jane.doe', #[new UserActivity() => [
+		brokerUnderTest.updateUserActivities('jane.doe', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['executed.test']
 		]])
-		brokerUnderTest.updateUserActivities('arthur.dent', #[new UserActivity() => [
+		brokerUnderTest.updateUserActivities('arthur.dent', #[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['deleted.file']
 		]])
@@ -144,12 +146,11 @@ class UserActivityBrokerTest {
 		val actualActivities = brokerUnderTest.getCollaboratorActivities('arthur.dent')
 		
 		// then
-		assertThat(actualActivities.size).isEqualTo(1)
-		assertThat(actualActivities).anySatisfy[
+		actualActivities.assertSingleElement => [
 			assertThat(activities.exists[user === 'arthur.dent']).isFalse
 			
-			assertThat(element).isEqualTo('path/to/element.ext')
-			assertThat(activities.size).isEqualTo(2)
+			element.assertEquals('path/to/element.ext')
+			activities.assertSize(2)
 			assertThat(activities).anySatisfy[
 				assertThat(user).isEqualTo('jane.doe')
 				assertThat(type).isEqualTo('executed.test')
@@ -160,5 +161,4 @@ class UserActivityBrokerTest {
 			]
 		]
 	}
-
 }

@@ -7,20 +7,20 @@ import javax.inject.Singleton
 @Singleton
 class UserActivityBroker {
 
-	val userActivities = new HashMap<String, List<UserActivity>>()
+	val userActivities = new HashMap<String, List<UserActivity>>
 
 	def void updateUserActivities(String user, List<UserActivity> activities) {
 		userActivities.put(user, activities)
 	}
 
 	def Iterable<ElementActivity> getCollaboratorActivities(String excludedUser) {
-		val elementActivityMap = new HashMap<String, Iterable<UserActivityData>>()
-		userActivities.filter[user, activities|user !== excludedUser].forEach [ activeUser, activities |
+		val elementActivityMap = new HashMap<String, Iterable<UserActivityData>>
+		userActivities.filter[user, __|user !== excludedUser].forEach [ activeUser, activities |
 			activities.forEach [ activity |
 				elementActivityMap.put(
 					activity.element,
 					elementActivityMap.getOrDefault(activity.element, #[]) + activity.activities.map [ activityType |
-						new UserActivityData() => [
+						new UserActivityData => [
 							user = activeUser
 							type = activityType
 						]
@@ -29,7 +29,7 @@ class UserActivityBroker {
 			]
 		]
 		return elementActivityMap.keySet.map [ currentElement |
-			new ElementActivity() => [
+			new ElementActivity => [
 				element = currentElement
 				activities = elementActivityMap.get(currentElement).toList
 			]

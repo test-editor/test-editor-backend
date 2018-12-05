@@ -13,7 +13,7 @@ class UserActivityResourceTest extends AbstractPersistenceIntegrationTest {
 	@Test
 	def void canUpdateUserActivity() {
 		// given
-		val payload = Entity.json(#[new UserActivity() => [
+		val payload = Entity.json(#[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['opened.file', 'executed.test']
 		]])
@@ -31,7 +31,7 @@ class UserActivityResourceTest extends AbstractPersistenceIntegrationTest {
 	@Test
 	def void RespondsWithCollaboratorActivity() {
 		// given
-		val payload = Entity.json(#[new UserActivity() => [
+		val payload = Entity.json(#[new UserActivity => [
 			element = 'path/to/element.ext'
 			activities = #['opened.file', 'executed.test']
 		]])
