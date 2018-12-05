@@ -1,14 +1,30 @@
 package org.testeditor.web.backend.useractivity
 
+import com.google.common.base.Ticker
+import com.google.common.cache.Cache
+import com.google.common.cache.CacheBuilder
 import java.util.HashMap
 import java.util.List
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import org.slf4j.LoggerFactory
 
 @Singleton
 class UserActivityBroker {
 
-	val userActivities = new HashMap<String, List<UserActivity>>
+	static val logger = LoggerFactory.getLogger(UserActivityBroker)
+	public static val TIMEOUT_SECS = 30
 
+	val Cache<String, List<UserActivity>> userActivities
+	
+	new() {
+		this(Ticker.systemTicker)
+	}
+	
+	new(Ticker timeSource) {
+		userActivities = CacheBuilder.newBuilder.expireAfterWrite(TIMEOUT_SECS, TimeUnit.SECONDS).ticker(timeSource).build
+	}
+	
 	def void updateUserActivities(String user, List<UserActivity> activities) {
 		logger.debug('''
 			received activities from user «user»: [
@@ -19,7 +35,7 @@ class UserActivityBroker {
 
 	def Iterable<ElementActivity> getCollaboratorActivities(String excludedUser) {
 		val elementActivityMap = new HashMap<String, Iterable<UserActivityData>>
-		userActivities.filter[user, __|user !== excludedUser].forEach [ activeUser, activities |
+		userActivities.asMap.filter[user, __|!user.equals(excludedUser)].forEach [ activeUser, activities |
 			activities.forEach [ activity |
 				elementActivityMap.put(
 					activity.element,
@@ -32,7 +48,7 @@ class UserActivityBroker {
 				)
 			]
 		]
-		return elementActivityMap.keySet.map [ currentElement |
+		val result = elementActivityMap.keySet.map [ currentElement |
 			new ElementActivity => [
 				element = currentElement
 				activities = elementActivityMap.get(currentElement).toList
