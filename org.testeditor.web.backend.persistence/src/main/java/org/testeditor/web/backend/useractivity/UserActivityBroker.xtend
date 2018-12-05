@@ -10,6 +10,10 @@ class UserActivityBroker {
 	val userActivities = new HashMap<String, List<UserActivity>>
 
 	def void updateUserActivities(String user, List<UserActivity> activities) {
+		logger.debug('''
+			received activities from user «user»: [
+			    «activities.join(',\n')»
+			]''')
 		userActivities.put(user, activities)
 	}
 
@@ -34,6 +38,11 @@ class UserActivityBroker {
 				activities = elementActivityMap.get(currentElement).toList
 			]
 		]
+		logger.debug('''
+			sending collaborator activities to user «excludedUser»: [
+			    «result.join(',\n')»
+			]''')
+		return result
 	}
 
 }
