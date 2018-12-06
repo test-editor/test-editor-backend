@@ -21,6 +21,11 @@ class SubStepAggregatingScreenshotFinderTest {
 
 	@InjectMocks SubStepAggregatingScreenshotFinder finderUnderTest
 
+	// DONOT USE, introduces usage of an element used for InjectMocks but not used anywhere else, makeing the IDE report an annoying warning
+	protected def dummyUsageOfInjected() {
+		mockExecutorProvider
+	}
+	
 	@Test
 	def void retrievesScreenshotsOfSubStepsIfNodeHasNoneOfItsOwn() {
 		// given

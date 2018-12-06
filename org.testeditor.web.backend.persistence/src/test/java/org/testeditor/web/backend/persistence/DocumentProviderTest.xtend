@@ -27,7 +27,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		gitProvider.git
 	}
 	
-	private def void folderSetupForRenameTests() {
+	private def void folderSetupForTests() {
 		createPreExistingFolderInRemoteRepository('src/main/java')
 		createPreExistingFolderInRemoteRepository('src/test/java')
 		createPreExistingFileInRemoteRepository('src/main/java/Hello.txt', 'Hello World!')
@@ -38,7 +38,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test(expected=RuntimeException)
 	def void renameFolderOntoExistingOneFails() {
 		// given
-		folderSetupForRenameTests
+		folderSetupForTests
 
 		// when
 		documentProvider.rename('src/main/java', 'src/test/java')
@@ -49,7 +49,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void copyFolderCommitsAsAddDiff() {
 		// given
-		folderSetupForRenameTests
+		folderSetupForTests
 		val numberOfCommitsBefore = remoteGit.log.call.size
 
 		// when
@@ -82,7 +82,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	
 	@Test
 	def void copyFileCommitsAsAddDiff() {
-		folderSetupForRenameTests
+		folderSetupForTests
 		val numberOfCommitsBefore = remoteGit.log.call.size
 
 		// when
@@ -97,7 +97,7 @@ class DocumentProviderTest extends AbstractGitTest {
 	@Test
 	def void renameFolderCommitsARenameDiff() {
 		// given
-		folderSetupForRenameTests
+		folderSetupForTests
 		val numberOfCommitsBefore = remoteGit.log.call.size
 
 		// when
@@ -667,15 +667,15 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 	
 	@Test
-	def void testCopyOnCleanRepo() {
+	def void cleanCopyOnCleanRepo() {
 		// given
-		folderSetupForRenameTests
+		folderSetupForTests
 		val numberOfCommitsBefore = remoteGit.log.call.size
 
 		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
 
 		// when
-		val success = documentProvider.copyOnSyncedRepo('src/main/java', 'src/main/resource')
+		val success = documentProvider.cleanCopy('src/main/java', 'src/main/resource')
 		
 		//then
 		success.assertTrue
@@ -686,8 +686,8 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 
 	@Test
-	def void testCopyOnUncleanRepo() {
-		folderSetupForRenameTests
+	def void cleanCopyOnUncleanRepo() {
+		folderSetupForTests
 
 		// now make the remote change
 		createPreExistingFileInRemoteRepository('src/main/java/fromOtherUser.tcl', 'some content')
@@ -695,7 +695,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
 		
 		// when
-		val success = documentProvider.copyOnSyncedRepo('src/main/java', 'src/main/resource')
+		val success = documentProvider.cleanCopy('src/main/java', 'src/main/resource')
 		
 		//then
 		success.assertFalse
@@ -706,8 +706,8 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 
 	@Test
-	def void testCopyOnConflictingRepo() {
-		folderSetupForRenameTests
+	def void cleanCopyOnConflictingRepo() {
+		folderSetupForTests
 
 		// now make the remote change
 		createPreExistingFileInRemoteRepository('src/main/java/unsyncedFile.tcl', 'remote content')
@@ -720,7 +720,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
 		
 		// when
-		val success = documentProvider.copyOnSyncedRepo('src/main/java', 'src/main/resource')
+		val success = documentProvider.cleanCopy('src/main/java', 'src/main/resource')
 		
 		//then
 		success.assertFalse
@@ -732,8 +732,8 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 
 	@Test
-	def void testCopyOnRepoFailingOnPush() {
-		folderSetupForRenameTests
+	def void cleanCopyOnRepoFailingOnPush() {
+		folderSetupForTests
 
 		// now make the remote change
 		createPreExistingFileInRemoteRepository('src/main/java/unsyncedFile.tcl', 'remote content')
@@ -741,13 +741,328 @@ class DocumentProviderTest extends AbstractGitTest {
 		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
 		
 		// when
-		val success = documentProvider.copyOnSyncedRepo('src/main/java', 'src/main/resource', [throw new RuntimeException()])
+		val success = documentProvider.cleanCopy('src/main/java', 'src/main/resource', [throw new RuntimeException()])
 		
 		//then
 		success.assertFalse
 		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
 		new File(localGitRoot.root, 'src/main/resource/Hello.txt').exists.assertFalse
 		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
+	}
+
+	// cleanCreate
+	@Test
+	def void cleanCreateOnCleanRepo() {
+		// given
+		val numberOfCommitsBefore = remoteGit.log.call.size
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+		
+		// when
+		val result = documentProvider.cleanCreate('src/main/java/test.tcl', 'content')
+		
+		// then
+		DocumentResource.createResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD^1').equals(localHeadBeforeAction)
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, 'src/main/java/test.tcl')
+		new File(localGitRoot.root, 'src/main/java/test.tcl').exists.assertTrue
+	}
+	
+	@Test
+	def void cleanCreateWantsRepullOnDirtyRepo() {
+		// given
+		folderSetupForTests
+		// .. now make the remote change
+		createPreExistingFileInRemoteRepository('src/main/java/unsyncedFile.tcl', 'remote content')
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+				
+		// when
+		val result = documentProvider.cleanCreate('src/main/java/test.tcl', 'content')
+		
+		// then
+		DocumentResource.createResult.repull.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/test.tcl').exists.assertFalse
+		new File(localGitRoot.root, 'src/main/java/unsyncedFile.tcl').exists.assertFalse
+	}
+	
+	@Test
+	def void cleanCreateFailsIfFileExists() {
+		// given
+		folderSetupForTests
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+				
+		// when
+		val result = documentProvider.cleanCreate('src/main/java/Hello.txt', 'my new content')
+		
+		// then
+		DocumentResource.createResult.badrequest.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt') => [
+			exists.assertTrue
+			read.assertEquals('Hello World!')			
+		]
+	}
+	
+	@Test
+	def void cleanCreateWantsRepullIfPushFails() {
+		// given
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+				
+		// when
+		val result = documentProvider.cleanCreate('src/main/java/test.tcl', 'content', [
+			throw new RuntimeException('push failure')
+		])
+		
+		// then
+		DocumentResource.createResult.repull.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/test.tcl').exists.assertFalse
+	}
+	
+	// cleanCreateFolder
+	@Test
+	def void cleanCreateFolderOnCleanRepo() {
+		// given
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+		
+		// when
+		val result = documentProvider.cleanCreateFolder('src/main/java')
+		
+		// then
+		DocumentResource.createResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java').exists.assertTrue
+	}
+	
+	@Test
+	def void cleanCreateFolderSucceedsOnDirtyRepo() { // hey, it's just a folder
+		// given
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+		// .. now make the remote change
+		createPreExistingFileInRemoteRepository('src/main/java/unsyncedFile.tcl', 'remote content')
+		
+		// when
+		val result = documentProvider.cleanCreateFolder('src/main/java')
+		
+		// then
+		DocumentResource.createResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java').exists.assertTrue
+	}
+
+	@Test
+	def void cleanCreateFolderSucceedsIfFolderExists() { // hey, it's just a folder
+		// given
+		folderSetupForTests
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+		
+		// when
+		val result = documentProvider.cleanCreateFolder('src/main/java')
+		
+		// then
+		DocumentResource.createResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java').exists.assertTrue
+	}
+	
+	// cleanDelete
+	@Test
+	def void cleanDeleteOnCleanRepo() {
+		// given
+		folderSetupForTests
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+		
+		// when
+		val result = documentProvider.cleanDelete('src/main/java/Hello.txt')
+		
+		// then
+		DocumentResource.createResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD^1').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertFalse
+	}
+	
+	@Test
+	def void cleanDeleteRequestsRepullOnDirtyRepo() {
+		// given
+		folderSetupForTests
+		// .. now make the remote change
+		createPreExistingFileInRemoteRepository('src/main/java/unsyncedFile.tcl', 'remote content')
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+		
+		// when
+		val result = documentProvider.cleanDelete('src/main/java/Hello.txt')
+		
+		// then
+		DocumentResource.createResult.repull.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
+	}
+	
+	@Test
+	def void cleanDeleteWantsRepullIfPushFails() {
+		// given
+		folderSetupForTests
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanDelete(
+			'src/main/java/Hello.txt', [throw new RuntimeException('push failed')])
+
+		// then
+		DocumentResource.createResult.repull.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
+	}
+	
+	// cleanLoad
+	@Test
+	def void cleanLoadOnCleanRepo() {
+		// given
+		folderSetupForTests
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val loadResult = documentProvider.cleanLoad('src/main/java/Hello.txt')
+
+		// then
+		DocumentResource.createResult.succeeded.assertEquals(loadResult.status)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		IOUtils.toString(loadResult.content, StandardCharsets.UTF_8).assertEquals('Hello World!')
+	}
+	
+	@Test
+	def void cleanLoadRequestsRepullOnDirtyRepo() {
+		folderSetupForTests
+		// .. now make the remote change
+		createPreExistingFileInRemoteRepository('src/main/java/unsyncedFile.tcl', 'remote content')
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val loadResult = documentProvider.cleanLoad('src/main/java/Hello.txt')
+
+		// then
+		DocumentResource.createResult.repull.assertEquals(loadResult.status)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		loadResult.content.assertNull
+	}
+	
+	// cleanRename
+	@Test
+	def void cleanRenameOnCleanRepo() {
+		// given
+		folderSetupForTests
+		val numberOfCommitsBefore = remoteGit.log.call.size
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanRename('src/main/java/Hello.txt', 'src/main/java/Allo.txt')
+		
+		//then
+		DocumentResource.createResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD^1').equals(localHeadBeforeAction)
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, RENAME, 'src/main/java/Hello.txt')
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertFalse
+		new File(localGitRoot.root, 'src/main/java/Allo.txt') => [
+			exists.assertTrue
+			read.assertEquals('Hello World!')	
+		]
+	}
+	
+	@Test
+	def void cleanRenameRequestsRepullOnDirtyRepo() {
+		// given
+		folderSetupForTests
+		// .. now make the remote change
+		createPreExistingFileInRemoteRepository('src/main/java/unsyncedFile.tcl', 'remote content')
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanRename('src/main/java/Hello.txt', 'src/main/java/Allo.txt')
+		
+		//then
+		DocumentResource.createResult.repull.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').equals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
+		new File(localGitRoot.root, 'src/main/java/Allo.txt').exists.assertFalse
+	}
+	
+	@Test
+	def void cleanRenameWantsRepullIfPushFails() {
+		// given
+		folderSetupForTests
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanRename('src/main/java/Hello.txt', 'src/main/java/Allo.txt', [
+			throw new RuntimeException('push failed')
+		])
+
+		// then
+		DocumentResource.createResult.repull.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').equals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
+		new File(localGitRoot.root, 'src/main/java/Allo.txt').exists.assertFalse
+	}
+	
+	// cleanSave
+	@Test
+	def void cleanSaveOnCleanRepo() {
+		// given
+		folderSetupForTests
+		val numberOfCommitsBefore = remoteGit.log.call.size
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanSave('src/main/java/Hello.txt', 'new content')
+		
+		//then
+		DocumentResource.createResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD^1').equals(localHeadBeforeAction)
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, MODIFY, 'src/main/java/Hello.txt')
+		new File(localGitRoot.root, 'src/main/java/Hello.txt') => [
+			exists.assertTrue
+			read.assertEquals('new content')	
+		]
+	}
+	
+	@Test
+	def void cleanSaveRequestsRepullOnDirtyRepo() {
+		// given
+		folderSetupForTests
+		// .. now make the remote change
+		createPreExistingFileInRemoteRepository('src/main/java/unsyncedFile.tcl', 'remote content')
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanSave('src/main/java/Hello.txt', 'new content')
+		
+		//then
+		DocumentResource.createResult.repull.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').equals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt') => [
+			exists.assertTrue
+			read.assertEquals('Hello World!')	
+		]
+	}
+	
+	@Test
+	def void cleanSaveWantsRepullIfPushFails() {
+		// given
+		folderSetupForTests
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanSave('src/main/java/Hello.txt', 'new content', [
+			throw new RuntimeException('push failed')
+		])
+
+		// then
+		DocumentResource.createResult.repull.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').equals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt') => [
+			exists.assertTrue
+			read.assertEquals('Hello World!')
+		]
 	}
 
 }

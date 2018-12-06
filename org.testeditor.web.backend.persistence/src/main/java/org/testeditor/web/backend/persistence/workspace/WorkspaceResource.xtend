@@ -6,7 +6,6 @@ import java.nio.file.Path
 import java.util.Collection
 import java.util.List
 import java.util.Map
-import java.util.function.Function
 import javax.inject.Inject
 import javax.ws.rs.Consumes
 import javax.ws.rs.GET
@@ -106,18 +105,19 @@ class WorkspaceResource {
 		OpenResources openResources) {
 		val oldDiffPath = diff.getPath(Side.OLD)
 		val newDiffPath = diff.getPath(Side.NEW)
-		pullResponse.changedResources.addIf(oldDiffPath, [
-			oldDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)
-		])
-		pullResponse.changedResources.addIf(newDiffPath, [
-			newDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)
-		])
-		pullResponse.backedUpResources.addBackupIf(oldDiffPath, [
-			oldDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)
-		])
-		pullResponse.backedUpResources.addBackupIf(newDiffPath, [
-			newDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)
-		])
+		
+		if (oldDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
+			pullResponse.changedResources.add(oldDiffPath)
+		}
+		if (newDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
+			pullResponse.changedResources.add(newDiffPath)
+		}
+		if (oldDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)) {
+			pullResponse.backedUpResources.addBackup(oldDiffPath)
+		}
+		if (newDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)) {
+			pullResponse.backedUpResources.addBackup(newDiffPath)
+		}
 	}
 
 	private def boolean isRelevantUnreportedChangedResource(String changedResource, OpenResources openResources,
@@ -133,23 +133,13 @@ class WorkspaceResource {
 		]
 	}
 
-	/** iff predicate holds true, add the resource to the collection */
-	private def void addIf(Collection<String> collection, String resource, Function<Void, Boolean> predicate) {
-		if (predicate.apply(null)) {
-			collection.add(resource)
-		}
-	}
-
-	/** iff predicate holds true, create a backup file based on the resource and add a corresponding PullResponse.BackupEntry */
-	private def void addBackupIf(Collection<PullResponse.BackupEntry> collection, String resource,
-		Function<Void, Boolean> predicate) {
-		if (predicate.apply(null)) {
-			val backupFile = workspaceProvider.createLocalBackup(resource, workspaceProvider.read(resource))
-			collection.add(new PullResponse.BackupEntry => [
-				it.resource = resource
-				it.backupResource = backupFile
-			])
-		}
+	/** create a backup file based on the resource and add a corresponding PullResponse.BackupEntry */
+	private def void addBackup(Collection<PullResponse.BackupEntry> collection, String resource) {
+		val backupFile = workspaceProvider.createLocalBackup(resource, workspaceProvider.read(resource))
+		collection.add(new PullResponse.BackupEntry => [
+			it.resource = resource
+			it.backupResource = backupFile
+		])
 	}
 
 	/** create a tree iterator (for diff calculation) on given objectId (commit) */
