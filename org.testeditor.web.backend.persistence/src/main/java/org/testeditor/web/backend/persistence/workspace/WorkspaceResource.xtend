@@ -50,19 +50,19 @@ class WorkspaceResource {
 
 	/**
 	 * Execute an explicit pull on the repository.
-	 * 
-	 * The list of resources and dirtyResources are passed into this endpoint to: 
+	 *
+	 * The list of resources and dirtyResources are passed into this endpoint to:
 	 * 1. get an information on whether a passed resource has changed through the pull
 	 * 2. create a backup file for dirtyResources that have changed through the pull
-	 * 
+	 *
 	 * Note that the created backup files do not hold the contents of the dirtyResources,
 	 * since their contents are known to the front end only! The backup files created will hold the
 	 * same content as the respective file just pulled (as a default).
-	 * 
+	 *
 	 * The frontend is expected to react accordingly, that is:
 	 * 1. it informs the user about resources that have changed
 	 * 2. it provides some resolution/information for files the user has changed and that have changed
-	 *    in the repository, too. The user must be given the chance to persist his local changes into 
+	 *    in the repository, too. The user must be given the chance to persist his local changes into
 	 *    the backup file instead of overwriting (unchecked) changes in the repo.
 	 */
 	@POST
@@ -105,7 +105,7 @@ class WorkspaceResource {
 		OpenResources openResources) {
 		val oldDiffPath = diff.getPath(Side.OLD)
 		val newDiffPath = diff.getPath(Side.NEW)
-		
+
 		if (oldDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
 			pullResponse.changedResources.add(oldDiffPath)
 		}
