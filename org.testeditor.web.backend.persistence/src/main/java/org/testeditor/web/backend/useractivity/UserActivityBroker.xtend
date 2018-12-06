@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.useractivity
 
+import com.google.common.annotations.VisibleForTesting
 import com.google.common.base.Ticker
 import com.google.common.cache.Cache
 import com.google.common.cache.CacheBuilder
@@ -21,6 +22,7 @@ class UserActivityBroker {
 		this(Ticker.systemTicker)
 	}
 	
+	@VisibleForTesting
 	new(Ticker timeSource) {
 		userActivities = CacheBuilder.newBuilder.expireAfterWrite(TIMEOUT_SECS, TimeUnit.SECONDS).ticker(timeSource).build
 	}
