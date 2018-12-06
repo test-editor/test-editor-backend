@@ -13,12 +13,14 @@ import javax.ws.rs.GET
 import javax.ws.rs.POST
 import javax.ws.rs.Produces
 import javax.ws.rs.core.MediaType
+import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffEntry.Side
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.AbstractTreeIterator
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.git.GitProvider
 
@@ -27,10 +29,11 @@ import org.testeditor.web.backend.persistence.git.GitProvider
 class WorkspaceResource {
 
 	static val logger = LoggerFactory.getLogger(WorkspaceResource)
-	
+
+	@Accessors
 	static class OpenResources {
-		public var List<String> resources;
-		public var List<String> dirtyResources;
+		List<String> resources;
+		List<String> dirtyResources;
 	}
 
 	@Inject extension GitProvider gitProvider
@@ -84,15 +87,9 @@ class WorkspaceResource {
 
 				val diffs = git.diff.setOldTree(prepareTreeParser(git.repository, headBeforePull)).setNewTree(
 					prepareTreeParser(git.repository, headAfterPull)).call
-
 				pullResponse.diffExists = !diffs.empty
-				diffs.forEach [
-					val oldDiffPath = getPath(Side.OLD)
-					val newDiffPath = getPath(Side.NEW)
-					pullResponse.changedResources.addIf(oldDiffPath, [openResources.resources.contains(oldDiffPath)])
-					pullResponse.changedResources.addIf(newDiffPath, [openResources.resources.contains(newDiffPath)])
-					pullResponse.backedUpResources.addBackupIf(oldDiffPath, [openResources.dirtyResources.contains(oldDiffPath)])
-					pullResponse.backedUpResources.addBackupIf(newDiffPath, [openResources.dirtyResources.contains(newDiffPath)])
+				diffs.forEach [ diff |
+					pullResponse.completePullResponseForDiff(diff, openResources)
 				]
 				pullResponse.failure = false
 			} else {
@@ -103,6 +100,37 @@ class WorkspaceResource {
 			logger.trace('reporting pull failure to caller')
 		}
 		return pullResponse
+	}
+
+	private def void completePullResponseForDiff(PullResponse pullResponse, DiffEntry diff,
+		OpenResources openResources) {
+		val oldDiffPath = diff.getPath(Side.OLD)
+		val newDiffPath = diff.getPath(Side.NEW)
+		pullResponse.changedResources.addIf(oldDiffPath, [
+			oldDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)
+		])
+		pullResponse.changedResources.addIf(newDiffPath, [
+			newDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)
+		])
+		pullResponse.backedUpResources.addBackupIf(oldDiffPath, [
+			oldDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)
+		])
+		pullResponse.backedUpResources.addBackupIf(newDiffPath, [
+			newDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)
+		])
+	}
+
+	private def boolean isRelevantUnreportedChangedResource(String changedResource, OpenResources openResources,
+		PullResponse pullResponse) {
+		return openResources.resources.contains(changedResource) &&
+			!pullResponse.changedResources.contains(changedResource)
+	}
+
+	private def boolean isRelevantUnreportedBackedUpResource(String changedResource, OpenResources openResources,
+		PullResponse pullResponse) {
+		return openResources.dirtyResources.contains(changedResource) && !pullResponse.backedUpResources.exists [
+			resource.equals(changedResource)
+		]
 	}
 
 	/** iff predicate holds true, add the resource to the collection */
