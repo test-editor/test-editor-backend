@@ -21,6 +21,10 @@ import static javax.ws.rs.core.Response.status
 @Path("/documents/{resourcePath:.*}")
 @Produces(MediaType.TEXT_PLAIN)
 class DocumentResource {
+	
+	enum createResult {
+		succeeded, repull, badrequest
+	}
 
 	@Inject DocumentProvider documentProvider
 
@@ -32,18 +36,39 @@ class DocumentResource {
 				documentProvider.copy(source, resourcePath);
 				return status(CREATED).entity(resourcePath).build
 			} else { // new api
-				if (documentProvider.copyOnSyncedRepo(source, resourcePath)) {
+				val succeeded = documentProvider.cleanCopy(source, resourcePath)
+				if (succeeded) {
 					return status(CREATED).entity(resourcePath).build
 				} else {
 					return status(CONFLICT).entity('REPULL').build
 				}
 			}
 		} else if (type == "folder") {
-			val created = documentProvider.createFolder(resourcePath)
-			return createdOrBadRequest(created, resourcePath)
+			if (clean.nullOrEmpty) {
+				val created = documentProvider.createFolder(resourcePath)
+				return createdOrBadRequest(created, resourcePath)
+			} else { // new api
+				val result = documentProvider.cleanCreateFolder(resourcePath)
+				switch(result) {
+					case succeeded: return status(CREATED).entity(resourcePath).build
+					case repull: return status(CONFLICT).entity('REPULL').build
+					case badrequest: return status(BAD_REQUEST).build
+					default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
+				}
+			}
 		} else {
-			val created = documentProvider.create(resourcePath, content)
-			return createdOrBadRequest(created, resourcePath)
+			if (clean.nullOrEmpty) {
+				val created = documentProvider.create(resourcePath, content)
+				return createdOrBadRequest(created, resourcePath)
+			} else {
+				val result = documentProvider.cleanCreate(resourcePath, content)
+				switch(result) {
+					case succeeded: return status(CREATED).entity(resourcePath).build
+					case repull: return status(CONFLICT).entity('REPULL').build
+					case badrequest: return status(BAD_REQUEST).build
+					default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
+				}
+			}
 		}
 	}
 
@@ -56,33 +81,74 @@ class DocumentResource {
 	}
 
 	/**
-	 * the actual content of the query parmaeter 'rename' is ignored.
+	 * the actual content of the query parameter 'rename' is ignored.
 	 * if the rename parameter is present a rename is executed, the content holding the new name
 	 * if the rename parameter is absent a save is executed, the content holding the new content of the file
 	 */
 	@PUT
-	def Response update(@PathParam("resourcePath") String resourcePath, @QueryParam("rename") String rename, String content, @Context HttpHeaders headers) {
+	def Response update(@PathParam("resourcePath") String resourcePath, @QueryParam("rename") String rename, 
+		@QueryParam("clean") String clean, String content, @Context HttpHeaders headers) {
 		if (rename !== null) {
-			documentProvider.rename(resourcePath, content) // content is actually the new path for the resource
-			return ok(content).build
+			if (clean.nullOrEmpty) {
+				documentProvider.rename(resourcePath, content) // content is actually the new path for the resource
+				return ok(content).build
+			} else { // new api
+				val result = documentProvider.cleanRename(resourcePath, content)
+				switch(result) {
+					case succeeded: return ok(content).build
+					case repull: return status(CONFLICT).entity('REPULL').build
+					case badrequest: return status(BAD_REQUEST).build
+					default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
+				}
+			}
 		} else {
-			documentProvider.save(resourcePath, content)
-			return status(NO_CONTENT).build
+			if (clean.nullOrEmpty) {
+				documentProvider.save(resourcePath, content)
+				return status(NO_CONTENT).build
+			} else { // new api
+				val result = documentProvider.cleanSave(resourcePath, content)
+				switch(result) {
+					case succeeded: return status(NO_CONTENT).build
+					case repull: return status(CONFLICT).entity('REPULL').build
+					case badrequest: return status(BAD_REQUEST).build
+					default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
+				}
+			}
 		}
 	}
 
 	@GET
-	def Response load(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {		
-		return status(OK).entity(documentProvider.load(resourcePath)).type(documentProvider.getType(resourcePath)).build
+	def Response load(@PathParam("resourcePath") String resourcePath, @QueryParam("clean") String clean, @Context HttpHeaders headers) {
+		if (clean.nullOrEmpty) {
+			return status(OK).entity(documentProvider.load(resourcePath)).type(documentProvider.getType(resourcePath)).build
+		} else { // new api
+			val result = documentProvider.cleanLoad(resourcePath)
+			switch(result.status) {
+				case succeeded: return status(OK).entity(result.content).type(documentProvider.getType(resourcePath)).build
+				case repull: return status(CONFLICT).entity('REPULL').build
+				case badrequest: return status(BAD_REQUEST).build
+				default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
+			}
+		}
 	}
 
 	@DELETE
-	def Response delete(@PathParam("resourcePath") String resourcePath, @Context HttpHeaders headers) {
-		val actuallyDeleted = documentProvider.delete(resourcePath)
-		if (actuallyDeleted) {
-			return status(OK).build
-		} else {
-			return status(INTERNAL_SERVER_ERROR).build
+	def Response delete(@PathParam("resourcePath") String resourcePath, @QueryParam("clean") String clean, @Context HttpHeaders headers) {
+		if (clean.nullOrEmpty) {
+			val actuallyDeleted = documentProvider.delete(resourcePath)
+			if (actuallyDeleted) {
+				return status(OK).build
+			} else {
+				return status(INTERNAL_SERVER_ERROR).build
+			}
+		} else { // new api
+			val result = documentProvider.cleanDelete(resourcePath)
+			switch(result) {
+				case succeeded: return status(OK).build
+				case repull: return status(CONFLICT).entity('REPULL').build
+				case badrequest: return status(INTERNAL_SERVER_ERROR).build
+				default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
+			}
 		}
 	}
 

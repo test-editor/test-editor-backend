@@ -405,7 +405,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 	}
 	
 	@Test
-	def void cleanCopyFailsForDirtyRepo() {
+	def void cleanCopyFailsForDirtyRepoWithConflictAndReturnsRepull() {
 		// given
 		val request = createCleanCopyDocumentRequest(copiedResource, copyResourcePath).buildPost(null)
 		write('newFileOnRemote', 'some content') // making the remote repo 'dirty'
@@ -415,6 +415,7 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 
 		// then
 		response.status.assertEquals(CONFLICT.statusCode)
+		response.readEntity(String).assertEquals('REPULL')
 	}
 
 	private def Entity<String> stringEntity(CharSequence charSequence) {

@@ -107,6 +107,11 @@ class ScanningLogFinderTest {
 	@InjectMocks
 	ScanningLogFinder logFinder
 
+	// DONOT USE, introduces usage of an element used for InjectMocks but not used anywhere else, makeing the IDE report an annoying warning
+	protected def dummyUsageOfInjected() {
+		lineSkipper
+	}
+
 	@Test
 	def void shouldReturnRelevantLogLines() {
 		// given

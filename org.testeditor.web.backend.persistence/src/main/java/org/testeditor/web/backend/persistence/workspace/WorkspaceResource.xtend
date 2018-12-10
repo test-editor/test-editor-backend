@@ -6,19 +6,20 @@ import java.nio.file.Path
 import java.util.Collection
 import java.util.List
 import java.util.Map
-import java.util.function.Function
 import javax.inject.Inject
 import javax.ws.rs.Consumes
 import javax.ws.rs.GET
 import javax.ws.rs.POST
 import javax.ws.rs.Produces
 import javax.ws.rs.core.MediaType
+import org.eclipse.jgit.diff.DiffEntry
 import org.eclipse.jgit.diff.DiffEntry.Side
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.AbstractTreeIterator
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
+import org.eclipse.xtend.lib.annotations.Accessors
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.git.GitProvider
 
@@ -27,10 +28,11 @@ import org.testeditor.web.backend.persistence.git.GitProvider
 class WorkspaceResource {
 
 	static val logger = LoggerFactory.getLogger(WorkspaceResource)
-	
+
+	@Accessors
 	static class OpenResources {
-		public var List<String> resources;
-		public var List<String> dirtyResources;
+		List<String> resources;
+		List<String> dirtyResources;
 	}
 
 	@Inject extension GitProvider gitProvider
@@ -84,15 +86,9 @@ class WorkspaceResource {
 
 				val diffs = git.diff.setOldTree(prepareTreeParser(git.repository, headBeforePull)).setNewTree(
 					prepareTreeParser(git.repository, headAfterPull)).call
-
 				pullResponse.diffExists = !diffs.empty
-				diffs.forEach [
-					val oldDiffPath = getPath(Side.OLD)
-					val newDiffPath = getPath(Side.NEW)
-					pullResponse.changedResources.addIf(oldDiffPath, [openResources.resources.contains(oldDiffPath)])
-					pullResponse.changedResources.addIf(newDiffPath, [openResources.resources.contains(newDiffPath)])
-					pullResponse.backedUpResources.addBackupIf(oldDiffPath, [openResources.dirtyResources.contains(oldDiffPath)])
-					pullResponse.backedUpResources.addBackupIf(newDiffPath, [openResources.dirtyResources.contains(newDiffPath)])
+				diffs.forEach [ diff |
+					pullResponse.completePullResponseForDiff(diff, openResources)
 				]
 				pullResponse.failure = false
 			} else {
@@ -105,23 +101,45 @@ class WorkspaceResource {
 		return pullResponse
 	}
 
-	/** iff predicate holds true, add the resource to the collection */
-	private def void addIf(Collection<String> collection, String resource, Function<Void, Boolean> predicate) {
-		if (predicate.apply(null)) {
-			collection.add(resource)
+	private def void completePullResponseForDiff(PullResponse pullResponse, DiffEntry diff,
+		OpenResources openResources) {
+		val oldDiffPath = diff.getPath(Side.OLD)
+		val newDiffPath = diff.getPath(Side.NEW)
+		
+		if (oldDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
+			pullResponse.changedResources.add(oldDiffPath)
+		}
+		if (newDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
+			pullResponse.changedResources.add(newDiffPath)
+		}
+		if (oldDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)) {
+			pullResponse.backedUpResources.addBackup(oldDiffPath)
+		}
+		if (newDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)) {
+			pullResponse.backedUpResources.addBackup(newDiffPath)
 		}
 	}
 
-	/** iff predicate holds true, create a backup file based on the resource and add a corresponding PullResponse.BackupEntry */
-	private def void addBackupIf(Collection<PullResponse.BackupEntry> collection, String resource,
-		Function<Void, Boolean> predicate) {
-		if (predicate.apply(null)) {
-			val backupFile = workspaceProvider.createLocalBackup(resource, workspaceProvider.read(resource))
-			collection.add(new PullResponse.BackupEntry => [
-				it.resource = resource
-				it.backupResource = backupFile
-			])
-		}
+	private def boolean isRelevantUnreportedChangedResource(String changedResource, OpenResources openResources,
+		PullResponse pullResponse) {
+		return openResources.resources.contains(changedResource) &&
+			!pullResponse.changedResources.contains(changedResource)
+	}
+
+	private def boolean isRelevantUnreportedBackedUpResource(String changedResource, OpenResources openResources,
+		PullResponse pullResponse) {
+		return openResources.dirtyResources.contains(changedResource) && !pullResponse.backedUpResources.exists [
+			resource.equals(changedResource)
+		]
+	}
+
+	/** create a backup file based on the resource and add a corresponding PullResponse.BackupEntry */
+	private def void addBackup(Collection<PullResponse.BackupEntry> collection, String resource) {
+		val backupFile = workspaceProvider.createLocalBackup(resource, workspaceProvider.read(resource))
+		collection.add(new PullResponse.BackupEntry => [
+			it.resource = resource
+			it.backupResource = backupFile
+		])
 	}
 
 	/** create a tree iterator (for diff calculation) on given objectId (commit) */

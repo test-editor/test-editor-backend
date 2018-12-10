@@ -83,7 +83,7 @@ class TestExecutionCallTree {
 		]
 		
 		if (test===null) {
-			throw new IllegalArgumentException('''could not find test run with id = '«executionKey.caseRunId»' in testRuns = '«testRuns.map[toString].join(', ')»' ''')
+			throw new IllegalArgumentException('''could not find test run with id = '«executionKey.caseRunId»' in testRuns = '«testRuns.join(', ')»' ''')
 		} else {
 			return test
 		}
