@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.persistence
 
+import java.io.InputStream
 import javax.inject.Inject
 import javax.ws.rs.DELETE
 import javax.ws.rs.GET
@@ -13,6 +14,7 @@ import javax.ws.rs.core.Context
 import javax.ws.rs.core.HttpHeaders
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
+import org.eclipse.xtend.lib.annotations.Accessors
 
 import static javax.ws.rs.core.Response.Status.*
 import static javax.ws.rs.core.Response.ok
@@ -22,8 +24,14 @@ import static javax.ws.rs.core.Response.status
 @Produces(MediaType.TEXT_PLAIN)
 class DocumentResource {
 	
-	enum createResult {
+	enum ActionResult {
 		succeeded, repull, badrequest
+	}
+
+	@Accessors
+	static class LoadStatus {
+		ActionResult actionResult
+		InputStream content
 	}
 
 	@Inject DocumentProvider documentProvider
@@ -36,12 +44,8 @@ class DocumentResource {
 				documentProvider.copy(source, resourcePath);
 				return status(CREATED).entity(resourcePath).build
 			} else { // new api
-				val succeeded = documentProvider.cleanCopy(source, resourcePath)
-				if (succeeded) {
-					return status(CREATED).entity(resourcePath).build
-				} else {
-					return status(CONFLICT).entity('REPULL').build
-				}
+				val result = documentProvider.cleanCopy(source, resourcePath)
+				result.toCreatedStatusFor(resourcePath)
 			}
 		} else if (type == "folder") {
 			if (clean.nullOrEmpty) {
@@ -49,12 +53,7 @@ class DocumentResource {
 				return createdOrBadRequest(created, resourcePath)
 			} else { // new api
 				val result = documentProvider.cleanCreateFolder(resourcePath)
-				switch(result) {
-					case succeeded: return status(CREATED).entity(resourcePath).build
-					case repull: return status(CONFLICT).entity('REPULL').build
-					case badrequest: return status(BAD_REQUEST).build
-					default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
-				}
+				result.toCreatedStatusFor(resourcePath)
 			}
 		} else {
 			if (clean.nullOrEmpty) {
@@ -62,12 +61,7 @@ class DocumentResource {
 				return createdOrBadRequest(created, resourcePath)
 			} else {
 				val result = documentProvider.cleanCreate(resourcePath, content)
-				switch(result) {
-					case succeeded: return status(CREATED).entity(resourcePath).build
-					case repull: return status(CONFLICT).entity('REPULL').build
-					case badrequest: return status(BAD_REQUEST).build
-					default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
-				}
+				result.toCreatedStatusFor(resourcePath)
 			}
 		}
 	}
@@ -94,12 +88,7 @@ class DocumentResource {
 				return ok(content).build
 			} else { // new api
 				val result = documentProvider.cleanRename(resourcePath, content)
-				switch(result) {
-					case succeeded: return ok(content).build
-					case repull: return status(CONFLICT).entity('REPULL').build
-					case badrequest: return status(BAD_REQUEST).build
-					default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
-				}
+				return result.toContentStatusFor(content)
 			}
 		} else {
 			if (clean.nullOrEmpty) {
@@ -107,12 +96,7 @@ class DocumentResource {
 				return status(NO_CONTENT).build
 			} else { // new api
 				val result = documentProvider.cleanSave(resourcePath, content)
-				switch(result) {
-					case succeeded: return status(NO_CONTENT).build
-					case repull: return status(CONFLICT).entity('REPULL').build
-					case badrequest: return status(BAD_REQUEST).build
-					default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
-				}
+				return result.toNoContentStatus
 			}
 		}
 	}
@@ -123,12 +107,7 @@ class DocumentResource {
 			return status(OK).entity(documentProvider.load(resourcePath)).type(documentProvider.getType(resourcePath)).build
 		} else { // new api
 			val result = documentProvider.cleanLoad(resourcePath)
-			switch(result.status) {
-				case succeeded: return status(OK).entity(result.content).type(documentProvider.getType(resourcePath)).build
-				case repull: return status(CONFLICT).entity('REPULL').build
-				case badrequest: return status(BAD_REQUEST).build
-				default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
-			}
+			return result.toContentStatusOf(documentProvider.getType(resourcePath))
 		}
 	}
 
@@ -143,12 +122,53 @@ class DocumentResource {
 			}
 		} else { // new api
 			val result = documentProvider.cleanDelete(resourcePath)
-			switch(result) {
-				case succeeded: return status(OK).build
-				case repull: return status(CONFLICT).entity('REPULL').build
-				case badrequest: return status(INTERNAL_SERVER_ERROR).build
-				default: throw new IllegalArgumentException('enum value ' + result + 'unknown and not accepted here')
-			}
+			return result.toStatus
+		}
+	}
+	private def toCreatedStatusFor(ActionResult actionResult, String resourcePath) {
+		if (actionResult.equals(ActionResult.succeeded)) {
+			return status(CREATED).entity(resourcePath).build
+		} else {
+			return actionResult.toFailingStatus
+		}
+	}
+
+	private def toNoContentStatus(ActionResult actionResult) {
+		if (actionResult.equals(ActionResult.succeeded)) {
+			return status(NO_CONTENT).build
+		} else {
+			return actionResult.toFailingStatus
+		}
+	}
+	
+	private def toContentStatusFor(ActionResult actionResult, String content) {
+		if (actionResult.equals(ActionResult.succeeded)) {
+			return ok(content).build
+		} else {
+			return actionResult.toFailingStatus
+		}
+	}
+
+	private def toContentStatusOf(LoadStatus loadStatus, String type) {
+		if (loadStatus.actionResult.equals(ActionResult.succeeded)) {
+			return status(OK).entity(loadStatus.content).type(type).build
+		} else {
+			return loadStatus.actionResult.toFailingStatus
+		}
+	}
+	private def toStatus(ActionResult actionResult) {
+		if (actionResult.equals(ActionResult.succeeded)) {
+			return status(OK).build
+		} else {
+			return actionResult.toFailingStatus
+		}
+	}
+	
+	private def toFailingStatus(ActionResult actionResult) {
+		switch(actionResult) {
+			case repull: return status(CONFLICT).entity('REPULL').build
+			case badrequest: return status(BAD_REQUEST).build
+			default: throw new IllegalArgumentException('enum value ' + actionResult + 'unknown and not accepted here')
 		}
 	}
 

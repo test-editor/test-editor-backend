@@ -18,8 +18,8 @@ import org.eclipse.jgit.lib.IndexDiff.StageState
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.transport.PushResult
-import org.eclipse.xtend.lib.annotations.Accessors
 import org.slf4j.LoggerFactory
+import org.testeditor.web.backend.persistence.DocumentResource.LoadStatus
 import org.testeditor.web.backend.persistence.exception.ConflictingModificationsException
 import org.testeditor.web.backend.persistence.exception.ExistingFileException
 import org.testeditor.web.backend.persistence.exception.MissingFileException
@@ -42,13 +42,65 @@ class DocumentProvider {
 	@Inject WorkspaceProvider workspaceProvider
 	@Inject PersistenceConfiguration configuration
 
-	def boolean cleanCopy(String resourcePath, String newPath) {
+	/** execute commitAction expecting an up to date repo.
+	 * 
+	 *  if repository is up to date with remote, execute pushAction, too.
+	 *  if the repository is NOT up to date with the remote or the pushAction fails,
+	 *  reset to the commit before any action was taken.
+	 *  execute compensation action after that (for cleanup of any elements not cleaned by git reset). */
+	private def DocumentResource.ActionResult wrapInCleanRepoAction(Function<Void, ObjectId> commitAction, Function<Void, ?> pushAction, Function<Void, ?> compensatingAction) {
+		var result = DocumentResource.ActionResult.badrequest
+		val preCommit = git.repository.resolve('HEAD')
+		logger.trace('commitid before any action is taken is ' + preCommit.getName)
+		try {
+			val commitId = commitAction.apply(null)
+			val pullResult = pull
+			val newCommitId = git.repository.resolve('HEAD')
+			// if commit ids are equal, there should never be a merge conflict, just double checking
+			if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
+				pushAction.apply(null)
+				result = DocumentResource.ActionResult.succeeded
+			} else {
+				result = getResultOnDiff(commitId, newCommitId, pullResult)
+			}
+		} catch (Exception e) {
+			logger.error('exception during action or push', e)
+			result = DocumentResource.ActionResult.repull
+		}
+		if (!result.equals(DocumentResource.ActionResult.succeeded)) {
+			resetLocalRepoTo(preCommit, compensatingAction)
+			result = DocumentResource.ActionResult.repull
+		}
+		return result
+	}
+
+	/** depending on commit id diff and pull result, return action result */
+	private def DocumentResource.ActionResult getResultOnDiff(ObjectId commitId, ObjectId newCommitId, PullResult pullResult) {
+		if (!newCommitId.equals(commitId)) {
+			logger.warn('''unexpected inequality: pulled commit id '«newCommitId.getName»' != local commit id '«commitId.getName»' ''')
+			return DocumentResource.ActionResult.repull
+		} else if (!pullResult.mergeResult.mergeStatus.successful) {
+			logger.warn('''merge conflicts in files «pullResult.mergeResult.conflicts.entrySet.map[key].toSet.join(', ')».''')
+			return DocumentResource.ActionResult.repull
+		} else {
+			logger.warn('expected commit id not found or unknown merge conflict (unknown cause)')
+			return DocumentResource.ActionResult.badrequest
+		}
+	}
+
+	/** reset (hard) to commit and execute compensating action */
+	private def void resetLocalRepoTo(ObjectId commit, Function<Void, ?> compensatingAction) {
+		logger.warn('resetting local repo to ' + commit.getName)
+		git.reset.setRef(commit.getName).setMode(ResetType.HARD).call
+		compensatingAction.apply(null)
+	}
+	
+	def DocumentResource.ActionResult cleanCopy(String resourcePath, String newPath) {
 		return cleanCopy(resourcePath, newPath, [push])
 	}
 	
 	@VisibleForTesting
-	def boolean cleanCopy(String resourcePath, String newPath, Function<Void, ?> pushAction) {
-		var copySuccessful = false
+	def DocumentResource.ActionResult cleanCopy(String resourcePath, String newPath, Function<Void, ?> pushAction) {
 		logger.debug('''copy «resourcePath» to «newPath»''')
 		logger.trace('''using file encoding «System.getProperty("file.encoding")»''')
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
@@ -60,53 +112,29 @@ class DocumentProvider {
 		} else if (newFile.exists) {
 			throw new ExistingFileException('''target file '«newPath»' does already exist''')
 		} else {
-			val preCommit = git.repository.resolve('HEAD')
-			logger.trace('commitid before any action is taken is ' + preCommit.getName)
-			try {
-				doCleanCopy(file, newFile, pushAction)
-				copySuccessful = true;
-			} catch (Exception e) {
-				logger.error('exception during copy action', e)
-				copySuccessful = false;
-			}
-			if (!copySuccessful) {
-				logger.warn('resetting local repo to ' + preCommit.getName)
-				git.reset.setRef(preCommit.getName).setMode(ResetType.HARD).call
+			return [
+				if (file.isDirectory) {
+					FileUtils.copyDirectory(file, newFile)
+					FileUtils.listFiles(newFile, null, true).commit('''copied subdirectory '«file»' to '«newFile»' ''')
+				} else {
+					FileUtils.copyFile(file, newFile)
+					#[newFile].commit('''copied file '«file»' to '«newFile»'. ''')
+				}
+			].wrapInCleanRepoAction(pushAction, [
 				if (newFile.exists) {
 					// for files not in the index, they must be deleted, too (since resetting the index won't help)
 					logger.trace('''cleanup of remaining file '«newFile.absolutePath»' after reset hard necessary.''')
 					FileUtils.deleteQuietly(newFile)
-				}
-			}
-		}
-		return copySuccessful
-	}
-
-	private def void doCleanCopy(File file, File newFile, Function<Void, ?> pushAction) {
-		val commitId = if (file.isDirectory) {
-				FileUtils.copyDirectory(file, newFile)
-				FileUtils.listFiles(newFile, null, true).commit('''copied subdirectory '«file»' to '«newFile»' ''')
-			} else {
-				FileUtils.copyFile(file, newFile)
-				#[newFile].commit('''copied file '«file»' to '«newFile»'. ''')
-			}
-		val pullResult = pull
-		val newCommitId = git.repository.resolve('HEAD')
-		if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
-			pushAction.apply(null)
-		} else {
-			val exceptionMessage = if (!newCommitId.equals(commitId)) {
-					'''unexpected inequality: pulled commit id '«newCommitId.getName»' != local commit id '«commitId.getName»' '''
-				} else if (!pullResult.mergeResult.mergeStatus.successful) {
-					'''merge conflicts in files «pullResult.mergeResult.conflicts.entrySet.map[key].toSet.join(', ')».'''
 				} else {
-					'unknown cause'
+					// do nothing (nothing to compensate)
 				}
-			throw new IllegalStateException(exceptionMessage.toString)
+			])
 		}
 	}
 
+	@Deprecated
 	def void copy(String resourcePath, String newPath) throws ConflictingModificationsException {
+		logger.warn('deprecated backend function "copy" used')
 		logger.debug('''copy «resourcePath» to «newPath»''')
 		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
@@ -130,12 +158,12 @@ class DocumentProvider {
 		}
 	}
 	
-	def DocumentResource.createResult cleanRename(String resourcePath, String newPath) {
+	def DocumentResource.ActionResult cleanRename(String resourcePath, String newPath) {
 		cleanRename(resourcePath, newPath, [push])
 	}
 	
 	@VisibleForTesting
-	def DocumentResource.createResult cleanRename(String resourcePath, String newPath, Function<Void, ?> pushAction) {
+	def DocumentResource.ActionResult cleanRename(String resourcePath, String newPath, Function<Void, ?> pushAction) {
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		val newFile = workspaceProvider.getWorkspaceFile(newPath)
 		if (!file.exists) {
@@ -143,42 +171,16 @@ class DocumentProvider {
 		} else if (newFile.exists) {
 			throw new ExistingFileException('''target file '«newPath»' does already exist''')
 		} else {
-			var result = DocumentResource.createResult.badrequest
-			val preCommit = git.repository.resolve('HEAD')
-			logger.trace('commitid before any action is taken is ' + preCommit.getName)
-			try {
+			return [
 				file.renameTo(newFile)
-				val commitId = #[file, newFile].commit('''rename '«resourcePath»' to '«newPath»'. ''')
-				val pullResult = pull
-				val newCommitId = git.repository.resolve('HEAD')
-				if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
-					pushAction.apply(null)
-					result = DocumentResource.createResult.succeeded
-				} else {
-					if (!newCommitId.equals(commitId)) {
-						logger.warn('''unexpected inequality: pulled commit id '«newCommitId.getName»' != local commit id '«commitId.getName»' ''')
-						result = DocumentResource.createResult.repull
-					} else if (!pullResult.mergeResult.mergeStatus.successful) {
-						logger.warn('''merge conflicts in files «pullResult.mergeResult.conflicts.entrySet.map[key].toSet.join(', ')».''')
-						result = DocumentResource.createResult.repull
-					} else {
-						logger.warn('expected commit id not found or unknown merge conflict (unknown cause)')
-						result = DocumentResource.createResult.badrequest
-					}
-				}
-			} catch (Exception e) {
-				logger.error('exception during rename action (save and push)', e)
-				result = DocumentResource.createResult.repull
-			}
-			if (!result.equals(DocumentResource.createResult.succeeded)) {
-				logger.warn('resetting local repo to ' + preCommit.getName)
-				git.reset.setRef(preCommit.getName).setMode(ResetType.HARD).call
-			}
-			return result
+				#[file, newFile].commit('''rename '«resourcePath»' to '«newPath»'. ''')
+			].wrapInCleanRepoAction(pushAction, [])
 		}
 	}
 
+	@Deprecated
 	def void rename(String resourcePath, String newPath) throws ConflictingModificationsException {
+		logger.warn('deprecated backend function "rename" used')
 		logger.debug('''rename «resourcePath» to «newPath»''')
 		logger.debug('''using file encoding «System.getProperty("file.encoding")»''')
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
@@ -196,55 +198,42 @@ class DocumentProvider {
 		}
 	}
 
-	def DocumentResource.createResult cleanCreate(String resourcePath, String content) {
+	def DocumentResource.ActionResult cleanCreate(String resourcePath, String content) {
 		return cleanCreate(resourcePath, content, [push])
 	}
 	
 	@VisibleForTesting
-	def DocumentResource.createResult cleanCreate(String resourcePath, String content, Function<Void, ?> pushAction) {
-		var result = DocumentResource.createResult.badrequest
-		val preCommit = git.repository.resolve('HEAD')
-		logger.trace('commitid before any action is taken is ' + preCommit.getName)
-		try {
-			val file = workspaceProvider.getWorkspaceFile(resourcePath)
-			val created = workspaceProvider.create(file)
-			if (!created) {
-				result = DocumentResource.createResult.badrequest
-			} else {
-				if (!content.isNullOrEmpty) {
-					workspaceProvider.write(file, content)
-				}
-				val commitId = commit(file, '''add file: «file.name»''')
-				val pullResult = pull
-				val newCommitId = git.repository.resolve('HEAD')
-				if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
-					pushAction.apply(null)
-					result = DocumentResource.createResult.succeeded
+	def DocumentResource.ActionResult cleanCreate(String resourcePath, String content, Function<Void, ?> pushAction) {
+		val file = workspaceProvider.getWorkspaceFile(resourcePath)
+		if (file.exists) {
+			logger.warn('''create failed, file «resourcePath» already exists''')
+			return DocumentResource.ActionResult.badrequest
+		} else {
+			return [
+				val created = workspaceProvider.create(file)
+				if (!created) {
+					throw new RuntimeException('file could not be created')
 				} else {
-					if (!newCommitId.equals(commitId)) {
-						logger.warn('''unexpected inequality: pulled commit id '«newCommitId.getName»' != local commit id '«commitId.getName»' ''')
-						result = DocumentResource.createResult.repull
-					} else if (!pullResult.mergeResult.mergeStatus.successful) {
-						logger.warn('''merge conflicts in files «pullResult.mergeResult.conflicts.entrySet.map[key].toSet.join(', ')».''')
-						result = DocumentResource.createResult.repull
-					} else {
-						logger.warn('expected commit id not found or unknown merge conflict (unknown cause)')
-						result = DocumentResource.createResult.badrequest
+					if (!content.isNullOrEmpty) {
+						workspaceProvider.write(file, content)
 					}
+					return commit(file, '''add file: «file.name»''')
 				}
-			}
-		} catch (Exception e) {
-			logger.error('exception during save action (save and push)', e)
-			result = DocumentResource.createResult.repull
+			].wrapInCleanRepoAction(pushAction, [
+				if (file.exists) {
+					// for files not in the index, they must be deleted, too (since resetting the index won't help)
+					logger.trace('''cleanup of remaining file '«file.absolutePath»' after reset hard necessary.''')
+					FileUtils.deleteQuietly(file)
+				} else {
+					// do nothing (nothing to compensate)
+				}
+			])
 		}
-		if (!result.equals(DocumentResource.createResult.succeeded)) {
-			logger.warn('resetting local repo to ' + preCommit.getName)
-			git.reset.setRef(preCommit.getName).setMode(ResetType.HARD).call
-		}
-		return result
 	}
 	
+	@Deprecated
 	def boolean create(String resourcePath, String content) throws ConflictingModificationsException {
+		logger.warn('deprecated backend function "create" used')
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 
 		val created = workspaceProvider.create(file)
@@ -260,25 +249,24 @@ class DocumentProvider {
 		return created
 	}
 	
-	def DocumentResource.createResult cleanCreateFolder(String folderPath) {
+	def DocumentResource.ActionResult cleanCreateFolder(String folderPath) {
+		return cleanCreateFolder(folderPath, [push])
+	}
+	def DocumentResource.ActionResult cleanCreateFolder(String folderPath, Function<Void, ?> pushAction) {
 		val folder = workspaceProvider.getWorkspaceFile(folderPath)
 		folder.mkdirs
 		if (folder.exists && folder.directory) {
-			return DocumentResource.createResult.succeeded
+			return cleanCreate(folderPath + if (folderPath.endsWith('/')) '' else '/' + '.gitkeep', '', pushAction)
 		} else {
-			return DocumentResource.createResult.badrequest
+			return DocumentResource.ActionResult.badrequest
 		}
 	}
 
+	@Deprecated
 	def boolean createFolder(String folderPath) {
+		logger.warn('deprecated backend function "createFolder" used')
 		val folder = workspaceProvider.getWorkspaceFile(folderPath)
 		return folder.mkdirs
-	}
-	
-	@Accessors
-	static class LoadStatus {
-		DocumentResource.createResult status
-		InputStream content
 	}
 	
 	def LoadStatus cleanLoad(String resourcePath) throws FileNotFoundException {
@@ -290,9 +278,9 @@ class DocumentProvider {
 		if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
 			if (file.exists) {
 				return new LoadStatus => [
-					status = DocumentResource.createResult.succeeded
+					setActionResult = DocumentResource.ActionResult.succeeded
 					content = new FileInputStream(file)
-					]
+				]
 			} else {
 				throw new MissingFileException('''The file '«resourcePath»' does not exist. It may have been deleted.''')
 			}
@@ -300,14 +288,16 @@ class DocumentProvider {
 			logger.warn('resetting local repo to ' + commitId.getName)
 			git.reset.setRef(commitId.getName).setMode(ResetType.HARD).call
 			return new LoadStatus => [
-				status = DocumentResource.createResult.repull
+				setActionResult = DocumentResource.ActionResult.repull
 				content = null
 			]
 		}
 	}
 	
 
+	@Deprecated
 	def InputStream load(String resourcePath) throws FileNotFoundException {
+		logger.warn('deprecated backend function "load" used')
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		pull
 
@@ -318,48 +308,22 @@ class DocumentProvider {
 		}
 	}
 	
-	def DocumentResource.createResult cleanSave(String resourcePath, String content) {
+	def DocumentResource.ActionResult cleanSave(String resourcePath, String content) {
 		cleanSave(resourcePath, content, [push])
 	}
 	
 	@VisibleForTesting
-	def DocumentResource.createResult cleanSave(String resourcePath, String content, Function<Void, ?> pushAction) {
-		var result = DocumentResource.createResult.badrequest
-		val preCommit = git.repository.resolve('HEAD')
-		logger.trace('commitid before any action is taken is ' + preCommit.getName)
-		try {
+	def DocumentResource.ActionResult cleanSave(String resourcePath, String content, Function<Void, ?> pushAction) {
+		return [
 			val file = workspaceProvider.getWorkspaceFile(resourcePath)
 			workspaceProvider.write(file, content)
-			val commitId = commit(file, '''update file: «file.name»''')
-			val pullResult = pull
-			val newCommitId = git.repository.resolve('HEAD')
-			if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
-				pushAction.apply(null)
-				result = DocumentResource.createResult.succeeded
-			} else {
-				if (!newCommitId.equals(commitId)) {
-					logger.warn('''unexpected inequality: pulled commit id '«newCommitId.getName»' != local commit id '«commitId.getName»' ''')
-					result = DocumentResource.createResult.repull
-				} else if (!pullResult.mergeResult.mergeStatus.successful) {
-					logger.warn('''merge conflicts in files «pullResult.mergeResult.conflicts.entrySet.map[key].toSet.join(', ')».''')
-					result = DocumentResource.createResult.repull
-				} else {
-					logger.warn('expected commit id not found or unknown merge conflict (unknown cause)')
-					result = DocumentResource.createResult.badrequest
-				}
-			}
-		} catch (Exception e) {
-			logger.error('exception during save action (save and push)', e)
-			result = DocumentResource.createResult.repull
-		}
-		if (!result.equals(DocumentResource.createResult.succeeded)) {
-			logger.warn('resetting local repo to ' + preCommit.getName)
-			git.reset.setRef(preCommit.getName).setMode(ResetType.HARD).call
-		}
-		return result
+			return commit(file, '''update file: «file.name»''')
+		].wrapInCleanRepoAction(pushAction, [])
 	}
 
+	@Deprecated
 	def void save(String resourcePath, String content) {
+		logger.warn('deprecated backend function "save" used')
 		workspaceProvider.getWorkspaceFile(resourcePath) => [
 			workspaceProvider.write(it, content)
 			commit('''update file: «it.name»''')
@@ -391,56 +355,30 @@ class DocumentProvider {
 	}
 
 
-	def DocumentResource.createResult cleanDelete(String resourcePath) {
+	def DocumentResource.ActionResult cleanDelete(String resourcePath) {
 		cleanDelete(resourcePath, [push])
 	}
 
 	@VisibleForTesting
-	def DocumentResource.createResult cleanDelete(String resourcePath, Function<Void, ?> pushAction) {
+	def DocumentResource.ActionResult cleanDelete(String resourcePath, Function<Void, ?> pushAction) {
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		if (!file.exists) {
 			throw new MissingFileException('''The file '«resourcePath»' does not exist.''')
 		} else {
-			var result = DocumentResource.createResult.badrequest
-			val preCommit = git.repository.resolve('HEAD')
-			logger.trace('commitid before any action is taken is ' + preCommit.getName)
-			try {
+			return [
 				val deleted = FileUtils.deleteQuietly(file)
 				if (deleted) {
-					val commitId = file.commit('''delete file: «file.name»''')
-					val pullResult = pull
-					val newCommitId = git.repository.resolve('HEAD')
-					if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
-						pushAction.apply(null)
-						result = DocumentResource.createResult.succeeded
-					} else {
-						if (!newCommitId.equals(commitId)) {
-							logger.warn('''unexpected inequality: pulled commit id '«newCommitId.getName»' != local commit id '«commitId.getName»' ''')
-							result = DocumentResource.createResult.repull
-						} else if (!pullResult.mergeResult.mergeStatus.successful) {
-							logger.warn('''merge conflicts in files «pullResult.mergeResult.conflicts.entrySet.map[key].toSet.join(', ')».''')
-							result = DocumentResource.createResult.repull
-						} else {
-							logger.warn('expected commit id not found or unknown merge conflict (unknown cause)')
-							result = DocumentResource.createResult.badrequest
-						}
-					}
+					return file.commit('''delete file: «file.name»''')
 				} else {
-					result = DocumentResource.createResult.badrequest
+					throw new RuntimeException('failed to delete file')
 				}
-			} catch (Exception e) {
-				logger.error('exception during delete action (save and push)', e)
-				result = DocumentResource.createResult.repull
-			}
-			if (!result.equals(DocumentResource.createResult.succeeded)) {
-				logger.warn('resetting local repo to ' + preCommit.getName)
-				git.reset.setRef(preCommit.getName).setMode(ResetType.HARD).call
-			}
-			return result
+			].wrapInCleanRepoAction(pushAction, [])
 		}
 	}
 	
+	@Deprecated
 	def boolean delete(String resourcePath) {
+		logger.warn('deprecated backend function "delete" used')
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		if (!file.exists) {
 			pull
