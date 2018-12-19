@@ -6,8 +6,8 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file.Paths
+import java.util.concurrent.Callable
 import java.util.function.Consumer
-import java.util.function.Function
 import javax.inject.Inject
 import javax.inject.Provider
 import org.apache.commons.io.FileUtils
@@ -42,23 +42,28 @@ class DocumentProvider {
 	@Inject WorkspaceProvider workspaceProvider
 	@Inject PersistenceConfiguration configuration
 
+	private def DocumentResource.ActionResult wrapInCleanRepoAction(Callable<ObjectId> commitAction, Callable<?> pushAction) {
+		commitAction.wrapInCleanRepoActionWithCompensationOnFailure(pushAction, [])
+	}
+
 	/** execute commitAction expecting an up to date repo.
 	 * 
 	 *  if repository is up to date with remote, execute pushAction, too.
 	 *  if the repository is NOT up to date with the remote or the pushAction fails,
 	 *  reset to the commit before any action was taken.
 	 *  execute compensation action after that (for cleanup of any elements not cleaned by git reset). */
-	private def DocumentResource.ActionResult wrapInCleanRepoAction(Function<Void, ObjectId> commitAction, Function<Void, ?> pushAction, Function<Void, ?> compensatingAction) {
+	private def DocumentResource.ActionResult wrapInCleanRepoActionWithCompensationOnFailure(
+		Callable<ObjectId> commitAction, Callable<?> pushAction, Callable<?> compensatingAction) {
 		var result = DocumentResource.ActionResult.badrequest
 		val preCommit = git.repository.resolve('HEAD')
 		logger.trace('commitid before any action is taken is ' + preCommit.getName)
 		try {
-			val commitId = commitAction.apply(null)
+			val commitId = commitAction.call
 			val pullResult = pull
 			val newCommitId = git.repository.resolve('HEAD')
 			// if commit ids are equal, there should never be a merge conflict, just double checking
 			if (newCommitId.equals(commitId) && pullResult.mergeResult.mergeStatus.successful) {
-				pushAction.apply(null)
+				pushAction.call
 				result = DocumentResource.ActionResult.succeeded
 			} else {
 				result = getResultOnDiff(commitId, newCommitId, pullResult)
@@ -89,10 +94,10 @@ class DocumentProvider {
 	}
 
 	/** reset (hard) to commit and execute compensating action */
-	private def void resetLocalRepoTo(ObjectId commit, Function<Void, ?> compensatingAction) {
+	private def void resetLocalRepoTo(ObjectId commit, Callable<?> compensatingAction) {
 		logger.warn('resetting local repo to ' + commit.getName)
 		git.reset.setRef(commit.getName).setMode(ResetType.HARD).call
-		compensatingAction.apply(null)
+		compensatingAction.call
 	}
 	
 	def DocumentResource.ActionResult cleanCopy(String resourcePath, String newPath) {
@@ -100,7 +105,7 @@ class DocumentProvider {
 	}
 	
 	@VisibleForTesting
-	def DocumentResource.ActionResult cleanCopy(String resourcePath, String newPath, Function<Void, ?> pushAction) {
+	def DocumentResource.ActionResult cleanCopy(String resourcePath, String newPath, Callable<?> pushAction) {
 		logger.debug('''copy «resourcePath» to «newPath»''')
 		logger.trace('''using file encoding «System.getProperty("file.encoding")»''')
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
@@ -112,7 +117,7 @@ class DocumentProvider {
 		} else if (newFile.exists) {
 			throw new ExistingFileException('''target file '«newPath»' does already exist''')
 		} else {
-			return [
+			return [|
 				if (file.isDirectory) {
 					FileUtils.copyDirectory(file, newFile)
 					FileUtils.listFiles(newFile, null, true).commit('''copied subdirectory '«file»' to '«newFile»' ''')
@@ -120,9 +125,9 @@ class DocumentProvider {
 					FileUtils.copyFile(file, newFile)
 					#[newFile].commit('''copied file '«file»' to '«newFile»'. ''')
 				}
-			].wrapInCleanRepoAction(pushAction, [
+			].wrapInCleanRepoActionWithCompensationOnFailure(pushAction, [|
 				if (newFile.exists) {
-					// for files not in the index, they must be deleted, too (since resetting the index won't help)
+					// files not in the index, must be deleted, too (since resetting the index won't help)
 					logger.trace('''cleanup of remaining file '«newFile.absolutePath»' after reset hard necessary.''')
 					FileUtils.deleteQuietly(newFile)
 				} else {
@@ -163,7 +168,7 @@ class DocumentProvider {
 	}
 	
 	@VisibleForTesting
-	def DocumentResource.ActionResult cleanRename(String resourcePath, String newPath, Function<Void, ?> pushAction) {
+	def DocumentResource.ActionResult cleanRename(String resourcePath, String newPath, Callable<?> pushAction) {
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		val newFile = workspaceProvider.getWorkspaceFile(newPath)
 		if (!file.exists) {
@@ -171,10 +176,10 @@ class DocumentProvider {
 		} else if (newFile.exists) {
 			throw new ExistingFileException('''target file '«newPath»' does already exist''')
 		} else {
-			return [
+			return [|
 				file.renameTo(newFile)
 				#[file, newFile].commit('''rename '«resourcePath»' to '«newPath»'. ''')
-			].wrapInCleanRepoAction(pushAction, [])
+			].wrapInCleanRepoAction(pushAction)
 		}
 	}
 
@@ -203,13 +208,13 @@ class DocumentProvider {
 	}
 	
 	@VisibleForTesting
-	def DocumentResource.ActionResult cleanCreate(String resourcePath, String content, Function<Void, ?> pushAction) {
+	def DocumentResource.ActionResult cleanCreate(String resourcePath, String content, Callable<?> pushAction) {
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		if (file.exists) {
 			logger.warn('''create failed, file «resourcePath» already exists''')
 			return DocumentResource.ActionResult.badrequest
 		} else {
-			return [
+			return [|
 				val created = workspaceProvider.create(file)
 				if (!created) {
 					throw new RuntimeException('file could not be created')
@@ -219,9 +224,9 @@ class DocumentProvider {
 					}
 					return commit(file, '''add file: «file.name»''')
 				}
-			].wrapInCleanRepoAction(pushAction, [
+			].wrapInCleanRepoActionWithCompensationOnFailure(pushAction, [
 				if (file.exists) {
-					// for files not in the index, they must be deleted, too (since resetting the index won't help)
+					// files not in the index, must be deleted, too (since resetting the index won't help)
 					logger.trace('''cleanup of remaining file '«file.absolutePath»' after reset hard necessary.''')
 					FileUtils.deleteQuietly(file)
 				} else {
@@ -252,7 +257,7 @@ class DocumentProvider {
 	def DocumentResource.ActionResult cleanCreateFolder(String folderPath) {
 		return cleanCreateFolder(folderPath, [push])
 	}
-	def DocumentResource.ActionResult cleanCreateFolder(String folderPath, Function<Void, ?> pushAction) {
+	def DocumentResource.ActionResult cleanCreateFolder(String folderPath, Callable<?> pushAction) {
 		val folder = workspaceProvider.getWorkspaceFile(folderPath)
 		folder.mkdirs
 		if (folder.exists && folder.directory) {
@@ -313,12 +318,12 @@ class DocumentProvider {
 	}
 	
 	@VisibleForTesting
-	def DocumentResource.ActionResult cleanSave(String resourcePath, String content, Function<Void, ?> pushAction) {
-		return [
+	def DocumentResource.ActionResult cleanSave(String resourcePath, String content, Callable<?> pushAction) {
+		return [|
 			val file = workspaceProvider.getWorkspaceFile(resourcePath)
 			workspaceProvider.write(file, content)
 			return commit(file, '''update file: «file.name»''')
-		].wrapInCleanRepoAction(pushAction, [])
+		].wrapInCleanRepoAction(pushAction)
 	}
 
 	@Deprecated
@@ -360,19 +365,19 @@ class DocumentProvider {
 	}
 
 	@VisibleForTesting
-	def DocumentResource.ActionResult cleanDelete(String resourcePath, Function<Void, ?> pushAction) {
+	def DocumentResource.ActionResult cleanDelete(String resourcePath, Callable<?> pushAction) {
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		if (!file.exists) {
 			throw new MissingFileException('''The file '«resourcePath»' does not exist.''')
 		} else {
-			return [
+			return [|
 				val deleted = FileUtils.deleteQuietly(file)
 				if (deleted) {
 					return file.commit('''delete file: «file.name»''')
 				} else {
 					throw new RuntimeException('failed to delete file')
 				}
-			].wrapInCleanRepoAction(pushAction, [])
+			].wrapInCleanRepoAction(pushAction)
 		}
 	}
 	
