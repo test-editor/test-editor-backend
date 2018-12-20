@@ -6,6 +6,7 @@ import org.junit.Test
 
 import static io.dropwizard.testing.FixtureHelpers.*
 import static org.assertj.core.api.Assertions.assertThat
+import java.time.Instant
 
 class UserActivityTest {
 
@@ -53,6 +54,7 @@ class UserActivityTest {
 			], new UserActivityData() => [
 				user = 'jane.doe'
 				type = 'executed.test'
+				timestamp = Instant.EPOCH
 			]]
 		]
 		val expected = mapper.writeValueAsString(mapper.readValue(fixture("json/elementActivity.json"), ElementActivity))
@@ -75,6 +77,7 @@ class UserActivityTest {
 			], new UserActivityData() => [
 				user = 'jane.doe'
 				type = 'executed.test'
+				timestamp = Instant.EPOCH
 			]]
 		]
 
