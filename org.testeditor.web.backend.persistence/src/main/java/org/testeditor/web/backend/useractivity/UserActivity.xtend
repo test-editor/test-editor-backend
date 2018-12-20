@@ -3,6 +3,7 @@ package org.testeditor.web.backend.useractivity
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtend.lib.annotations.EqualsHashCode
+import java.time.Instant
 
 @Accessors
 @EqualsHashCode
@@ -44,6 +45,7 @@ class UserActivityData {
 
 	String user
 	String type
+	Instant timestamp 
 
 	override toString() {
 		return '''{ "user": "«user»", "type": "«type»" }'''

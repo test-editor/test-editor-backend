@@ -20,9 +20,11 @@ class UserActivityResource {
 
 	@POST
 	def Iterable<ElementActivity> updateAndReceiveUserActivity(List<UserActivity> userActivities) {
-		val user = userProvider.get.email;
-		userActivityBroker.updateUserActivities(user, userActivities)
-		return userActivityBroker.getCollaboratorActivities(user)
+		val user = userProvider.get
+		val userid = user.id ?: user.email
+		val username = user.name ?: user.id ?: user.email
+		userActivityBroker.updateUserActivities(userid, username, userActivities)
+		return userActivityBroker.getCollaboratorActivities(userid)
 	}
 
 }

@@ -6,7 +6,8 @@
       "type": "opened.file"
     }, {
       "user": "jane.doe",
-      "type": "executed.test"
+      "type": "executed.test",
+      "timestamp": 0.0
     }
   ]
 }
