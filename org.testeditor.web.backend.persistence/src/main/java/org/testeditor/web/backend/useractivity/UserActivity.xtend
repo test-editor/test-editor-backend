@@ -1,9 +1,9 @@
 package org.testeditor.web.backend.useractivity
 
+import java.time.Instant
 import java.util.List
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.eclipse.xtend.lib.annotations.EqualsHashCode
-import java.time.Instant
 
 @Accessors
 @EqualsHashCode
