@@ -1,8 +1,9 @@
 package org.testeditor.web.backend.persistence.workspace
 
-import com.google.common.io.Files
 import com.google.common.annotations.VisibleForTesting
+import com.google.common.io.Files
 import java.io.File
+import java.util.regex.Pattern
 import javax.inject.Inject
 import javax.inject.Provider
 import org.slf4j.LoggerFactory
@@ -52,25 +53,41 @@ class WorkspaceProvider {
 	def String read(String resourcePath) {
 		return Files.asCharSource(getWorkspaceFile(resourcePath), UTF_8).read
 	}
+	
+	def boolean isLocalBackupFile(String resourcePath) {
+		if (resourcePath === null) {
+			return false
+		} else {
+			val pattern = Pattern.compile('.*\\.' + BACKUP_FILE_SUFFIX + '(_\\d+)?\\.[^.]+')
+
+			return pattern.matcher(resourcePath).matches
+		}
+	}
 
 	def createLocalBackup(String resourcePath, String content) {
-		val resourceSuffix = resourcePath.split('\\.').last
-		val resourceWithoutSuffix = resourcePath.substring(0, resourcePath.length - resourceSuffix.length)
-		var fileSuffix = BACKUP_FILE_SUFFIX
-		var backupFile = new File(workspace, resourceWithoutSuffix + fileSuffix + '.' + resourceSuffix)
-		if (!backupFile.create) {
-			val numberSuffix = (0 .. MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst [ i |
-				new File(workspace, '''«resourceWithoutSuffix»«BACKUP_FILE_SUFFIX»_«i».«resourceSuffix»''').create
-			]
-			if (numberSuffix !== null) {
-				fileSuffix = '''«BACKUP_FILE_SUFFIX»_«numberSuffix»'''
-				backupFile = new File(workspace, '''«resourceWithoutSuffix»«fileSuffix».«resourceSuffix»''')
-			} else {
-				throw new IllegalStateException('''Could not create a backup file for '«resourcePath»': backup file limit reached.''')
+		if (resourcePath.isLocalBackupFile) {
+			val msg = '''cannot create backup of file that already is a backup file («resourcePath»)'''
+			logger.error(msg)
+			throw new IllegalArgumentException(msg)
+		} else {
+			val resourceSuffix = resourcePath.split('\\.').last
+			val resourceWithoutSuffix = resourcePath.substring(0, resourcePath.length - resourceSuffix.length)
+			var fileSuffix = BACKUP_FILE_SUFFIX
+			var backupFile = new File(workspace, resourceWithoutSuffix + fileSuffix + '.' + resourceSuffix)
+			if (!backupFile.create) {
+				val numberSuffix = (0 .. MAX_BACKUP_FILE_NUMBER_SUFFIX).findFirst [ i |
+					new File(workspace, '''«resourceWithoutSuffix»«BACKUP_FILE_SUFFIX»_«i».«resourceSuffix»''').create
+				]
+				if (numberSuffix !== null) {
+					fileSuffix = '''«BACKUP_FILE_SUFFIX»_«numberSuffix»'''
+					backupFile = new File(workspace, '''«resourceWithoutSuffix»«fileSuffix».«resourceSuffix»''')
+				} else {
+					throw new IllegalStateException('''Could not create a backup file for '«resourcePath»': backup file limit reached.''')
+				}
 			}
+			Files.asCharSink(backupFile, UTF_8).write(content)
+			return resourceWithoutSuffix + fileSuffix + '.' + resourceSuffix
 		}
-		Files.asCharSink(backupFile, UTF_8).write(content)
-		return resourceWithoutSuffix + fileSuffix + '.' + resourceSuffix
 	}
 
 	def boolean create(File file) {
