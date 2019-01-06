@@ -106,17 +106,21 @@ class WorkspaceResource {
 		val oldDiffPath = diff.getPath(Side.OLD)
 		val newDiffPath = diff.getPath(Side.NEW)
 
-		if (oldDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
-			pullResponse.changedResources.add(oldDiffPath)
+		if (!workspaceProvider.isLocalBackupFile(oldDiffPath)) {
+			if (oldDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
+				pullResponse.changedResources.add(oldDiffPath)
+			}
+			if (oldDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)) {
+				pullResponse.backedUpResources.addBackup(oldDiffPath)
+			}
 		}
-		if (newDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
-			pullResponse.changedResources.add(newDiffPath)
-		}
-		if (oldDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)) {
-			pullResponse.backedUpResources.addBackup(oldDiffPath)
-		}
-		if (newDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)) {
-			pullResponse.backedUpResources.addBackup(newDiffPath)
+		if (!workspaceProvider.isLocalBackupFile(newDiffPath)) {
+			if (newDiffPath.isRelevantUnreportedChangedResource(openResources, pullResponse)) {
+				pullResponse.changedResources.add(newDiffPath)
+			}
+			if (newDiffPath.isRelevantUnreportedBackedUpResource(openResources, pullResponse)) {
+				pullResponse.backedUpResources.addBackup(newDiffPath)
+			}
 		}
 	}
 
