@@ -35,6 +35,10 @@ class DocumentProviderTest extends AbstractGitTest {
 		gitProvider.git.pull.call
 	}
 	
+	private def void localBackupFileSetup() {
+		localGitRoot.root.write('src/main/java/Hello.local_backup.txt','backup of Hello World!')
+	}
+	
 	@Test(expected=RuntimeException)
 	def void renameFolderOntoExistingOneFails() {
 		// given
@@ -667,6 +671,61 @@ class DocumentProviderTest extends AbstractGitTest {
 	}
 	
 	@Test
+	def void cleanCopyOfBackupFileCreateRegularCommit() {
+		// given
+		folderSetupForTests
+		localBackupFileSetup
+		val numberOfCommitsBefore = remoteGit.log.call.size
+
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanCopy('src/main/java/Hello.local_backup.txt', 'src/main/java/Hello2.txt')
+		
+		//then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD^1').assertEquals(localHeadBeforeAction)
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, 'src/main/java/Hello2.txt')
+		new File(localGitRoot.root, 'src/main/java/Hello2.txt').exists.assertTrue
+		new File(localGitRoot.root, 'src/main/java/Hello.local_backup.txt').exists.assertTrue
+	}
+	
+	@Test
+	def void cleanCopyToBackupFileCreatesNoCommit() {
+		// given
+		folderSetupForTests
+
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanCopy('src/main/java/Hello.txt', 'src/main/java/Hello.local_backup.txt')
+		
+		//then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
+		new File(localGitRoot.root, 'src/main/java/Hello.local_backup.txt').exists.assertTrue
+	}
+	
+	@Test
+	def void cleanCopyFromAndToBackupFileCreatesNoCommit() {
+		// given
+		folderSetupForTests
+		localBackupFileSetup
+
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanCopy('src/main/java/Hello.local_backup.txt', 'src/main/java/Hello.local_backup_1.txt')
+		
+		//then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.local_backup_1.txt').exists.assertTrue
+		new File(localGitRoot.root, 'src/main/java/Hello.local_backup.txt').exists.assertTrue
+	}
+	
+	@Test
 	def void cleanCopyOnCleanRepo() {
 		// given
 		folderSetupForTests
@@ -679,7 +738,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		
 		//then
 		DocumentResource.ActionResult.succeeded.assertEquals(result)
-		gitProvider.git.repository.resolve('HEAD^1').equals(localHeadBeforeAction)
+		gitProvider.git.repository.resolve('HEAD^1').assertEquals(localHeadBeforeAction)
 		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, 'src/main/resource/Hello.txt')
 		new File(localGitRoot.root, 'src/main/resource/Hello.txt').exists.assertTrue
 		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
@@ -749,8 +808,21 @@ class DocumentProviderTest extends AbstractGitTest {
 		new File(localGitRoot.root, 'src/main/resource/Hello.txt').exists.assertFalse
 		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
 	}
+	
+	@Test
+	def void cleanCreateBackupFileDoesNoCommit() {
+		// given
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+		
+		// when
+		val result = documentProvider.cleanCreate('src/main/java/test.local_backup.tcl', 'content')
+		
+		// then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/test.local_backup.tcl').exists.assertTrue
+	}
 
-	// cleanCreate
 	@Test
 	def void cleanCreateOnCleanRepo() {
 		// given
@@ -762,7 +834,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		
 		// then
 		DocumentResource.ActionResult.succeeded.assertEquals(result)
-		gitProvider.git.repository.resolve('HEAD^1').equals(localHeadBeforeAction)
+		gitProvider.git.repository.resolve('HEAD^1').assertEquals(localHeadBeforeAction)
 		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, 'src/main/java/test.tcl')
 		new File(localGitRoot.root, 'src/main/java/test.tcl').exists.assertTrue
 	}
@@ -867,8 +939,23 @@ class DocumentProviderTest extends AbstractGitTest {
 		new File(localGitRoot.root, 'src/main/java').exists.assertTrue
 		new File(localGitRoot.root, 'src/main/java/.gitkeep').exists.assertTrue
 	}
-	
-	// cleanDelete
+
+	@Test
+	def void cleanDeleteBackupFileDoesNoCommit() {
+		// given
+		folderSetupForTests
+		localBackupFileSetup
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+		
+		// when
+		val result = documentProvider.cleanDelete('src/main/java/Hello.local_backup.txt')
+		
+		// then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.local_backup.txt').exists.assertFalse
+	}	
+
 	@Test
 	def void cleanDeleteOnCleanRepo() {
 		// given
@@ -948,8 +1035,68 @@ class DocumentProviderTest extends AbstractGitTest {
 		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
 		loadResult.content.assertNull
 	}
+
+	@Test
+	def void cleanRenameToBackupFileDoesADeleteCommit() {
+		folderSetupForTests
+		localBackupFileSetup
+		val numberOfCommitsBefore = remoteGit.log.call.size
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanRename('src/main/java/Hello.txt', 'src/main/java/Hello2.local_backup.txt')
+		
+		//then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD^1').assertEquals(localHeadBeforeAction)
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, DELETE, 'src/main/java/Hello.txt')
+		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertFalse
+		new File(localGitRoot.root, 'src/main/java/Hello2.local_backup.txt') => [
+			exists.assertTrue
+			read.assertEquals('Hello World!')	
+		]
+	}	
 	
-	// cleanRename
+	@Test
+	def void cleanRenameFromBackupFileDoesAnAddCommit() {
+		folderSetupForTests
+		localBackupFileSetup
+		val numberOfCommitsBefore = remoteGit.log.call.size
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanRename('src/main/java/Hello.local_backup.txt', 'src/main/java/Hello2.txt')
+		
+		//then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD^1').assertEquals(localHeadBeforeAction)
+		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, ADD, 'src/main/java/Hello2.txt')
+		new File(localGitRoot.root, 'src/main/java/Hello.local_backup.txt').exists.assertFalse
+		new File(localGitRoot.root, 'src/main/java/Hello2.txt') => [
+			exists.assertTrue
+			read.assertEquals('backup of Hello World!')	
+		]
+	}
+	
+	@Test
+	def void cleanRenameFromAndToBackupFilesDoesNoCommit() {
+		folderSetupForTests
+		localBackupFileSetup
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanRename('src/main/java/Hello.local_backup.txt', 'src/main/java/Hello2.local_backup.txt')
+		
+		//then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.local_backup.txt').exists.assertFalse
+		new File(localGitRoot.root, 'src/main/java/Hello2.local_backup.txt') => [
+			exists.assertTrue
+			read.assertEquals('backup of Hello World!')	
+		]
+	}
+
 	@Test
 	def void cleanRenameOnCleanRepo() {
 		// given
@@ -962,7 +1109,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		
 		//then
 		DocumentResource.ActionResult.succeeded.assertEquals(result)
-		gitProvider.git.repository.resolve('HEAD^1').equals(localHeadBeforeAction)
+		gitProvider.git.repository.resolve('HEAD^1').assertEquals(localHeadBeforeAction)
 		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, RENAME, 'src/main/java/Hello.txt')
 		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertFalse
 		new File(localGitRoot.root, 'src/main/java/Allo.txt') => [
@@ -984,7 +1131,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		
 		//then
 		DocumentResource.ActionResult.repull.assertEquals(result)
-		gitProvider.git.repository.resolve('HEAD').equals(localHeadBeforeAction)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
 		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
 		new File(localGitRoot.root, 'src/main/java/Allo.txt').exists.assertFalse
 	}
@@ -1002,12 +1149,30 @@ class DocumentProviderTest extends AbstractGitTest {
 
 		// then
 		DocumentResource.ActionResult.repull.assertEquals(result)
-		gitProvider.git.repository.resolve('HEAD').equals(localHeadBeforeAction)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
 		new File(localGitRoot.root, 'src/main/java/Hello.txt').exists.assertTrue
 		new File(localGitRoot.root, 'src/main/java/Allo.txt').exists.assertFalse
 	}
-	
-	// cleanSave
+
+	@Test
+	def void cleanSaveOfBackupFileDoesNoCommit() {
+		// given
+		folderSetupForTests
+		localBackupFileSetup
+		val localHeadBeforeAction = gitProvider.git.repository.resolve('HEAD')
+
+		// when
+		val result = documentProvider.cleanSave('src/main/java/Hello.local_backup.txt', 'new content')
+		
+		//then
+		DocumentResource.ActionResult.succeeded.assertEquals(result)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
+		new File(localGitRoot.root, 'src/main/java/Hello.local_backup.txt') => [
+			exists.assertTrue
+			read.assertEquals('new content')	
+		]
+	}	
+
 	@Test
 	def void cleanSaveOnCleanRepo() {
 		// given
@@ -1020,7 +1185,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		
 		//then
 		DocumentResource.ActionResult.succeeded.assertEquals(result)
-		gitProvider.git.repository.resolve('HEAD^1').equals(localHeadBeforeAction)
+		gitProvider.git.repository.resolve('HEAD^1').assertEquals(localHeadBeforeAction)
 		gitProvider.git.assertSingleCommit(numberOfCommitsBefore, MODIFY, 'src/main/java/Hello.txt')
 		new File(localGitRoot.root, 'src/main/java/Hello.txt') => [
 			exists.assertTrue
@@ -1041,7 +1206,7 @@ class DocumentProviderTest extends AbstractGitTest {
 		
 		//then
 		DocumentResource.ActionResult.repull.assertEquals(result)
-		gitProvider.git.repository.resolve('HEAD').equals(localHeadBeforeAction)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
 		new File(localGitRoot.root, 'src/main/java/Hello.txt') => [
 			exists.assertTrue
 			read.assertEquals('Hello World!')	
@@ -1061,7 +1226,7 @@ class DocumentProviderTest extends AbstractGitTest {
 
 		// then
 		DocumentResource.ActionResult.repull.assertEquals(result)
-		gitProvider.git.repository.resolve('HEAD').equals(localHeadBeforeAction)
+		gitProvider.git.repository.resolve('HEAD').assertEquals(localHeadBeforeAction)
 		new File(localGitRoot.root, 'src/main/java/Hello.txt') => [
 			exists.assertTrue
 			read.assertEquals('Hello World!')

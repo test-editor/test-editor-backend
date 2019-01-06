@@ -116,6 +116,13 @@ class DocumentProvider {
 			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
 		} else if (newFile.exists) {
 			throw new ExistingFileException('''target file '«newPath»' does already exist''')
+		} else if (workspaceProvider.isLocalBackupFile(newPath)) {
+			if (file.isDirectory) {
+				throw new IllegalArgumentException('''folder «resourcePath» is a folder, target «newPath» is a local backup. copy not possible''')
+			} else {
+				FileUtils.copyFile(file, newFile)
+			}
+			return DocumentResource.ActionResult.succeeded
 		} else {
 			return [|
 				if (file.isDirectory) {
@@ -175,10 +182,19 @@ class DocumentProvider {
 			throw new MissingFileException('''source file '«resourcePath»' does not exist''')
 		} else if (newFile.exists) {
 			throw new ExistingFileException('''target file '«newPath»' does already exist''')
+		} else if (workspaceProvider.isLocalBackupFile(newPath) && workspaceProvider.isLocalBackupFile(resourcePath)) {
+			file.renameTo(newFile)
+			return DocumentResource.ActionResult.succeeded
 		} else {
 			return [|
 				file.renameTo(newFile)
-				#[file, newFile].commit('''rename '«resourcePath»' to '«newPath»'. ''')
+				if (workspaceProvider.isLocalBackupFile(resourcePath)) {
+					#[newFile].commit('''rename local backup '«resourcePath»' to '«newPath»'. ''')
+				} else if (workspaceProvider.isLocalBackupFile(newPath)) {
+					#[file].commit('''rename '«resourcePath»' to local backup '«newPath»'. ''')
+				} else {
+					#[file, newFile].commit('''rename '«resourcePath»' to '«newPath»'. ''')
+				}
 			].wrapInCleanRepoAction(pushAction)
 		}
 	}
@@ -213,6 +229,16 @@ class DocumentProvider {
 		if (file.exists) {
 			logger.warn('''create failed, file «resourcePath» already exists''')
 			return DocumentResource.ActionResult.badrequest
+		} else if (workspaceProvider.isLocalBackupFile(resourcePath)) {
+			val created = workspaceProvider.create(file)
+			if (!created) {
+				throw new RuntimeException('file could not be created')
+			} else {
+				if (!content.isNullOrEmpty) {
+					workspaceProvider.write(file, content)
+				}
+			}
+			return DocumentResource.ActionResult.succeeded
 		} else {
 			return [|
 				val created = workspaceProvider.create(file)
@@ -319,11 +345,17 @@ class DocumentProvider {
 	
 	@VisibleForTesting
 	def DocumentResource.ActionResult cleanSave(String resourcePath, String content, Callable<?> pushAction) {
-		return [|
+		if (workspaceProvider.isLocalBackupFile(resourcePath)) {
 			val file = workspaceProvider.getWorkspaceFile(resourcePath)
 			workspaceProvider.write(file, content)
-			return commit(file, '''update file: «file.name»''')
-		].wrapInCleanRepoAction(pushAction)
+			return  DocumentResource.ActionResult.succeeded
+		} else { 
+			return [|
+				val file = workspaceProvider.getWorkspaceFile(resourcePath)
+				workspaceProvider.write(file, content)
+				return commit(file, '''update file: «file.name»''')
+			].wrapInCleanRepoAction(pushAction)
+		}
 	}
 
 	@Deprecated
@@ -369,6 +401,13 @@ class DocumentProvider {
 		val file = workspaceProvider.getWorkspaceFile(resourcePath)
 		if (!file.exists) {
 			throw new MissingFileException('''The file '«resourcePath»' does not exist.''')
+		} else if (workspaceProvider.isLocalBackupFile(resourcePath)) {
+			val deleted = FileUtils.deleteQuietly(file)
+			if (deleted) {
+				return DocumentResource.ActionResult.succeeded
+			} else {
+				throw new RuntimeException('failed to delete file')
+			}
 		} else {
 			return [|
 				val deleted = FileUtils.deleteQuietly(file)
