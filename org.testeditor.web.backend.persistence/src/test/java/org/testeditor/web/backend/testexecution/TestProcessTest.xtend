@@ -203,10 +203,84 @@ class TestProcessTest {
 		// then
 		assertThat(callbackExecuted.booleanValue).isTrue
 	}
+	
+	@Test
+	def void killDestroysRunningProcess() {
+		// given
+		val runningProcess = mock(Process).thatIsRunningAndThenForciblyDestroyed
+		val testProcessUnderTest = new TestProcess(runningProcess)
+
+		// when
+		testProcessUnderTest.kill
+
+		// then
+		verify(runningProcess).destroy
+	}
+	
+	@Test
+	def void killThrowsExceptionIfProcessWontDie() {
+		// given
+		val runningProcess = mock(Process).thatIsRunningAndWontDie
+		val testProcessUnderTest = new TestProcess(runningProcess)
+
+		// when
+		try {
+			testProcessUnderTest.kill
+
+		// then
+			fail('expected UnresponsiveTestProcessException to be thrown')
+		} catch (UnresponsiveTestProcessException ex) {
+			assertThat(ex.message).isEqualTo('A test process has become unresponsive and could not be terminated')
+		}
+	}
+	
+	@Test
+	def void killDoesNothingOnCompletedTestProcess() {
+		// given
+		val terminatedProcess = mock(Process).thatTerminatedSuccessfully
+		val testProcessUnderTest = new TestProcess(terminatedProcess)
+		testProcessUnderTest.setCompleted
+
+		// when
+		testProcessUnderTest.kill
+
+		// then
+		verify(terminatedProcess, never()).destroy
+	}
+	
+	@Test
+	def void killLeavesTestProcessInFailedStatus() {
+		// given
+		val runningProcess = new ProcessBuilder(#['/bin/sh', '-c', '"while true; do sleep 1; done"']).start
+		assertThat(runningProcess.alive).isTrue
+		val testProcessUnderTest = new TestProcess(runningProcess)
+
+		// when
+		testProcessUnderTest.kill
+
+		// then
+		assertThat(testProcessUnderTest.status).isEqualTo(TestStatus.FAILED)
+	}
 
 	private def Process thatIsRunning(Process mockProcess) {
 		when(mockProcess.alive).thenReturn(true)
 		when(mockProcess.exitValue).thenThrow(new IllegalThreadStateException())
+		return mockProcess
+	}
+
+	private def Process thatIsRunningAndThenForciblyDestroyed(Process mockProcess) {
+		when(mockProcess.alive).thenReturn(true, false)
+		when(mockProcess.destroyForcibly).thenReturn(mockProcess)
+		when(mockProcess.exitValue).thenReturn(129)
+		when(mockProcess.waitFor(1, TimeUnit.SECONDS)).thenReturn(true)
+		return mockProcess
+	}
+	
+	private def Process thatIsRunningAndWontDie(Process mockProcess) {
+		when(mockProcess.alive).thenReturn(true)
+		when(mockProcess.destroyForcibly).thenReturn(mockProcess)
+		when(mockProcess.exitValue).thenThrow(new IllegalThreadStateException())
+		when(mockProcess.waitFor(1, TimeUnit.SECONDS)).thenReturn(false)
 		return mockProcess
 	}
 

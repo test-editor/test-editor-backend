@@ -35,6 +35,7 @@ import static java.nio.charset.StandardCharsets.UTF_8
 import static java.nio.file.StandardOpenOption.*
 
 import static extension com.fasterxml.jackson.core.util.BufferRecyclers.quoteAsJsonText
+import javax.ws.rs.DELETE
 
 @Path("/test-suite")
 @Consumes(MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN)
@@ -141,6 +142,23 @@ class TestSuiteResource {
 					Response.status(Status.NOT_FOUND).build
 				)
 			}
+		}
+	}
+	
+	
+	@DELETE
+	@Path("{suiteId}/{suiteRunId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	def Response terminateTestSuiteRun(
+		@PathParam("suiteId") String suiteId,
+		@PathParam("suiteRunId") String suiteRunId
+	) {
+		val executionKey = new TestExecutionKey(suiteId, suiteRunId)
+		return if (statusMapper.getStatus(executionKey) === TestStatus.RUNNING) {
+			statusMapper.terminateTestSuiteRun(executionKey)
+			Response.ok.build
+		} else {
+			Response.status(Status.NOT_FOUND).build	
 		}
 	}
 

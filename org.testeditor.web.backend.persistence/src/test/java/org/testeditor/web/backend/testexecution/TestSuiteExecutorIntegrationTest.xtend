@@ -12,12 +12,12 @@ import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.MediaType
-import javax.ws.rs.core.Response.Status
 import org.assertj.core.api.SoftAssertions
 import org.eclipse.jgit.junit.JGitTestUtil
 import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
 
+import static javax.ws.rs.core.Response.Status.*
 import static org.assertj.core.api.Assertions.*
 
 class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTest {
@@ -33,7 +33,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val response = createCallTreeRequest(TestExecutionKey.valueOf('1-2')).get
 
 		// then
-		assertThat(response.status).isEqualTo(Status.NOT_FOUND.statusCode)
+		assertThat(response.status).isEqualTo(NOT_FOUND.statusCode)
 	}
 
 	@Test
@@ -73,7 +73,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val response = request.submit.get
 
 		// then
-		assertThat(response.status).isEqualTo(Status.OK.statusCode)
+		assertThat(response.status).isEqualTo(OK.statusCode)
 
 		val jsonString = response.readEntity(String)
 		val json = mapper.readTree(jsonString)
@@ -116,7 +116,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val response = request.submit.get
 
 		// then
-		assertThat(response.status).isEqualTo(Status.OK.statusCode)
+		assertThat(response.status).isEqualTo(OK.statusCode)
 
 		val jsonString = response.readEntity(String)
 		val jsonNode = mapper.readTree(jsonString).get('testRuns').get(0)
@@ -157,16 +157,16 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		val response = request.submit.get
 
 		// then
-		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+		assertThat(response.status).isEqualTo(CREATED.statusCode)
 		assertThat(response.headers.get("Location").toString).matches("\\[http://localhost:[0-9]+/test-suite/0/0\\]")
 
-		createTestStatusRequest(TestExecutionKey.valueOf('0-0')).get // wait for test to terminate
+		createTestRequest(TestExecutionKey.valueOf('0-0')).get // wait for test to terminate
 		val executionResult = workspaceRootPath.resolve(userId + '/test.ok.txt').toFile
 		assertThat(executionResult).exists
 	}
 
 	@Test
-	def void testThatRunningStatusIsReturned() {
+	def void testThatRunningsReturned() {
 		// given
 		val testFile = 'test.tcl'
 		workspaceRoot.newFolder(userId)
@@ -180,10 +180,10 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			''')
 		]
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+		assertThat(response.status).isEqualTo(CREATED.statusCode)
 
 		// when
-		val actualTestStatus = createAsyncTestStatusRequest(TestExecutionKey.valueOf('0-0')).get
+		val actualTestStatus = createAsyncTestRequest(TestExecutionKey.valueOf('0-0')).get
 
 		// then
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('RUNNING')
@@ -191,7 +191,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	@Test
-	def void testThatSuccessStatusIsReturned() {
+	def void testThatSuccesssReturned() {
 		// given
 		val testFile = 'test.tcl'
 		workspaceRoot.newFolder(userId)
@@ -204,10 +204,10 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			''')
 		]
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+		assertThat(response.status).isEqualTo(CREATED.statusCode)
 
 		// when
-		val actualTestStatus = createTestStatusRequest(TestExecutionKey.valueOf('0-0')).get
+		val actualTestStatus = createTestRequest(TestExecutionKey.valueOf('0-0')).get
 
 		// then
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('SUCCESS')
@@ -215,7 +215,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	@Test
-	def void testThatFailureStatusIsReturned() {
+	def void testThatFailuresReturned() {
 		// given
 		val testFile = 'test.tcl'
 		workspaceRoot.newFolder(userId)
@@ -228,10 +228,10 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			''')
 		]
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+		assertThat(response.status).isEqualTo(CREATED.statusCode)
 
 		// when
-		val actualTestStatus = createTestStatusRequest(TestExecutionKey.valueOf('0-0')).get
+		val actualTestStatus = createTestRequest(TestExecutionKey.valueOf('0-0')).get
 
 		// then
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('FAILED')
@@ -308,8 +308,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		]
 
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		response.status.assertEquals(Status.CREATED.statusCode)
-		createTestStatusRequest(testKey).get // wait for completion
+		response.status.assertEquals(CREATED.statusCode)
+		createTestRequest(testKey).get // wait for completion
 		// when
 		val result = createNodeRequest(testKey.deriveWithCaseRunId('1').deriveWithCallTreeId('ID2')).get.readEntity(String)
 
@@ -324,7 +324,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	@Test
-	def void testThatRootNodeStatusIsWrittenAfterTestTerminates() {
+	def void testThatRootNodesWrittenAfterTestTerminates() {
 		// given
 		val mapper = new ObjectMapper(new JsonFactory)
 		val testKey = TestExecutionKey.valueOf('0-0')
@@ -341,8 +341,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		]
 
 		val launchResponse = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		launchResponse.status.assertEquals(Status.CREATED.statusCode)
-		createTestStatusRequest(testKey).get // wait for completion
+		launchResponse.status.assertEquals(CREATED.statusCode)
+		createTestRequest(testKey).get // wait for completion
 		// when
 		val jsonString = createCallTreeRequest(testKey).buildGet.submit.get.readEntity(String)
 
@@ -393,8 +393,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		]
 
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		response.status.assertEquals(Status.CREATED.statusCode)
-		createTestStatusRequest(testKey).get // wait for completion
+		response.status.assertEquals(CREATED.statusCode)
+		createTestRequest(testKey).get // wait for completion
 		new File(userDir, '.testexecution/artifacts/0/0/1/ID2.yaml').exists.assertTrue(
 			'Mocked process did not write yaml file with screenshot information.')
 
@@ -453,8 +453,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		]
 
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		response.status.assertEquals(Status.CREATED.statusCode)
-		createTestStatusRequest(testKey).get // wait for completion
+		response.status.assertEquals(CREATED.statusCode)
+		createTestRequest(testKey).get // wait for completion
 		childKeys.forall[new File(userDir, '''.testexecution/artifacts/0/0/1/«it».yaml''').exists].assertTrue(
 			'Mocked process did not write yaml file with screenshot information.')
 
@@ -544,8 +544,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		]
 
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		response.status.assertEquals(Status.CREATED.statusCode)
-		createTestStatusRequest(testKey).get // wait for completion
+		response.status.assertEquals(CREATED.statusCode)
+		createTestRequest(testKey).get // wait for completion
 		// when
 		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID9')).get.readEntity(String)
 
@@ -639,8 +639,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		]
 
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		response.status.assertEquals(Status.CREATED.statusCode)
-		createTestStatusRequest(testKey).get // wait for completion
+		response.status.assertEquals(CREATED.statusCode)
+		createTestRequest(testKey).get // wait for completion
 		// when
 		val result = createNodeRequest(testKey.deriveWithCaseRunId("1").deriveWithCallTreeId('ID9'), 'logLevel=INFO').get.readEntity(String)
 
@@ -730,8 +730,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		]
 
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		response.status.assertEquals(Status.CREATED.statusCode)
-		createTestStatusRequest(testKey).get // wait for completion
+		response.status.assertEquals(CREATED.statusCode)
+		createTestRequest(testKey).get // wait for completion
 		new File(userDir, '.testexecution/artifacts/0/0/1/ID9.yaml').exists.assertTrue(
 			'Mocked process did not write yaml file with screenshot information.')
 
@@ -821,8 +821,8 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		]
 
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		response.status.assertEquals(Status.CREATED.statusCode)
-		createTestStatusRequest(testKey).get // wait for completion
+		response.status.assertEquals(CREATED.statusCode)
+		createTestRequest(testKey).get // wait for completion
 		new File(userDir, '.testexecution/artifacts/0/0/1/ID9.yaml').exists.assertTrue(
 			'Mocked process did not write yaml file with screenshot information.')
 
@@ -852,7 +852,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	@Test
-	def void testThatStatusRequestIsReturnedEventuallyForLongRunningTests() {
+	def void testThatequestIsReturnedEventuallyForLongRunningTests() {
 		// given
 		val testFile = 'test.tcl'
 		workspaceRoot.newFolder(userId)
@@ -873,9 +873,9 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 			''')
 		]
 		val response = createLaunchNewRequest().post(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE))
-		assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+		assertThat(response.status).isEqualTo(CREATED.statusCode)
 
-		val longPollingRequest = createAsyncTestStatusRequest(TestExecutionKey.valueOf('0-0')).async
+		val longPollingRequest = createAsyncTestRequest(TestExecutionKey.valueOf('0-0')).async
 		val statusList = <String>newLinkedList('RUNNING')
 
 		// when
@@ -883,7 +883,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		for (var i = 0; i < 100 && statusList.head.equals('RUNNING'); i++) {
 			val future = longPollingRequest.get
 			val pollResponse = future.get(120, TimeUnit.SECONDS)
-			assertThat(pollResponse.status).isEqualTo(Status.OK.statusCode)
+			assertThat(pollResponse.status).isEqualTo(OK.statusCode)
 			statusList.offerFirst(pollResponse.readEntity(String))
 			pollResponse.close
 			System.out.println('still running, sleeping 5 seconds ...')
@@ -898,7 +898,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	@Test
-	def void testThatStatusOfAllRunningAndTerminatedTestsIsReturned() {
+	def void testThatfAllRunningAndTerminatedTestsIsReturned() {
 		// given
 		workspaceRoot.newFolder(userId)
 		new File(workspaceRoot.root, '''«userId»/calledCount.txt''').delete
@@ -921,14 +921,14 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 				fi
 			''')
 		]
-		val expectedStatusMap = #['FAILED', 'SUCCESS', 'RUNNING']
-		expectedStatusMap.map [ name |
+		val expectedap = #['FAILED', 'SUCCESS', 'RUNNING']
+		expectedap.map [ name |
 			workspaceRoot.newFile('''«userId»/Test«name».tcl''')
 			return '''Test«name».tcl'''
 		].forEach [ name, index |
 			new File(workspaceRoot.root, '''«userId»/finished.txt''').delete
 			val response = createLaunchNewRequest().post(Entity.entity(#[name], MediaType.APPLICATION_JSON_TYPE))
-			assertThat(response.status).isEqualTo(Status.CREATED.statusCode)
+			assertThat(response.status).isEqualTo(CREATED.statusCode)
 			var threshold = 20
 			while (!new File(workspaceRoot.root, '''«userId»/finished.txt''').exists && threshold > 0) {
 				println('waiting for script to settle ...')
@@ -944,15 +944,83 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		// then
 		val json = response.readEntity(String)
 		new SoftAssertions => [
-			expectedStatusMap.forEach [ status, index |
+			expectedap.forEach [ status, index |
 				assertThat(json).matches(Pattern.compile(
 				'''.*"suiteRunId"\s*:\s*"«index»"[^}]*}\s*,\s*"status"\s*:\s*"«status»".*''', Pattern.DOTALL))
 			]
 			assertAll
 		]
-		val actualStatuses = response.readEntity(new GenericType<Iterable<Object>>() {
+		val actuals = response.readEntity(new GenericType<Iterable<Object>>() {
 		})
-		assertThat(actualStatuses).size.isEqualTo(3)
+		assertThat(actuals).size.isEqualTo(3)
+	}
+	
+	@Test
+	def void testThatDeletingNonExistingTestRunRespondsWith404() {
+		// given
+		val nonExistingTestRun = TestExecutionKey.valueOf('47-11')
+		val request = createCallTreeRequest(nonExistingTestRun)
+
+		// when
+		val response = request.delete
+
+		// then
+		assertThat(response.status).isEqualTo(NOT_FOUND.statusCode)
+	}
+
+	@Test
+	def void testThatDeletingPreviouslyStartedTestRespondsWith200() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo "I will run forever!"
+				while true; do sleep 1; done
+			''')
+		]
+		val launchResponse = createLaunchNewRequest().buildPost(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE)).submit.get
+		val testRunIdMatcher = Pattern.compile("\\[http://localhost:[0-9]+/test-suite/(\\d+)/(\\d+)\\]")
+				.matcher(launchResponse.headers.get("Location").toString)
+		testRunIdMatcher.find.assertTrue		
+		val testRun = TestExecutionKey.valueOf('''«testRunIdMatcher.group(1)»-«testRunIdMatcher.group(2)»''')
+
+		// when
+		val response = createCallTreeRequest(testRun).delete
+
+		// then
+		assertThat(response.status).isEqualTo(OK.statusCode)
+	}
+	
+	@Test
+	def void testThatTestRunIsIdleAfterBeingDeleted() {
+		// given
+		val testFile = 'test.tcl'
+		workspaceRoot.newFolder(userId)
+		workspaceRoot.newFile(userId + '/' + testFile)
+		workspaceRoot.newFile(userId + '/gradlew') => [
+			executable = true
+			JGitTestUtil.write(it, '''
+				#!/bin/sh
+				echo "I will run forever!"
+				while true; do sleep 1; done
+			''')
+		]
+		val launchResponse = createLaunchNewRequest().buildPost(Entity.entity(#[testFile], MediaType.APPLICATION_JSON_TYPE)).submit.get
+		val testRunIdMatcher = Pattern.compile("\\[http://localhost:[0-9]+/test-suite/(\\d+)/(\\d+)\\]")
+				.matcher(launchResponse.headers.get("Location").toString)
+		testRunIdMatcher.find.assertTrue		
+		val testRun = TestExecutionKey.valueOf('''«testRunIdMatcher.group(1)»-«testRunIdMatcher.group(2)»''')		
+
+		// when
+		createCallTreeRequest(testRun).delete
+
+		// then
+		val actualTestStatus = createTestRequest(testRun).get
+		assertThat(actualTestStatus.readEntity(String)).isEqualTo('FAILED')
 	}
 
 	private def Builder createCallTreeRequest(TestExecutionKey key) {
@@ -963,11 +1031,11 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		return createRequest('''test-suite/launch-new''')
 	}
 
-	private def Builder createTestStatusRequest(TestExecutionKey key) {
+	private def Builder createTestRequest(TestExecutionKey key) {
 		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»?status&wait''')
 	}
 
-	private def Builder createAsyncTestStatusRequest(TestExecutionKey key) {
+	private def Builder createAsyncTestRequest(TestExecutionKey key) {
 		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»?status''')
 	}
 

@@ -6,9 +6,8 @@ import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 
 import static org.assertj.core.api.Assertions.*
-import static org.mockito.Mockito.mock
-import static org.mockito.Mockito.verify
-import static org.mockito.Mockito.when
+import static org.mockito.ArgumentMatchers.*
+import static org.mockito.Mockito.*
 import static org.testeditor.web.backend.testexecution.TestStatus.*
 
 class TestStatusMapperTest extends AbstractPersistenceTest {
@@ -268,6 +267,54 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 			]
 		])
 	}
+	
+	@Test
+	def void terminateTestSuiteRunKillsAssociatedProcess() {
+		// given
+		val testSuiteKey = new TestExecutionKey('running')
+		val runningProcess = mockedRunningThenKilledProcess()
+		statusMapperUnderTest.addTestSuiteRun(testSuiteKey, runningProcess)
+
+		// when
+		statusMapperUnderTest.terminateTestSuiteRun(testSuiteKey)
+
+		// then
+		verify(runningProcess).destroy
+	}
+	
+	@Test
+	def void terminateTestSuiteRunSetsStatusToFailed() {
+		// given
+		val testSuiteKey = new TestExecutionKey('running')
+		val runningProcess = mockedRunningThenKilledProcess
+		statusMapperUnderTest.addTestSuiteRun(testSuiteKey, runningProcess)
+
+		// when
+		statusMapperUnderTest.terminateTestSuiteRun(testSuiteKey)
+
+		// then
+		assertThat(statusMapperUnderTest.getStatus(testSuiteKey)).isEqualTo(TestStatus.FAILED)
+	}
+	
+	@Test
+	def void terminateTestSuiteRunThrowsExceptionIfProcessWontDie() {
+		// given
+		val testSuiteKey = new TestExecutionKey('running')
+		val runningProcess = mockedRunningProcessThatWontDie
+		statusMapperUnderTest.addTestSuiteRun(testSuiteKey, runningProcess)
+
+		// when
+		try {
+			statusMapperUnderTest.terminateTestSuiteRun(testSuiteKey)
+
+		// then
+			fail('expected TestExecutionException to be thrown')
+		} catch (TestExecutionException ex) {
+			assertThat(ex.message).isEqualTo('Failed to terminate test execution')
+			assertThat(ex.cause).isInstanceOf(UnresponsiveTestProcessException)
+			assertThat(ex.key).isEqualTo(testSuiteKey)
+		}
+	}
 
 	def private mockedTerminatedProcess(int exitCode) {
 		val testProcess = mock(Process)
@@ -282,6 +329,22 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		when(testProcess.exitValue).thenThrow(new IllegalStateException("Process is still running"))
 		when(testProcess.waitFor).thenReturn(0)
 		when(testProcess.alive).thenReturn(true)
+		return testProcess
+	}
+	
+	def private mockedRunningProcessThatWontDie() {
+		val testProcess = mockedRunningProcess
+		when(testProcess.destroyForcibly).thenReturn(testProcess)
+		when(testProcess.waitFor(anyLong, any(TimeUnit))).thenReturn(false)
+		return testProcess
+	}
+	
+	def private mockedRunningThenKilledProcess() {
+		val testProcess = mock(Process)
+		when(testProcess.exitValue).thenReturn(129)
+		when(testProcess.waitFor).thenReturn(129)
+		when(testProcess.alive).thenReturn(true, false)
+		when(testProcess.waitFor(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)).thenReturn(true)
 		return testProcess
 	}
 
