@@ -1,14 +1,22 @@
 package org.testeditor.web.backend.testexecution
 
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
+import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.mutable.MutableBoolean
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 import static org.assertj.core.api.Assertions.assertThat
 import static org.assertj.core.api.Assertions.fail
 import static org.mockito.Mockito.*
 
 class TestProcessTest {
+
+	@Rule
+	public val TemporaryFolder testScripts = new TemporaryFolder
 
 	@Test
 	def void canCreateNewTestProcess() {
@@ -260,6 +268,60 @@ class TestProcessTest {
 
 		// then
 		assertThat(testProcessUnderTest.status).isEqualTo(TestStatus.FAILED)
+	}
+	
+	@Test
+	def void killDestroysChildProcessesSendToBackground() {
+		// given
+		val childProcessFile = testScripts.newFile('childProcess.sh')
+		FileUtils.write(childProcessFile, '''
+		#!/bin/sh
+		trap bye 15
+		
+		bye() {
+			echo "child process is terminating"
+			exit 0
+		}
+		
+		while true
+		do
+			echo "child test process still running (PID $$)"
+			sleep 1
+		done
+		''', StandardCharsets.UTF_8)
+		val parentProcessFile = testScripts.newFile('parentProcess.sh')
+		FileUtils.write(parentProcessFile, '''
+		#!/bin/sh
+		trap bye 15
+		
+		bye() {
+			echo "parent process is terminating"
+			exit 0
+		}
+		
+		/bin/sh «childProcessFile.absolutePath» &
+		while true
+		do
+			echo "parent test process still running (PID $$)"
+			sleep 1
+		done
+		''', StandardCharsets.UTF_8)
+		parentProcessFile.executable = true
+		childProcessFile.executable = true
+		val runningProcess = new ProcessBuilder(#['/bin/sh', '-c', parentProcessFile.absolutePath]).inheritIO.start
+		assertThat(runningProcess.alive).isTrue
+		val descendants = runningProcess.descendants.collect(Collectors.toList)
+		assertThat(descendants.size).isGreaterThan(0)
+		val testProcessUnderTest = new TestProcess(runningProcess)
+
+		// when
+		testProcessUnderTest.kill
+
+		// then
+		Thread.sleep(2000) // give child processes some time to handle kill signal
+		assertThat(descendants).allSatisfy[
+			assertThat(alive).isFalse
+		]
 	}
 
 	private def Process thatIsRunning(Process mockProcess) {

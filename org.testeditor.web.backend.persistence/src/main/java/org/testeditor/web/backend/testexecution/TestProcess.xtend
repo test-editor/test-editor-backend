@@ -1,6 +1,8 @@
 package org.testeditor.web.backend.testexecution
 
+import java.util.List
 import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
 import org.slf4j.LoggerFactory
 
 import static org.testeditor.web.backend.testexecution.TestStatus.*
@@ -78,6 +80,7 @@ class TestProcess {
 	def void kill() {
 		val processRef = this.process
 		if (processRef !== null) {
+			val subProcesses = processRef.descendants.collect(Collectors.toList)
 			processRef.destroy
 			try {
 				if (processRef.waitFor(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
@@ -88,8 +91,17 @@ class TestProcess {
 			} catch (InterruptedException ex) {
 				Thread.currentThread.interrupt
 				processRef.killForcibly
+			} finally {
+				subProcesses.kill
 			}
 		}
+	}
+		
+	private def void kill(List<ProcessHandle> handles) {
+		handles.filter[alive].forEach[
+			logger.info('''killing lingering child process with PID «pid»''')
+			destroy
+		]
 	}
 	
 	private def void killForcibly(Process processRef) {
