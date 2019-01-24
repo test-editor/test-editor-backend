@@ -299,7 +299,7 @@ class TestProcessTest {
 			exit 0
 		}
 		
-		/bin/sh «childProcessFile.absolutePath» &
+		«childProcessFile.absolutePath» &
 		while true
 		do
 			echo "parent test process still running (PID $$)"
@@ -308,7 +308,8 @@ class TestProcessTest {
 		''', StandardCharsets.UTF_8)
 		parentProcessFile.executable = true
 		childProcessFile.executable = true
-		val runningProcess = new ProcessBuilder(#['/bin/sh', '-c', parentProcessFile.absolutePath]).inheritIO.start
+		val runningProcess = new ProcessBuilder(#[parentProcessFile.absolutePath]).inheritIO.start
+		runningProcess.waitFor(1, TimeUnit.SECONDS)
 		assertThat(runningProcess.alive).isTrue
 		val descendants = runningProcess.descendants.collect(Collectors.toList)
 		assertThat(descendants.size).isGreaterThan(0)
