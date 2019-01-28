@@ -1,6 +1,9 @@
 package org.testeditor.web.backend.testexecution
 
+import java.util.List
 import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
+import org.slf4j.LoggerFactory
 
 import static org.testeditor.web.backend.testexecution.TestStatus.*
 
@@ -19,6 +22,9 @@ import static org.testeditor.web.backend.testexecution.TestStatus.*
  *    exit value, which is fixed at that point. 
  */
 class TestProcess {
+
+	static val logger = LoggerFactory.getLogger(TestProcess)
+	
 
 	public static val DEFAULT_IDLE_TEST_PROCESS = new TestProcess()
 	public static val WAIT_TIMEOUT_SECONDS = 5
@@ -70,6 +76,42 @@ class TestProcess {
 			markCompleted(processRef.exitValue)
 		}
 	}
+	
+	def void kill() {
+		val processRef = this.process
+		if (processRef !== null) {
+			val subProcesses = processRef.descendants.collect(Collectors.toList)
+			processRef.destroy
+			try {
+				if (processRef.waitFor(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+					processRef.exitValue.markCompleted
+				} else {
+					processRef.killForcibly
+				}
+			} catch (InterruptedException ex) {
+				Thread.currentThread.interrupt
+				processRef.killForcibly
+			} finally {
+				subProcesses.kill
+			}
+		}
+	}
+		
+	private def void kill(List<ProcessHandle> handles) {
+		handles.filter[alive].forEach[
+			logger.info('''killing lingering child process with PID «pid»''')
+			destroy
+		]
+	}
+	
+	private def void killForcibly(Process processRef) {
+		if (processRef.destroyForcibly.waitFor(1, TimeUnit.SECONDS)) {
+			processRef.exitValue.markCompleted
+		} else {
+			logger.error('''failed to terminate test execution (process id: «processRef.pid»)''')
+			throw new UnresponsiveTestProcessException
+		}
+	}
 
 	private def void markCompleted(int exitCode) {
 		this.process = null
@@ -85,4 +127,10 @@ class TestProcess {
 		}
 	}
 
+}
+
+class UnresponsiveTestProcessException extends RuntimeException {
+	new() {
+		super('A test process has become unresponsive and could not be terminated')
+	}
 }

@@ -83,6 +83,16 @@ class TestStatusMapper {
 			]
 		]
 	}
+	
+	def void terminateTestSuiteRun(TestExecutionKey testExecutionKey) {
+		val testProcess = this.suiteStatusMap.get(testExecutionKey)
+		try {
+			testProcess.kill
+		} catch (UnresponsiveTestProcessException ex) {
+			throw new TestExecutionException('Failed to terminate test execution', ex, testExecutionKey)
+		}
+		
+	}
 
 	private def boolean isRunning(TestExecutionKey executionKey) {
 		val process = suiteStatusMap.getOrDefault(executionKey, TestProcess.DEFAULT_IDLE_TEST_PROCESS)
