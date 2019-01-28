@@ -1,20 +1,19 @@
 package org.testeditor.web.backend.persistence.git
 
 import java.io.File
-import java.util.concurrent.Callable
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.JGitInternalException
+import org.eclipse.jgit.errors.LockFailedException
 import org.junit.Test
+import org.testeditor.web.backend.testutils.TestUtils
 
 import static org.assertj.core.api.Assertions.assertThat
 import static org.eclipse.jgit.lib.ConfigConstants.*
 import static org.eclipse.jgit.lib.Constants.DEFAULT_REMOTE_NAME
-import org.eclipse.jgit.api.errors.JGitInternalException
-import org.eclipse.jgit.errors.LockFailedException
 
 class GitProviderTest extends AbstractGitTest {
+	
+	extension val TestUtils = new TestUtils
 
 	override protected additionalRemoteBranchesToSetup() {
 		#['feature/some_magic_feature']
@@ -95,22 +94,6 @@ class GitProviderTest extends AbstractGitTest {
 		]
 	}
 
-	// cf https://www.yegor256.com/2018/03/27/how-to-test-thread-safety.html
-	private def <INPUT, RESULT> Iterable<RESULT> runConcurrently((INPUT)=>RESULT func, INPUT input, int threads) {
-		val service = Executors.newFixedThreadPool(threads);
-		val latch = new CountDownLatch(1)
-		val futures = <Future<RESULT>>newArrayList
 
-		val Callable<RESULT> task = [
-			latch.await
-			func.apply(input)
-		]
-		for (i : 0 ..< threads) {
-			futures.add(service.submit(task))
-		}
-		latch.countDown
-
-		return futures.map[get].filterNull
-	}
 
 }

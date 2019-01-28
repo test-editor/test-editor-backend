@@ -3,11 +3,16 @@ package org.testeditor.web.backend.persistence
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import de.xtendutils.junit.AssertionHelper
+import io.dropwizard.testing.ConfigOverride
 import io.dropwizard.testing.ResourceHelpers
 import io.dropwizard.testing.junit.DropwizardAppRule
+import java.util.List
+import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
+import javax.ws.rs.core.MediaType
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.junit.JGitTestUtil
+import org.eclipse.jgit.revwalk.RevCommit
 import org.glassfish.jersey.client.ClientProperties
 import org.junit.After
 import org.junit.Before
@@ -18,18 +23,18 @@ import static io.dropwizard.testing.ConfigOverride.config
 
 abstract class AbstractPersistenceIntegrationTest {
 
-	protected static val userId = 'john.doe'
-	protected val token = createToken
+	protected static val String userId = 'john.doe'
+	protected val String token = createToken
 
 	// cannot use @Rule as we need to use it within another rule		
-	public val workspaceRoot = new TemporaryFolder => [
+	public val TemporaryFolder workspaceRoot = new TemporaryFolder => [
 		create
 	]
 
 	protected var TemporaryFolder remoteGitFolder
 
-	protected def getConfigs() {
-		#[
+	protected def List<ConfigOverride> getConfigs() {
+		return #[
 			config('server.applicationConnectors[0].port', '0'),
 			config('localRepoFileRoot', workspaceRoot.root.path),
 			config('remoteRepoUrl', setupRemoteGitRepository)
@@ -50,7 +55,7 @@ abstract class AbstractPersistenceIntegrationTest {
 	}
 
 	@Rule
-	public val dropwizardAppRule = new DropwizardAppRule(
+	public val DropwizardAppRule<PersistenceConfiguration> dropwizardAppRule = new DropwizardAppRule(
 		PersistenceApplication,
 		ResourceHelpers.resourceFilePath('test-config.yml'),
 		configs
@@ -58,7 +63,7 @@ abstract class AbstractPersistenceIntegrationTest {
 
 	protected extension val AssertionHelper = AssertionHelper.instance
 
-	def setupRemoteGitRepository() {
+	def String setupRemoteGitRepository() {
 		remoteGitFolder = new TemporaryFolder => [create]
 
 		val git = Git.init.setDirectory(remoteGitFolder.root).call
@@ -72,10 +77,10 @@ abstract class AbstractPersistenceIntegrationTest {
 		git.commit.setMessage("Initial commit").call
 	}
 
-	protected def commitInRemoteRepository(String pathToCommit) {
+	protected def RevCommit commitInRemoteRepository(String pathToCommit) {
 		val git = Git.open(remoteGitFolder.root)
 		git.add.addFilepattern(pathToCommit).call
-		git.commit.setMessage("pre-existing commit in remote repository").call
+		return git.commit.setMessage("pre-existing commit in remote repository").call
 	}
 
 	@Before
@@ -90,7 +95,11 @@ abstract class AbstractPersistenceIntegrationTest {
 		remoteGitFolder.delete
 	}
 
-	protected def Builder createRequest(String relativePath) {
+	def Entity<String> stringEntity(CharSequence charSequence) {
+		return Entity.entity(charSequence.toString, MediaType.TEXT_PLAIN)
+	}
+
+	def Builder createRequest(String relativePath) {
 		return createRequest(relativePath, token)
 	}
 
