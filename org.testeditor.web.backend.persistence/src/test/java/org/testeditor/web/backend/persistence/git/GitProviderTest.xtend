@@ -10,6 +10,9 @@ import org.testeditor.web.backend.testutils.TestUtils
 import static org.assertj.core.api.Assertions.assertThat
 import static org.eclipse.jgit.lib.ConfigConstants.*
 import static org.eclipse.jgit.lib.Constants.DEFAULT_REMOTE_NAME
+import static org.hamcrest.CoreMatchers.is
+import static org.hamcrest.CoreMatchers.not
+import static org.junit.Assume.assumeThat
 
 class GitProviderTest extends AbstractGitTest {
 	
@@ -64,9 +67,14 @@ class GitProviderTest extends AbstractGitTest {
 	 * This is essentially a test against JGit, to document its behavior when
 	 * multiple concurrent threads try to access (and lock) the working for
 	 * writing.
+	 * 
+	 * Because of its non-deterministic behavior, it will be ignored when
+	 * executed on TRAVIS CI. 
 	 */
 	@Test
 	def void concurrentAccessThrowsException() {
+		assumeThat(System.getenv('TRAVIS'), is(not('true')))
+
 		// given
 		val lockFilePath = new File(localGitRoot.root, '.git/index')
 		val expectedErrorMessage = 'Exception caught during execution of add command'
