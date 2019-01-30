@@ -5,9 +5,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
-import javax.ws.rs.client.Entity
 import javax.ws.rs.client.Invocation.Builder
-import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.UriBuilder
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
@@ -416,10 +414,6 @@ class DocumentResourceIntegrationTest extends AbstractPersistenceIntegrationTest
 		// then
 		response.status.assertEquals(CONFLICT.statusCode)
 		response.readEntity(String).assertEquals('REPULL')
-	}
-
-	private def Entity<String> stringEntity(CharSequence charSequence) {
-		return Entity.entity(charSequence.toString, MediaType.TEXT_PLAIN)
 	}
 
 	private def File write(String resourcePath, CharSequence charSequence) {
