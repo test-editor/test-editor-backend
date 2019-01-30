@@ -95,7 +95,6 @@ class ConcurrentGitAccessIntegrationTest extends AbstractPersistenceIntegrationT
 	private def void lockedGitIndex() {
 		val userDir = new File(workspaceRoot.root, userId)
 		val gitDir = new File(userDir, '.git')
-		assertThat(gitDir).exists
 		val indexLock = new File(gitDir, 'index.lock')
 		indexLock.createNewFile
 	}
