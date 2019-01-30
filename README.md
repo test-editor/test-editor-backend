@@ -120,3 +120,4 @@ Given an appropriate compose file (see https://github.com/test-editor/test-edito
 ``` shell
 GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" KNOWN_HOSTS_CONTENT="$(cat ~/.ssh/known_hosts)" docker-compose up
 ```
+
