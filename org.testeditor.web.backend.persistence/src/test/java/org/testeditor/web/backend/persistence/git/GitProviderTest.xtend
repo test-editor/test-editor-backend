@@ -65,8 +65,8 @@ class GitProviderTest extends AbstractGitTest {
 
 	/**
 	 * This is essentially a test against JGit, to document its behavior when
-	 * multiple concurrent threads try to access (and lock) the working for
-	 * writing.
+	 * multiple concurrent threads try to access (and lock) the working copy
+	 * for writing.
 	 * 
 	 * Because of its non-deterministic behavior, it will be ignored when
 	 * executed on TRAVIS CI. 
