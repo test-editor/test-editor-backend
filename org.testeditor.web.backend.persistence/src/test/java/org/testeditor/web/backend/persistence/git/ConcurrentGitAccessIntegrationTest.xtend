@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat
 class ConcurrentGitAccessIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	/**
+	 * These are requests that may modify the Git index, and therefore need an
+	 * exclusive lock on it.
 	 * Read-only operations like load and list-files requests do not need to lock
 	 * the index and should therefore be safe to perform concurrently with any
 	 * other operation.
