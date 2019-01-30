@@ -13,7 +13,7 @@ import static javax.ws.rs.core.Response.serverError
 class GitExceptionMapper implements ExceptionMapper<JGitInternalException> {
 
 	static val lockMessage = 'The workspace is already locked by another request being processed. ' +
-		'Concurrent access to a user\'s workspace are not allowed.'
+		'Concurrent accesses to a user\'s workspace are not allowed.'
 
 	override Response toResponse(JGitInternalException ex) {
 		return serverError.type(TEXT_PLAIN_TYPE).entity(

@@ -86,7 +86,7 @@ class ConcurrentGitAccessIntegrationTest extends AbstractPersistenceIntegrationT
 			val message = readEntity(String)
 			assertThat(status).isEqualTo(INTERNAL_SERVER_ERROR.statusCode)
 			assertThat(message).isEqualTo('The workspace is already locked by another request being processed. ' +
-				'Concurrent access to a user\'s workspace are not allowed.')
+				'Concurrent accesses to a user\'s workspace are not allowed.')
 		]
 	}
 
