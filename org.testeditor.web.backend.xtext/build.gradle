@@ -55,7 +55,7 @@ task docker(type:Exec) {
       tar -xf xtext.tar &&
       mv org.testeditor.web.backend.xtext* ../../testeditor &&
       cd ../.. &&
-      docker build -t editor/xtext:snapshot .
+      docker build -t testeditor/xtext:snapshot .
     """
 }
 
