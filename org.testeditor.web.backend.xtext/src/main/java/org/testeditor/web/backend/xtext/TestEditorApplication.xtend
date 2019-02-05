@@ -9,13 +9,13 @@ import org.eclipse.xtext.web.server.DefaultWebModule
 import org.testeditor.aml.dsl.AmlRuntimeModule
 import org.testeditor.aml.dsl.AmlStandaloneSetup
 import org.testeditor.aml.dsl.ide.AmlIdeModule
-import org.testeditor.tcl.dsl.TclRuntimeModule
 import org.testeditor.tcl.dsl.TclStandaloneSetup
 import org.testeditor.tcl.dsl.ide.TclIdeModule
 import org.testeditor.tsl.dsl.TslRuntimeModule
 import org.testeditor.tsl.dsl.ide.TslIdeModule
 import org.testeditor.tsl.dsl.web.TslWebModule
 import org.testeditor.tsl.dsl.web.TslWebSetup
+import org.testeditor.web.backend.xtext.nodemodelremoved.NoNodeModelTclRuntimeModule
 import org.testeditor.web.dropwizard.health.GitHealthCheck
 import org.testeditor.web.dropwizard.health.XtextIndexHealthCheck
 import org.testeditor.web.dropwizard.xtext.XtextApplication
@@ -63,7 +63,7 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 		return new TclStandaloneSetup {
 
 			override createInjector() {
-				val module = Modules2.mixin(new TclRuntimeModule, new TclIdeModule, new DefaultWebModule, indexModule)
+				val module = Modules2.mixin(new NoNodeModelTclRuntimeModule, new TclIdeModule, new DefaultWebModule, indexModule)
 				return Guice.createInjector(module)
 			}
 
