@@ -24,7 +24,7 @@ class SwitchableNodeModelTclParser extends TclParser implements NodeModelSwitcha
 	override IParseResult doParse(String ruleName, CharStream in, NodeModelBuilder nodeModelBuilder, int initialLookAhead) {
 		nodeModelBuilder as SwitchableNodeModelBuilder => [
 			semanticFactory = elementFactory as OpenEcoreElementFactory
-			shouldBuildNodeModel = this.shouldBuildNodeModel
+			it.shouldBuildNodeModel = this.shouldBuildNodeModel
 		]
 		return super.doParse(ruleName, in, nodeModelBuilder, initialLookAhead)
 	}
