@@ -251,7 +251,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 		response.status.assertEquals(Status.OK.statusCode)
 		val testCases = response.readEntity(List)
 		val link = testCases.assertSingleElement.toString
-		link.matches('^.*/src/test/java/some/Test.tcl#/0/@test$').assertTrue('''«link» did not match expected pattern''')
+		link.matches('^.*/src/test/java/some/Test.tcl#/(0)?/@test$').assertTrue('''«link» did not match expected pattern''')
 	}
 	
 	private def String buildUrlStringForStepTree() {
