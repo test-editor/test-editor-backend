@@ -15,7 +15,7 @@ class SwitchableNodeModelResource extends LazyLinkingResource {
 	var buildNodeModel = true
 
 	protected override doLoad(InputStream inputStream, Map<?, ?> options) {
-		if (options.containsKey(NAMED_BUILDER_SCOPE)) {
+		if (options !== null && options.containsKey(NAMED_BUILDER_SCOPE)) {
 			val parser = getParser as NodeModelSwitchable
 			val linker = getLinker as SwitchableNodeModelLinker
 			buildNodeModel = false
