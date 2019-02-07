@@ -11,10 +11,10 @@ import org.eclipse.xtext.nodemodel.SyntaxErrorMessage
 import org.eclipse.xtext.nodemodel.impl.AbstractNode
 import org.eclipse.xtext.nodemodel.impl.CompositeNode
 import org.eclipse.xtext.nodemodel.impl.LeafNode
-import org.eclipse.xtext.nodemodel.impl.NodeModelBuilder
 import org.eclipse.xtext.nodemodel.impl.RootNode
+import org.eclipse.xtext.xbase.parser.LookAheadPreservingNodeModelBuilder
 
-class SwitchableNodeModelBuilder extends NodeModelBuilder implements NodeModelSwitchable {
+class SwitchableNodeModelBuilder extends LookAheadPreservingNodeModelBuilder implements NodeModelSwitchable {
 
 	var shouldBuildNodeModel = true
 

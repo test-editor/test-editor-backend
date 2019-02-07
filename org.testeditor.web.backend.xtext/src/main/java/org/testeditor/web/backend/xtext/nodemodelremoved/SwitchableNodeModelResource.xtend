@@ -2,14 +2,14 @@ package org.testeditor.web.backend.xtext.nodemodelremoved
 
 import java.io.InputStream
 import java.util.Map
-import org.eclipse.xtext.linking.lazy.LazyLinkingResource
 import org.eclipse.xtext.nodemodel.SyntaxErrorMessage
 import org.eclipse.xtext.nodemodel.impl.LeafNodeWithSyntaxError
 import org.eclipse.xtext.resource.XtextSyntaxDiagnostic
+import org.eclipse.xtext.xbase.resource.BatchLinkableResource
 
 import static org.eclipse.xtext.resource.impl.ResourceDescriptionsProvider.NAMED_BUILDER_SCOPE
 
-class SwitchableNodeModelResource extends LazyLinkingResource {
+class SwitchableNodeModelResource extends BatchLinkableResource {
 
 	static val RESOURCE_CONTAINS_SYNTAXERRORS = "Resource contains syntaxerrors"
 	var buildNodeModel = true

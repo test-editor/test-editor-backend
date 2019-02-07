@@ -1,11 +1,12 @@
 package org.testeditor.web.backend.xtext.nodemodelremoved
 
 import com.google.common.collect.Multimap
+import javax.inject.Inject
 import org.eclipse.emf.ecore.EObject
 import org.eclipse.emf.ecore.EStructuralFeature.Setting
 import org.eclipse.xtext.XtextFactory
 import org.eclipse.xtext.diagnostics.IDiagnosticProducer
-import org.eclipse.xtext.linking.lazy.LazyLinker
+import org.eclipse.xtext.linking.lazy.SyntheticLinkingSupport
 import org.eclipse.xtext.nodemodel.BidiTreeIterable
 import org.eclipse.xtext.nodemodel.BidiTreeIterator
 import org.eclipse.xtext.nodemodel.ICompositeNode
@@ -18,8 +19,9 @@ import org.eclipse.xtext.util.ITextRegion
 import org.eclipse.xtext.util.ITextRegionWithLineInformation
 import org.eclipse.xtext.util.TextRegion
 import org.eclipse.xtext.util.TextRegionWithLineInformation
+import org.eclipse.xtext.xbase.linking.XbaseLazyLinker
 
-class SwitchableNodeModelLinker extends LazyLinker implements NodeModelSwitchable {
+class SwitchableNodeModelLinker extends XbaseLazyLinker implements NodeModelSwitchable {
 
 //	@Inject
 //	SyntheticLinkingSupport syntheticLinkingSupport
