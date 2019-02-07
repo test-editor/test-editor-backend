@@ -6,7 +6,6 @@ import javax.inject.Inject
 import org.eclipse.xtext.ISetup
 import org.eclipse.xtext.util.Modules2
 import org.eclipse.xtext.web.server.DefaultWebModule
-import org.testeditor.aml.dsl.AmlRuntimeModule
 import org.testeditor.aml.dsl.AmlStandaloneSetup
 import org.testeditor.aml.dsl.ide.AmlIdeModule
 import org.testeditor.tcl.dsl.TclStandaloneSetup
@@ -15,7 +14,8 @@ import org.testeditor.tsl.dsl.TslRuntimeModule
 import org.testeditor.tsl.dsl.ide.TslIdeModule
 import org.testeditor.tsl.dsl.web.TslWebModule
 import org.testeditor.tsl.dsl.web.TslWebSetup
-import org.testeditor.web.backend.xtext.nodemodelremoved.NoNodeModelTclRuntimeModule
+import org.testeditor.web.backend.xtext.nodemodelremoved.aml.NoNodeModelAmlRuntimeModule
+import org.testeditor.web.backend.xtext.nodemodelremoved.tcl.NoNodeModelTclRuntimeModule
 import org.testeditor.web.dropwizard.health.GitHealthCheck
 import org.testeditor.web.dropwizard.health.XtextIndexHealthCheck
 import org.testeditor.web.dropwizard.xtext.XtextApplication
@@ -41,7 +41,7 @@ class TestEditorApplication extends XtextApplication<TestEditorConfiguration> {
 		return new AmlStandaloneSetup {
 
 			override createInjector() {
-				val module = Modules2.mixin(new AmlRuntimeModule, new AmlIdeModule, new DefaultWebModule, indexModule)
+				val module = Modules2.mixin(new NoNodeModelAmlRuntimeModule, new AmlIdeModule, new DefaultWebModule, indexModule)
 				return Guice.createInjector(module)
 			}
 

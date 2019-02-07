@@ -1,4 +1,4 @@
-package org.testeditor.web.backend.xtext.nodemodelremoved
+package org.testeditor.web.backend.xtext.nodemodelremoved.tcl
 
 import org.antlr.runtime.CommonToken
 import org.antlr.runtime.Token
@@ -13,6 +13,9 @@ import org.eclipse.xtext.parser.antlr.AbstractInternalAntlrParser
 import org.eclipse.xtext.parser.antlr.XtextTokenStream
 import org.testeditor.tcl.dsl.parser.antlr.internal.InternalTclParser
 import org.testeditor.tcl.dsl.services.TclGrammarAccess
+import org.testeditor.web.backend.xtext.nodemodelremoved.OpenEcoreElementFactory
+import org.testeditor.web.backend.xtext.nodemodelremoved.ProxyAdapterService
+import org.testeditor.web.backend.xtext.nodemodelremoved.StringBuilderBaseCompositeNode
 
 class InternalSwitchableNodeModelTclParser extends InternalTclParser {
 
