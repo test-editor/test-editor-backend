@@ -40,49 +40,40 @@ class InternalSwitchableNodeModelTclParser extends InternalTclParser {
 				proxyAdapterService.createProxyAdapter(text, offset, length, line, grammarElement, semanticBuilder.lastCreated)
 
 			} else {
-//				try {
 				val declaredField = AbstractInternalAntlrParser.getDeclaredField("currentNode") => [
 					accessible = true
 				]
 				val object = declaredField.get(this)
 				if (object instanceof StringBuilderBaseCompositeNode) {
 					val parserRule = EcoreUtil2.getContainerOfType(grammarElement, ParserRule);
-					if ((text.equals(".") ||
-						grammarElement !== null &&
-							((grammarElement instanceof TerminalRule && (grammarElement as TerminalRule).getName().equals("ID")) ||
-								(grammarElement instanceof RuleCall && parserRule !== null &&
-									(parserRule.getName().equals("QualifiedName") || parserRule.getName().equals("ID"))))
-
-						)) {
-						object as StringBuilderBaseCompositeNode => [ node |
-							if (node.line == -1) {
-								node.line = line
-								node.computedOffset = offset
-								node.computedLength = length
-							} else {
-								node.computedLength = node.computedLength + length
-							}
-							node.add(text.trim)
-						]
+					if (text.isFullyQualifiedNameSeparator(parserRule) || grammarElement?.isIdentifierTerminal || grammarElement?.isIdentifierRule(parserRule)) {
+						if (object.line == -1) {
+							object.line = line
+							object.computedOffset = offset
+							object.computedLength = length
+						} else {
+							object.computedLength = object.computedLength + length
+						}
+						object.add(text.trim)
 					}
 				}
-//				}
-//				catch (NoSuchFieldException e) {
-//					e.printStackTrace();
-//				}
-//				catch (SecurityException e) {
-//					e.printStackTrace();
-//				}
-//				catch (IllegalArgumentException e) {
-//					e.printStackTrace();
-//				}
-//				catch (IllegalAccessException e) {
-//					e.printStackTrace();
-//				}
 			}
 		} else {
 			super.newLeafNode(token, grammarElement)
 		}
+	}
+	
+	private def isFullyQualifiedNameSeparator(String token, ParserRule it) {
+		return '.'.equals(token)
+	}
+	
+	
+	private def isIdentifierTerminal(EObject it) {
+		return if (it instanceof TerminalRule) { name.matches('(Valid)?ID') } else { false } 
+	}
+	
+	private def isIdentifierRule(EObject ruleCall, ParserRule it) {
+		return ruleCall instanceof RuleCall && it?.name.matches('(Valid)?ID|QualifiedName')
 	}
 
 	override void associateNodeWithAstElement(ICompositeNode node, EObject astElement) {

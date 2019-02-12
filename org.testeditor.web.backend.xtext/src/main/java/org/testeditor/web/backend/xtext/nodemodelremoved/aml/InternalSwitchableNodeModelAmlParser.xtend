@@ -38,7 +38,6 @@ class InternalSwitchableNodeModelAmlParser extends InternalAmlParser {
 			if (grammarElement instanceof CrossReference) {
 				val semanticBuilder = semanticModelBuilder as OpenEcoreElementFactory
 				proxyAdapterService.createProxyAdapter(text, offset, length, line, grammarElement, semanticBuilder.lastCreated)
-
 			} else {
 				val declaredField = AbstractInternalAntlrParser.getDeclaredField("currentNode") => [
 					accessible = true
@@ -46,12 +45,7 @@ class InternalSwitchableNodeModelAmlParser extends InternalAmlParser {
 				val object = declaredField.get(this)
 				if (object instanceof StringBuilderBaseCompositeNode) {
 					val parserRule = EcoreUtil2.getContainerOfType(grammarElement, ParserRule);
-					if ((text.equals(".") ||
-						grammarElement !== null &&
-							((grammarElement instanceof TerminalRule && (grammarElement as TerminalRule).getName().equals("ID")) ||
-								(grammarElement instanceof RuleCall && parserRule !== null &&
-									(parserRule.getName().equals("QualifiedName") || parserRule.getName().equals("ID"))))
-					)) {
+					if (text.isFullyQualifiedNameSeparator(parserRule) || grammarElement?.isIdentifierTerminal || grammarElement?.isIdentifierRule(parserRule)) {
 						if (object.line == -1) {
 							object.line = line
 							object.computedOffset = offset
@@ -67,6 +61,20 @@ class InternalSwitchableNodeModelAmlParser extends InternalAmlParser {
 			super.newLeafNode(token, grammarElement)
 		}
 	}
+	
+	private def isFullyQualifiedNameSeparator(String token, ParserRule it) {
+		return (it === null || !'MethodReference'.equals(name)) && '.'.equals(token)
+	}
+	
+	
+	private def isIdentifierTerminal(EObject it) {
+		return if (it instanceof TerminalRule) { name.matches('(Valid)?ID') } else { false } 
+	}
+	
+	private def isIdentifierRule(EObject ruleCall, ParserRule it) {
+		return ruleCall instanceof RuleCall && it?.name.matches('(Valid)?ID|QualifiedName')
+	}
+	
 
 	override void associateNodeWithAstElement(ICompositeNode node, EObject astElement) {
 		if (buildNodeModel) {
