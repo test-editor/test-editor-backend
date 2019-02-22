@@ -80,6 +80,18 @@ server:
 
 Having all these in place, executing `./gradlew -I init.gradle run --parallel` will automatically build the backend services with the dependency versions specified in `init.gradle` and use the `config.local.yml` when starting dropwizard.
 
+## Running backend via docker with full pull/push of a github repo
+
+Create a shell file 'start.test-repo-pull.local.sh' with the following content:
+(make sure to have the right id_github_rsa key and the right branch name in place)
+``` shell
+#! /usr/bin/env bash
+echo "starting persistence backend locally"
+docker run -p 9080:8080 -e GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" -e KNOWN_HOSTS_CONTENT="$(cat ~/.ssh/known_hosts)" -e TARGET_REPO=git@github.com:test-editor/language-examples.git -e BRANCH_NAME=test/pull-action testeditor/persistence:snapshot &
+echo "starting xtext backend locally"
+docker run -p 8080:8080 -e GIT_PRIVATE_KEY="$(cat ~/.ssh/id_github_rsa)" -e KNOWN_HOSTS_CONTENT="$(cat ~/.ssh/known_hosts)" -e TARGET_REPO=git@github.com:test-editor/language-examples.git -e BRANCH_NAME=test/pull-action testeditor/xtext:snapshot &
+```
+
 ## Debugging
 
 In order to debug the backend services you must start the backend services individually.
