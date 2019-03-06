@@ -28,7 +28,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 			
 			* some spec
 			Component: DummyComponent
-			- return "ok" string
+			- returns "ok" string
 			'''
 		
 	}
@@ -58,12 +58,12 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 			## FirstMacro
 			template = "first macro"
 			Component: DummyComponent
-			- return "Hello World!" string
+			- returns "Hello World!" string
 			
 			## SecondMacro
 			template = "macro with" ${param}
 			Component: DummyComponent
-			- return @param string
+			- returns @param string
 		'''
 	}
 
@@ -74,7 +74,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 			import org.testeditor.web.backend.xtext.index.DummyFixture
 			
 			interaction type returnString {
-				template = "return" ${param} "string"
+				template = "returns" ${param} "string"
 				method = DummyFixture.returnString(param)
 			}
 			
@@ -209,7 +209,7 @@ class IndexResourceIntegrationTest extends AbstractTestEditorIntegrationTest {
 				type.assertEquals('component')
 				children.assertSize(2) => [
 					get(0) => [
-						displayName.assertEquals('return "param" string')
+						displayName.assertEquals('returns "param" string')
 						type.assertEquals('interaction')
 					]
 					get(1) => [
