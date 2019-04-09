@@ -1,0 +1,22 @@
+package com.example
+
+import com.example.DummyFixture
+import com.example.DummyLocatorStrategy
+
+component type Application {}
+
+interaction type typeInto {
+	template = "Type" ${value} "into" ${element}
+	method = DummyFixture.typeInto(element, locatorStrategy, value)
+}
+
+element type Text {
+	interactions = typeInto
+}
+
+component GreetingApplication is Application {
+	element Input is Text {
+		locator = "text.input"
+		locatorStrategy = DummyLocatorStrategy.ID
+	}
+}

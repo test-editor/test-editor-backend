@@ -1,0 +1,24 @@
+package com.example
+
+import com.example.DummyFixture
+
+component type ParameterizedTestingType {
+	interactions = forEach, load, loadPrimitives
+}
+
+interaction type forEach {
+	template = "each entry in" ${iterable} ":" ${closure}
+	method = DummyFixture.forEach(iterable, closure)
+}
+
+interaction type load {
+	template = "load inputs from" ${file}
+	method = DummyFixture.load(file)
+}
+
+interaction type loadPrimitives {
+	template = "load flat demo data for parameterized tests"
+	method = DummyFixture.loadPrimitives()
+}
+
+component ParameterizedTesting is ParameterizedTestingType {}

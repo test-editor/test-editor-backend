@@ -1,0 +1,8 @@
+package com.example
+
+# MyMacroCollection
+
+## MyMacro
+template = "enter" ${value} "into" ${field}
+Component: GreetingApplication
+- Type @value into <@field>
