@@ -1,488 +1,282 @@
 - "source":
   "testRunId":
   "commitId":
-  "started": "2019-04-10T11:10:51.305682Z"
+  "started": "2019-04-11T14:10:39.765054Z"
   "children":
   - "node": "TEST"
     "message": "com.example.SampleTest"
     "id": "IDROOT"
-    "enter": "614701452736319"
+    "enter": "664872670133989"
     "preVariables":
     "children":
     - "node": "SPECIFICATION_STEP"
       "message": "Some test specification step"
       "id": "ID-1-0"
-      "enter": "614701469829366"
+      "enter": "664872681304164"
       "preVariables":
-        "@": "com/example/SampleTest.tcl:4-11"
+        "@": "com/example/SampleTest.tcl:9-14"
       "children":
       - "node": "COMPONENT"
-        "message": "ParameterizedTesting"
+        "message": "DemoApp"
         "id": "ID-1-1"
-        "enter": "614701471817579"
+        "enter": "664872683388930"
         "preVariables":
-          "@": "com/example/SampleTest.tcl:5-11"
+          "@": "com/example/SampleTest.tcl:10-14"
         "children":
         - "node": "STEP"
-          "message": "inputs = load flat demo data for parameterized tests [java.lang.Iterable<com.google.gson.JsonElement>]"
+          "message": "type @firstName into <FirstNameField>"
           "id": "ID-1-2"
-          "enter": "614701473057321"
+          "enter": "664872684917219"
           "preVariables":
-            "@": "com/example/SampleTest.tcl:7"
+            "@": "com/example/SampleTest.tcl:11"
+            "firstName": "Arthur"
+            "<FirstNameField>": "Locator: text.firstName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:27"
           "children":
-          "leave": "614701487201735"
+          "leave": "664872689045426"
           "status": "OK"
           "postVariables":
-            "@": "com/example/SampleTest.tcl:7"
-            "inputs": "[\"Parameterized Test \u2013 Iteration One\", \"Parameterized Test \u2013 Iteration Two\", \"Parameterized Test \u2013 Iteration Three\"]"
+            "@": "com/example/SampleTest.tcl:11"
+            "firstName": "Arthur"
+            "<FirstNameField>": "Locator: text.firstName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:27"
         - "node": "STEP"
-          "message": "entry = each entry in @inputs : \"\" [com.google.gson.JsonElement]"
+          "message": "type @lastName into <LastNameField>"
           "id": "ID-1-3"
-          "enter": "614701489715559"
+          "enter": "664872691083619"
           "preVariables":
-            "@": "com/example/SampleTest.tcl:8-11"
-            "inputs": "[\"Parameterized Test \u2013 Iteration One\", \"Parameterized Test \u2013 Iteration Two\", \"Parameterized Test \u2013 Iteration Three\"]"
+            "@": "com/example/SampleTest.tcl:12"
+            "lastName": "Dent"
+            "<LastNameField>": "Locator: text.lastName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:31"
           "children":
-          - "node": "MACRO_LIB"
-            "message": "MyMacroCollection"
-            "id": "ID-1-4"
-            "enter": "614701492024372"
-            "preVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-            "children":
-            - "node": "STEP"
-              "message": "enter @entry into \"Input\""
-              "id": "ID-1-5"
-              "enter": "614701493287590"
-              "preVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration One"
-              "children":
-              - "node": "MACRO"
-                "message": "MyMacro"
-                "id": "ID-1-5-0"
-                "enter": "614701494911257"
-                "preVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-                "children":
-                - "node": "COMPONENT"
-                  "message": "GreetingApplication"
-                  "id": "ID-1-5-1"
-                  "enter": "614701496152025"
-                  "preVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                  "children":
-                  - "node": "STEP"
-                    "message": "Type @value into <@field>"
-                    "id": "ID-1-5-2"
-                    "enter": "614701498027069"
-                    "preVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration One"
-                    "children":
-                    "leave": "614701499339320"
-                    "status": "OK"
-                    "postVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration One"
-                  "leave": "614701499645668"
-                  "status": "OK"
-                  "postVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                "leave": "614701499765749"
-                "status": "OK"
-                "postVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-              "leave": "614701499885645"
-              "status": "OK"
-              "postVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration One"
-            "leave": "614701500060922"
-            "status": "OK"
-            "postVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-          - "node": "MACRO_LIB"
-            "message": "MyMacroCollection"
-            "id": "ID-1-6"
-            "enter": "614701500755718"
-            "preVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-            "children":
-            - "node": "STEP"
-              "message": "enter @entry into \"Input\""
-              "id": "ID-1-7"
-              "enter": "614701502026230"
-              "preVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration Two"
-              "children":
-              - "node": "MACRO"
-                "message": "MyMacro"
-                "id": "ID-1-7-0"
-                "enter": "614701503030064"
-                "preVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-                "children":
-                - "node": "COMPONENT"
-                  "message": "GreetingApplication"
-                  "id": "ID-1-7-1"
-                  "enter": "614701503862651"
-                  "preVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                  "children":
-                  - "node": "STEP"
-                    "message": "Type @value into <@field>"
-                    "id": "ID-1-7-2"
-                    "enter": "614701505432179"
-                    "preVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration Two"
-                    "children":
-                    "leave": "614701505728262"
-                    "status": "OK"
-                    "postVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration Two"
-                  "leave": "614701505935970"
-                  "status": "OK"
-                  "postVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                "leave": "614701506082462"
-                "status": "OK"
-                "postVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-              "leave": "614701506173584"
-              "status": "OK"
-              "postVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration Two"
-            "leave": "614701506309381"
-            "status": "OK"
-            "postVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-          - "node": "MACRO_LIB"
-            "message": "MyMacroCollection"
-            "id": "ID-1-8"
-            "enter": "614701507004165"
-            "preVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-            "children":
-            - "node": "STEP"
-              "message": "enter @entry into \"Input\""
-              "id": "ID-1-9"
-              "enter": "614701508211262"
-              "preVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration Three"
-              "children":
-              - "node": "MACRO"
-                "message": "MyMacro"
-                "id": "ID-1-9-0"
-                "enter": "614701509187830"
-                "preVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-                "children":
-                - "node": "COMPONENT"
-                  "message": "GreetingApplication"
-                  "id": "ID-1-9-1"
-                  "enter": "614701510050253"
-                  "preVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                  "children":
-                  - "node": "STEP"
-                    "message": "Type @value into <@field>"
-                    "id": "ID-1-9-2"
-                    "enter": "614701511626664"
-                    "preVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration Three"
-                    "children":
-                    "leave": "614701511880679"
-                    "status": "OK"
-                    "postVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration Three"
-                  "leave": "614701512096727"
-                  "status": "OK"
-                  "postVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                "leave": "614701512236243"
-                "status": "OK"
-                "postVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-              "leave": "614701512366337"
-              "status": "OK"
-              "postVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration Three"
-            "leave": "614701512556565"
-            "status": "OK"
-            "postVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-          "leave": "614701512814825"
+          "leave": "664872691519185"
           "status": "OK"
           "postVariables":
-            "@": "com/example/SampleTest.tcl:8-11"
-            "inputs": "[\"Parameterized Test \u2013 Iteration One\", \"Parameterized Test \u2013 Iteration Two\", \"Parameterized Test \u2013 Iteration Three\"]"
-        "leave": "614701513152840"
+            "@": "com/example/SampleTest.tcl:12"
+            "lastName": "Dent"
+            "<LastNameField>": "Locator: text.lastName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:31"
+        - "node": "STEP"
+          "message": "type @age into <AgeField>"
+          "id": "ID-1-4"
+          "enter": "664872693910541"
+          "preVariables":
+            "@": "com/example/SampleTest.tcl:13"
+            "<AgeField>": "Locator: text.age, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:35"
+            "age": "42"
+          "children":
+          "leave": "664872694555753"
+          "status": "OK"
+          "postVariables":
+            "@": "com/example/SampleTest.tcl:13"
+            "<AgeField>": "Locator: text.age, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:35"
+            "age": "42"
+        - "node": "STEP"
+          "message": "click <Confirm>"
+          "id": "ID-1-5"
+          "enter": "664872696532449"
+          "preVariables":
+            "@": "com/example/SampleTest.tcl:14"
+            "<Confirm>": "Locator: button.confirm, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:39"
+          "children":
+          "leave": "664872697410903"
+          "status": "OK"
+          "postVariables":
+            "@": "com/example/SampleTest.tcl:14"
+            "<Confirm>": "Locator: button.confirm, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:39"
+        "leave": "664872698187636"
         "status": "OK"
         "postVariables":
-          "@": "com/example/SampleTest.tcl:5-11"
-      "leave": "614701513291133"
+          "@": "com/example/SampleTest.tcl:10-14"
+      "leave": "664872698801479"
       "status": "OK"
       "postVariables":
-        "@": "com/example/SampleTest.tcl:4-11"
-    "leave": "614701513495620"
+        "@": "com/example/SampleTest.tcl:9-14"
+    "leave": "664872699498601"
     "status": "OK"
     "postVariables":
 - "source":
   "testRunId":
   "commitId":
-  "started": "2019-04-10T11:19:00.794311Z"
+  "started": "2019-04-11T14:10:39.808863Z"
   "children":
   - "node": "TEST"
     "message": "com.example.SampleTest"
     "id": "IDROOT"
-    "enter": "615190932172417"
+    "enter": "664872704381402"
     "preVariables":
     "children":
     - "node": "SPECIFICATION_STEP"
       "message": "Some test specification step"
       "id": "ID-1-0"
-      "enter": "615190960080376"
+      "enter": "664872705214207"
       "preVariables":
-        "@": "com/example/SampleTest.tcl:4-11"
+        "@": "com/example/SampleTest.tcl:9-14"
       "children":
       - "node": "COMPONENT"
-        "message": "ParameterizedTesting"
+        "message": "DemoApp"
         "id": "ID-1-1"
-        "enter": "615190962626128"
+        "enter": "664872706108746"
         "preVariables":
-          "@": "com/example/SampleTest.tcl:5-11"
+          "@": "com/example/SampleTest.tcl:10-14"
         "children":
         - "node": "STEP"
-          "message": "inputs = load flat demo data for parameterized tests [java.lang.Iterable<com.google.gson.JsonElement>]"
+          "message": "type @firstName into <FirstNameField>"
           "id": "ID-1-2"
-          "enter": "615190963646580"
+          "enter": "664872707351435"
           "preVariables":
-            "@": "com/example/SampleTest.tcl:7"
+            "@": "com/example/SampleTest.tcl:11"
+            "firstName": "Ford"
+            "<FirstNameField>": "Locator: text.firstName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:27"
           "children":
-          "leave": "615190978316076"
+          "leave": "664872707862153"
           "status": "OK"
           "postVariables":
-            "@": "com/example/SampleTest.tcl:7"
-            "inputs": "[\"Parameterized Test \u2013 Iteration One\", \"Parameterized Test \u2013 Iteration Two\", \"Parameterized Test \u2013 Iteration Three\"]"
+            "@": "com/example/SampleTest.tcl:11"
+            "firstName": "Ford"
+            "<FirstNameField>": "Locator: text.firstName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:27"
         - "node": "STEP"
-          "message": "entry = each entry in @inputs : \"\" [com.google.gson.JsonElement]"
+          "message": "type @lastName into <LastNameField>"
           "id": "ID-1-3"
-          "enter": "615190981174221"
+          "enter": "664872711252354"
           "preVariables":
-            "@": "com/example/SampleTest.tcl:8-11"
-            "inputs": "[\"Parameterized Test \u2013 Iteration One\", \"Parameterized Test \u2013 Iteration Two\", \"Parameterized Test \u2013 Iteration Three\"]"
+            "@": "com/example/SampleTest.tcl:12"
+            "lastName": "Prefect"
+            "<LastNameField>": "Locator: text.lastName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:31"
           "children":
-          - "node": "MACRO_LIB"
-            "message": "MyMacroCollection"
-            "id": "ID-1-4"
-            "enter": "615190983864705"
-            "preVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-            "children":
-            - "node": "STEP"
-              "message": "enter @entry into \"Input\""
-              "id": "ID-1-5"
-              "enter": "615190985119984"
-              "preVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration One"
-              "children":
-              - "node": "MACRO"
-                "message": "MyMacro"
-                "id": "ID-1-5-0"
-                "enter": "615190986381306"
-                "preVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-                "children":
-                - "node": "COMPONENT"
-                  "message": "GreetingApplication"
-                  "id": "ID-1-5-1"
-                  "enter": "615190987137649"
-                  "preVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                  "children":
-                  - "node": "STEP"
-                    "message": "Type @value into <@field>"
-                    "id": "ID-1-5-2"
-                    "enter": "615190988977792"
-                    "preVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration One"
-                    "children":
-                    "leave": "615190990399365"
-                    "status": "OK"
-                    "postVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration One"
-                  "leave": "615190990669430"
-                  "status": "OK"
-                  "postVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                "leave": "615190990785302"
-                "status": "OK"
-                "postVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-              "leave": "615190990915142"
-              "status": "OK"
-              "postVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration One"
-            "leave": "615190991057083"
-            "status": "OK"
-            "postVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-          - "node": "MACRO_LIB"
-            "message": "MyMacroCollection"
-            "id": "ID-1-6"
-            "enter": "615190991696811"
-            "preVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-            "children":
-            - "node": "STEP"
-              "message": "enter @entry into \"Input\""
-              "id": "ID-1-7"
-              "enter": "615190992703142"
-              "preVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration Two"
-              "children":
-              - "node": "MACRO"
-                "message": "MyMacro"
-                "id": "ID-1-7-0"
-                "enter": "615190993625474"
-                "preVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-                "children":
-                - "node": "COMPONENT"
-                  "message": "GreetingApplication"
-                  "id": "ID-1-7-1"
-                  "enter": "615190994554100"
-                  "preVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                  "children":
-                  - "node": "STEP"
-                    "message": "Type @value into <@field>"
-                    "id": "ID-1-7-2"
-                    "enter": "615190996000371"
-                    "preVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration Two"
-                    "children":
-                    "leave": "615190996271072"
-                    "status": "OK"
-                    "postVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration Two"
-                  "leave": "615190996501306"
-                  "status": "OK"
-                  "postVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                "leave": "615190996669521"
-                "status": "OK"
-                "postVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-              "leave": "615190996854128"
-              "status": "OK"
-              "postVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration Two"
-            "leave": "615190997039251"
-            "status": "OK"
-            "postVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-          - "node": "MACRO_LIB"
-            "message": "MyMacroCollection"
-            "id": "ID-1-8"
-            "enter": "615190997866957"
-            "preVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-            "children":
-            - "node": "STEP"
-              "message": "enter @entry into \"Input\""
-              "id": "ID-1-9"
-              "enter": "615190999183174"
-              "preVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration Three"
-              "children":
-              - "node": "MACRO"
-                "message": "MyMacro"
-                "id": "ID-1-9-0"
-                "enter": "615191000159015"
-                "preVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-                "children":
-                - "node": "COMPONENT"
-                  "message": "GreetingApplication"
-                  "id": "ID-1-9-1"
-                  "enter": "615191001037968"
-                  "preVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                  "children":
-                  - "node": "STEP"
-                    "message": "Type @value into <@field>"
-                    "id": "ID-1-9-2"
-                    "enter": "615191002644347"
-                    "preVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration Three"
-                    "children":
-                    "leave": "615191002938392"
-                    "status": "OK"
-                    "postVariables":
-                      "@": "com/example/MyMacroCollection.tml:8"
-                      "field": "Input"
-                      "value": "Parameterized Test \u2013 Iteration Three"
-                  "leave": "615191003138424"
-                  "status": "OK"
-                  "postVariables":
-                    "@": "com/example/MyMacroCollection.tml:7-8"
-                "leave": "615191003274617"
-                "status": "OK"
-                "postVariables":
-                  "@": "com/example/MyMacroCollection.tml:5-8"
-              "leave": "615191003405221"
-              "status": "OK"
-              "postVariables":
-                "@": "com/example/SampleTest.tcl:10"
-                "entry": "Parameterized Test \u2013 Iteration Three"
-            "leave": "615191003563028"
-            "status": "OK"
-            "postVariables":
-              "@": "com/example/SampleTest.tcl:8-11"
-          "leave": "615191003788756"
+          "leave": "664872711729726"
           "status": "OK"
           "postVariables":
-            "@": "com/example/SampleTest.tcl:8-11"
-            "inputs": "[\"Parameterized Test \u2013 Iteration One\", \"Parameterized Test \u2013 Iteration Two\", \"Parameterized Test \u2013 Iteration Three\"]"
-        "leave": "615191004053177"
+            "@": "com/example/SampleTest.tcl:12"
+            "lastName": "Prefect"
+            "<LastNameField>": "Locator: text.lastName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:31"
+        - "node": "STEP"
+          "message": "type @age into <AgeField>"
+          "id": "ID-1-4"
+          "enter": "664872713659612"
+          "preVariables":
+            "@": "com/example/SampleTest.tcl:13"
+            "<AgeField>": "Locator: text.age, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:35"
+            "age": "42"
+          "children":
+          "leave": "664872714032441"
+          "status": "OK"
+          "postVariables":
+            "@": "com/example/SampleTest.tcl:13"
+            "<AgeField>": "Locator: text.age, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:35"
+            "age": "42"
+        - "node": "STEP"
+          "message": "click <Confirm>"
+          "id": "ID-1-5"
+          "enter": "664872715602716"
+          "preVariables":
+            "@": "com/example/SampleTest.tcl:14"
+            "<Confirm>": "Locator: button.confirm, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:39"
+          "children":
+          "leave": "664872716088107"
+          "status": "OK"
+          "postVariables":
+            "@": "com/example/SampleTest.tcl:14"
+            "<Confirm>": "Locator: button.confirm, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:39"
+        "leave": "664872716659894"
         "status": "OK"
         "postVariables":
-          "@": "com/example/SampleTest.tcl:5-11"
-      "leave": "615191004177754"
+          "@": "com/example/SampleTest.tcl:10-14"
+      "leave": "664872717294894"
       "status": "OK"
       "postVariables":
-        "@": "com/example/SampleTest.tcl:4-11"
-    "leave": "615191004343668"
+        "@": "com/example/SampleTest.tcl:9-14"
+    "leave": "664872717975853"
+    "status": "OK"
+    "postVariables":
+- "source":
+  "testRunId":
+  "commitId":
+  "started": "2019-04-11T14:10:39.826278Z"
+  "children":
+  - "node": "TEST"
+    "message": "com.example.SampleTest"
+    "id": "IDROOT"
+    "enter": "664872721818206"
+    "preVariables":
+    "children":
+    - "node": "SPECIFICATION_STEP"
+      "message": "Some test specification step"
+      "id": "ID-1-0"
+      "enter": "664872723194485"
+      "preVariables":
+        "@": "com/example/SampleTest.tcl:9-14"
+      "children":
+      - "node": "COMPONENT"
+        "message": "DemoApp"
+        "id": "ID-1-1"
+        "enter": "664872724533377"
+        "preVariables":
+          "@": "com/example/SampleTest.tcl:10-14"
+        "children":
+        - "node": "STEP"
+          "message": "type @firstName into <FirstNameField>"
+          "id": "ID-1-2"
+          "enter": "664872726157499"
+          "preVariables":
+            "@": "com/example/SampleTest.tcl:11"
+            "firstName": "Zaphod"
+            "<FirstNameField>": "Locator: text.firstName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:27"
+          "children":
+          "leave": "664872726791591"
+          "status": "OK"
+          "postVariables":
+            "@": "com/example/SampleTest.tcl:11"
+            "firstName": "Zaphod"
+            "<FirstNameField>": "Locator: text.firstName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:27"
+        - "node": "STEP"
+          "message": "type @lastName into <LastNameField>"
+          "id": "ID-1-3"
+          "enter": "664872728671785"
+          "preVariables":
+            "@": "com/example/SampleTest.tcl:12"
+            "lastName": "Beeblebrox"
+            "<LastNameField>": "Locator: text.lastName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:31"
+          "children":
+          "leave": "664872729153736"
+          "status": "OK"
+          "postVariables":
+            "@": "com/example/SampleTest.tcl:12"
+            "lastName": "Beeblebrox"
+            "<LastNameField>": "Locator: text.lastName, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:31"
+        - "node": "STEP"
+          "message": "type @age into <AgeField>"
+          "id": "ID-1-4"
+          "enter": "664872730889922"
+          "preVariables":
+            "@": "com/example/SampleTest.tcl:13"
+            "<AgeField>": "Locator: text.age, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:35"
+            "age": "42"
+          "children":
+          "leave": "664872731262052"
+          "status": "OK"
+          "postVariables":
+            "@": "com/example/SampleTest.tcl:13"
+            "<AgeField>": "Locator: text.age, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:35"
+            "age": "42"
+        - "node": "STEP"
+          "message": "click <Confirm>"
+          "id": "ID-1-5"
+          "enter": "664872732739093"
+          "preVariables":
+            "@": "com/example/SampleTest.tcl:14"
+            "<Confirm>": "Locator: button.confirm, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:39"
+          "children":
+          "leave": "664872732997278"
+          "status": "OK"
+          "postVariables":
+            "@": "com/example/SampleTest.tcl:14"
+            "<Confirm>": "Locator: button.confirm, Strategy: com.example.DummyLocatorStrategy.ID in com/example/Sample.aml:39"
+        "leave": "664872733392181"
+        "status": "OK"
+        "postVariables":
+          "@": "com/example/SampleTest.tcl:10-14"
+      "leave": "664872733947660"
+      "status": "OK"
+      "postVariables":
+        "@": "com/example/SampleTest.tcl:9-14"
+    "leave": "664872734477367"
     "status": "OK"
     "postVariables":

@@ -6,17 +6,38 @@ import com.example.DummyLocatorStrategy
 component type Application {}
 
 interaction type typeInto {
-	template = "Type" ${value} "into" ${element}
+	template = "type" ${value} "into" ${element}
 	method = DummyFixture.typeInto(element, locatorStrategy, value)
+}
+
+interaction type click {
+    template = "click" ${element}
+    method = DummyFixture.click(element, locatorStrategy)
 }
 
 element type Text {
 	interactions = typeInto
 }
 
-component GreetingApplication is Application {
-	element Input is Text {
-		locator = "text.input"
+element type Button {
+    interactions = click
+}
+
+component DemoApp is Application {
+	element FirstNameField is Text {
+		locator = "text.firstName"
 		locatorStrategy = DummyLocatorStrategy.ID
+	}
+	element LastNameField is Text {
+		locator = "text.lastName"
+		locatorStrategy = DummyLocatorStrategy.ID
+	}
+	element AgeField is Text {
+		locator = "text.age"
+		locatorStrategy = DummyLocatorStrategy.ID
+	}
+	element Confirm is Button {
+	    locator = "button.confirm"
+	    locatorStrategy = DummyLocatorStrategy.ID
 	}
 }

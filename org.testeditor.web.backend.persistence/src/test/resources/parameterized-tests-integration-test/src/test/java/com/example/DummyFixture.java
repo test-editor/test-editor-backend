@@ -1,49 +1,32 @@
 package com.example;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.Arrays;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testeditor.fixture.core.FixtureException;
 import org.testeditor.fixture.core.interaction.FixtureMethod;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-
 public class DummyFixture {
+	
+	private static final Logger logger = LoggerFactory.getLogger(DummyFixture.class);
 
     @FixtureMethod
-    public void typeInto(String locator, DummyLocatorStrategy locatorStrategy, String value) {
-    }
-
-    @FixtureMethod
-    public JsonElement forEach(Iterable<JsonElement> iterable, Consumer<JsonElement> lambda) throws FixtureException {
-        iterable.forEach((it) -> lambda.accept(it));
-        return null;
-    }
-
-    @FixtureMethod
-    public Iterable<JsonElement> load(String filename) throws FixtureException {
-        List<JsonElement> result = new LinkedList<>();
-        JsonObject arthur = new JsonObject();
-        arthur.add("name", new JsonPrimitive("adent"));
-        arthur.add("password", new JsonPrimitive("dontpanic"));
-        JsonObject ford = new JsonObject();
-        arthur.add("name", new JsonPrimitive("fprefect"));
-        arthur.add("password", new JsonPrimitive("towel"));
-        result.add(arthur);
-        result.add(ford);
-        return result;
+    public void typeInto(String locator, DummyLocatorStrategy locatorStrategy, String value) throws FixtureException {
+    	logger.info("typed " + value + " into " + locator + ".");
     }
     
     @FixtureMethod
-    public Iterable<JsonElement> loadPrimitives() throws FixtureException {
-        List<JsonElement> result = new LinkedList<>();
-        result.add(new JsonPrimitive("Parameterized Test – Iteration One"));
-        result.add(new JsonPrimitive("Parameterized Test – Iteration Two"));
-        result.add(new JsonPrimitive("Parameterized Test – Iteration Three"));
-        return result;
+    public void click(String locator, DummyLocatorStrategy locatorStrategy) throws FixtureException {
+    	logger.info("clicked on " + locator + " button.");
     }
-
+   
+    @FixtureMethod
+    public Iterable<Object[]> loadDemoData() throws FixtureException {
+        return Arrays.asList(new Object[][] {
+        	{"Arthur", "Dent", 42},
+        	{"Ford", "Prefect", 42},
+        	{"Zaphod", "Beeblebrox", 42}
+        });
+    }
 }

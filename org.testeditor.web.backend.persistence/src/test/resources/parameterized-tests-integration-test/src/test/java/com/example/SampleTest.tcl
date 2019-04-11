@@ -1,10 +1,14 @@
 package com.example
 
 # SampleTest
+
+Data: firstName, lastName, age
+	Component: ParameterizedTesting
+	- data = init test data
+
 * Some test specification step
-  Component: ParameterizedTesting
-  //- inputs = load inputs from "path/to/file.json"
-  - inputs = load flat demo data for parameterized tests
-  - entry = each entry in @inputs:
-    Macro: MyMacroCollection
-    -- enter @entry into "Input"
+  Component: DemoApp
+  - type @firstName into <FirstNameField>
+  - type @lastName into <LastNameField>
+  - type @age into <AgeField>
+  - click <Confirm>
