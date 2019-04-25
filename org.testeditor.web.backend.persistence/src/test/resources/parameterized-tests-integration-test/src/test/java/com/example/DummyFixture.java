@@ -1,11 +1,16 @@
 package com.example;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testeditor.fixture.core.FixtureException;
 import org.testeditor.fixture.core.interaction.FixtureMethod;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class DummyFixture {
 	
@@ -22,11 +27,15 @@ public class DummyFixture {
     }
    
     @FixtureMethod
-    public Iterable<Object[]> loadDemoData() throws FixtureException {
-        return Arrays.asList(new Object[][] {
-        	{"Arthur", "Dent", 42},
-        	{"Ford", "Prefect", 42},
-        	{"Zaphod", "Beeblebrox", 42}
-        });
+    public Iterable<JsonObject> loadDemoData() throws FixtureException {
+        JsonParser jsonParser = new JsonParser();
+        return Arrays.asList(
+                "{ firstName: \"Arthur\", lastName: \"Dent\", age: 42 }",
+                "{ firstName: \"Ford\", lastName: \"Prefect\", age: 42 }",
+                "{ firstName: \"Zaphod\", lastName: \"Beeblebrox\", age: 42 }"
+        )
+        .stream()
+        .map((json) -> jsonParser.parse(json).getAsJsonObject())
+        .collect(Collectors.toList());
     }
 }

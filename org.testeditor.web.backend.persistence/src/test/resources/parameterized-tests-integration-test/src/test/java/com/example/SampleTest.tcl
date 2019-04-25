@@ -2,7 +2,7 @@ package com.example
 
 # SampleTest
 
-Data: firstName, lastName, age
+Data: firstName, lastName
 	Component: ParameterizedTesting
 	- data = init test data
 
@@ -10,5 +10,5 @@ Data: firstName, lastName, age
   Component: DemoApp
   - type @firstName into <FirstNameField>
   - type @lastName into <LastNameField>
-  - type @age into <AgeField>
+  - type @data.age into <AgeField>
   - click <Confirm>
