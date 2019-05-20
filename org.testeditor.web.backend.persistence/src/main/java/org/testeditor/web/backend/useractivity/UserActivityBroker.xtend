@@ -32,7 +32,7 @@ class UserActivityBroker {
 	def void updateUserActivities(String userid, String username, List<UserActivity> activities) {
 		logger.debug('''
 			received activities from user «username» («userid»): [
-			    «activities.join(',\n')»
+			    «activities?.join(',\n')»
 			]''')
 		val elementActivityMap = new HashMap<String, List<UserActivityData>>
 		val now = Instant.now
