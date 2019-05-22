@@ -5,7 +5,9 @@ import com.google.common.io.FileWriteMode
 import com.google.common.io.Files
 import java.io.IOException
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.stream.Collectors
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.mutable.MutableBoolean
@@ -15,6 +17,7 @@ import org.junit.rules.TemporaryFolder
 
 import static org.assertj.core.api.Assertions.assertThat
 import static org.assertj.core.api.Assertions.fail
+import static org.mockito.ArgumentMatchers.*
 import static org.mockito.Mockito.*
 
 class TestProcessTest {
@@ -226,7 +229,7 @@ class TestProcessTest {
 		testProcessUnderTest.kill
 
 		// then
-		verify(runningProcess).destroy
+		verify(runningProcess.toHandle).destroy
 	}
 	
 	@Test
@@ -451,14 +454,27 @@ class TestProcessTest {
 	}
 
 	private def Process thatIsRunningAndThenForciblyDestroyed(Process mockProcess) {
+		val processHandle = mock(ProcessHandle)
+		val processFuture = mock(CompletableFuture)
+		when(processFuture.get(anyLong, eq(TimeUnit.SECONDS))).thenReturn(processHandle)
+		when(processHandle.onExit).thenReturn(processFuture)
+		when(mockProcess.toHandle).thenReturn(processHandle)
+		
 		when(mockProcess.alive).thenReturn(true, false)
 		when(mockProcess.destroyForcibly).thenReturn(mockProcess)
 		when(mockProcess.exitValue).thenReturn(129)
 		when(mockProcess.waitFor(1, TimeUnit.SECONDS)).thenReturn(true)
+
 		return mockProcess
 	}
 	
 	private def Process thatIsRunningAndWontDie(Process mockProcess) {
+		val processHandle = mock(ProcessHandle)
+		val processFuture = mock(CompletableFuture)
+		when(processFuture.get(anyLong, eq(TimeUnit.SECONDS))).thenThrow(TimeoutException)
+		when(processHandle.onExit).thenReturn(processFuture)
+		when(mockProcess.toHandle).thenReturn(processHandle)
+		
 		when(mockProcess.alive).thenReturn(true)
 		when(mockProcess.destroyForcibly).thenReturn(mockProcess)
 		when(mockProcess.exitValue).thenThrow(new IllegalThreadStateException())
