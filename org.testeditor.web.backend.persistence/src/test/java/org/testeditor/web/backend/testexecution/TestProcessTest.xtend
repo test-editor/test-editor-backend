@@ -1,5 +1,9 @@
 package org.testeditor.web.backend.testexecution
 
+import com.google.common.base.Charsets
+import com.google.common.io.FileWriteMode
+import com.google.common.io.Files
+import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
@@ -323,6 +327,121 @@ class TestProcessTest {
 		assertThat(descendants).allSatisfy[
 			assertThat(alive).isFalse
 		]
+	}
+	
+	@Test
+	def void onCompleteIsCalledAfterProcessHasBeenFullyTerminated() {
+		// given
+		val outFile = testScripts.newFile('testout')
+		
+		val processFile = testScripts.newFile('parentProcess.sh')
+		FileUtils.write(processFile, '''
+		#!/bin/sh
+		trap bye 15
+		
+		bye() {
+			echo "parent process is terminating"
+			sleep 1
+			echo "still alive, but will die shortly :(" >> «outFile.absolutePath»
+			exit 0
+		}
+		
+		while true
+		do
+			echo "still alive!" >> «outFile.absolutePath»
+			sleep 0.1
+		done
+		''', StandardCharsets.UTF_8)
+		
+		processFile.executable = true
+		val runningProcess = new ProcessBuilder(#[processFile.absolutePath]).inheritIO.start
+		runningProcess.waitFor(250, TimeUnit.MILLISECONDS)
+		assertThat(runningProcess.alive).isTrue
+		
+		val testProcessUnderTest = new TestProcess(runningProcess)[
+			try {
+				Files.asCharSink(outFile, Charsets.UTF_8, FileWriteMode.APPEND).write('>>>> Interference! <<<<')
+			} catch (IOException exception) {
+			    fail('could not write to process output file', exception)
+			}
+		]
+		
+		// when
+		testProcessUnderTest.kill
+		
+		// then
+		Thread.sleep(2000) // give process some time to handle kill signal
+		val linesAfterProcessTerminated = Files.asCharSource(outFile, Charsets.UTF_8).readLines.dropWhile[startsWith('still alive')]
+		assertThat(linesAfterProcessTerminated.size).isEqualTo(1)
+		assertThat(linesAfterProcessTerminated.head).isEqualTo('>>>> Interference! <<<<')
+		
+	}
+	
+	@Test
+	def void onCompleteIsCalledAfterChildProcessHasBeenFullyTerminated() {
+		// given
+		val outFile = testScripts.newFile('testout')
+		
+		val childProcessFile = testScripts.newFile('childProcess.sh')
+		FileUtils.write(childProcessFile, '''
+		#!/bin/sh
+		trap bye 15
+		
+		bye() {
+			echo "child process is terminating"
+			sleep 1
+			echo "still alive, but will die shortly (child)" >> «outFile.absolutePath»
+			exit 0
+		}
+		
+		while true
+		do
+			echo "still alive (child)" >> «outFile.absolutePath»
+			sleep 0.1
+		done
+		''', StandardCharsets.UTF_8)
+		val parentProcessFile = testScripts.newFile('parentProcess.sh')
+		FileUtils.write(parentProcessFile, '''
+		#!/bin/sh
+		trap bye 15
+		
+		bye() {
+			echo "parent process is terminating"
+			sleep 1
+			echo "still alive, but will die shortly (parent)" >> «outFile.absolutePath»
+			exit 0
+		}
+		
+		«childProcessFile.absolutePath» &
+		while true
+		do
+			echo "still alive (parent)" >> «outFile.absolutePath»
+			sleep 0.1
+		done
+		''', StandardCharsets.UTF_8)
+		parentProcessFile.executable = true
+		childProcessFile.executable = true
+		val runningProcess = new ProcessBuilder(#[parentProcessFile.absolutePath]).inheritIO.start
+		runningProcess.waitFor(250, TimeUnit.MILLISECONDS)
+		assertThat(runningProcess.alive).isTrue
+		
+		val testProcessUnderTest = new TestProcess(runningProcess)[
+			try {
+				Files.asCharSink(outFile, Charsets.UTF_8, FileWriteMode.APPEND).writeLines(#['>>>> Interference! <<<<'])
+			} catch (IOException exception) {
+			    fail('could not write to process output file', exception)
+			}
+		]
+		
+		// when
+		testProcessUnderTest.kill
+		
+		// then
+		Thread.sleep(2000) // give process some time to handle kill signal
+		val linesAfterProcessTerminated = Files.asCharSource(outFile, Charsets.UTF_8).readLines.dropWhile[startsWith('still alive')]
+		assertThat(linesAfterProcessTerminated.last).isEqualTo('>>>> Interference! <<<<')
+		assertThat(linesAfterProcessTerminated.size).isEqualTo(1)
+		
 	}
 
 	private def Process thatIsRunning(Process mockProcess) {
