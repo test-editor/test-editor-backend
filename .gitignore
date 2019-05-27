@@ -33,6 +33,10 @@ xtend-gen/
 init.gradle
 config.local.yml
 /org.testeditor.web.backend.xtext/repo/
+start.*local.sh
 
 ### test executions ###
 xvfb.error.log
+
+### direnv generated scripts
+.direnv/
