@@ -1,6 +1,8 @@
 package org.testeditor.web.backend.testexecution
 
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import javax.inject.Inject
 import org.junit.Test
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
@@ -279,7 +281,7 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		statusMapperUnderTest.terminateTestSuiteRun(testSuiteKey)
 
 		// then
-		verify(runningProcess).destroy
+		verify(runningProcess.toHandle).destroy
 	}
 	
 	@Test
@@ -334,18 +336,38 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	
 	def private mockedRunningProcessThatWontDie() {
 		val testProcess = mockedRunningProcess
+		testProcess.addProcessHandle.thatWontDie
 		when(testProcess.destroyForcibly).thenReturn(testProcess)
 		when(testProcess.waitFor(anyLong, any(TimeUnit))).thenReturn(false)
 		return testProcess
 	}
 	
+	def private addProcessHandle(Process process) {
+		return mock(ProcessHandle) => [
+			when(process.toHandle).thenReturn(it)
+		]
+	}
+	
+	def private void thatWontDie(ProcessHandle processHandle) {
+		val processFuture = mock(CompletableFuture)
+		when(processFuture.get(anyLong, eq(TimeUnit.SECONDS))).thenThrow(TimeoutException)
+		when(processHandle.onExit).thenReturn(processFuture)
+	}
+	
 	def private mockedRunningThenKilledProcess() {
 		val testProcess = mock(Process)
+		testProcess.addProcessHandle.thatHasTerminated
 		when(testProcess.exitValue).thenReturn(129)
 		when(testProcess.waitFor).thenReturn(129)
 		when(testProcess.alive).thenReturn(true, false)
 		when(testProcess.waitFor(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)).thenReturn(true)
 		return testProcess
+	}
+	
+	def private void thatHasTerminated(ProcessHandle processHandle) {
+		val processFuture = mock(CompletableFuture)
+		when(processFuture.get(anyLong, eq(TimeUnit.SECONDS))).thenReturn(processHandle)
+		when(processHandle.onExit).thenReturn(processFuture)
 	}
 
 }
