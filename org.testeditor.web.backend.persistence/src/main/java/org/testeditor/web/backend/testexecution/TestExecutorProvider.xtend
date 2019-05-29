@@ -1,8 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
@@ -38,6 +36,8 @@ class TestExecutorProvider {
 	val String whichNice
 	val String whichSh
 	val String whichXvfbrun
+	
+    extension ShellUtil shell = new ShellUtil
 
 	@Inject WorkspaceProvider workspaceProvider
 
@@ -45,30 +45,6 @@ class TestExecutorProvider {
 		whichNice = runShellCommand('which', 'nice')
 		whichSh = runShellCommand('which', 'sh')
 		whichXvfbrun = runShellCommand('which', 'xvfb-run')
-	}
-
-	private def String runShellCommand(String ... commands) {
-		val processBuilder = new ProcessBuilder => [
-			command(commands)
-			redirectOutput
-		]
-		val process = processBuilder.start
-		val processOutput = new StringBuilder
-		var BufferedReader processOutputReader = null
-		try {
-			processOutputReader = new BufferedReader(new InputStreamReader(process.inputStream))
-			var String readLine
-			while ((readLine = processOutputReader.readLine) !== null) {
-				processOutput.append(readLine + System.lineSeparator)
-			}
-			process.waitFor
-		} finally {
-			if (processOutputReader !== null) {
-				processOutputReader.close
-			}
-		}
-
-		return processOutput.toString.trim
 	}
 
 	def ProcessBuilder testExecutionBuilder(String testCase) {
