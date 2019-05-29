@@ -19,6 +19,7 @@ import org.mockito.Mock
 import org.mockito.Mockito
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
+import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static org.assertj.core.api.Assertions.*
@@ -31,6 +32,7 @@ class TestExecutorTest extends AbstractPersistenceTest {
 	@InjectMocks TestExecutorProvider testExecutorProviderUnderTest
 
 	@Mock WorkspaceProvider workspaceProviderMock
+	@Mock PersistenceConfiguration config
 	@Mock Appender<ILoggingEvent> logAppender
 	@Captor ArgumentCaptor<LoggingEvent> logCaptor
 
