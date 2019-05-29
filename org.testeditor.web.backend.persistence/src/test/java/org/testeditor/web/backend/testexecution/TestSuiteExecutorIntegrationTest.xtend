@@ -9,7 +9,6 @@ import java.util.Map
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import javax.ws.rs.client.Entity
-import javax.ws.rs.client.Invocation.Builder
 import javax.ws.rs.core.GenericType
 import javax.ws.rs.core.MediaType
 import org.assertj.core.api.SoftAssertions
@@ -1021,30 +1020,6 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 		// then
 		val actualTestStatus = createTestRequest(testRun).get
 		assertThat(actualTestStatus.readEntity(String)).isEqualTo('FAILED')
-	}
-
-	private def Builder createCallTreeRequest(TestExecutionKey key) {
-		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»''')
-	}
-
-	private def Builder createLaunchNewRequest() {
-		return createRequest('''test-suite/launch-new''')
-	}
-
-	private def Builder createTestRequest(TestExecutionKey key) {
-		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»?status&wait''')
-	}
-
-	private def Builder createAsyncTestRequest(TestExecutionKey key) {
-		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»?status''')
-	}
-
-	private def Builder createNodeRequest(TestExecutionKey key) {
-		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»''')
-	}
-
-	private def Builder createNodeRequest(TestExecutionKey key, String queryParams) {
-		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»?«queryParams»''')
 	}
 
 }
