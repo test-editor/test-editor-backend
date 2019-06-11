@@ -18,6 +18,10 @@ class TestExecutionCallTreeTest extends AbstractTest {
 	TestExecutionCallTree testExecutionCallTreeUnderTest
 
 	val testRunCallTreeYaml = '''
+		"started": "2018-06-11T13:29:26.384Z"
+		"testSuiteId": "1"
+		"testSuiteRunId": "2"
+		"resourcePaths": [ "some/resource", "another/resource" ]
 		"testRuns":
 		- "source": "org.testeditor.Minimal"
 		  "testRunId": "5"
@@ -84,6 +88,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		          "children":
 		          "leave": "23859941254778"
 		          "status": "OK"
+		"status": "SUCCESS"
 	'''
 
 	@Test
@@ -111,6 +116,31 @@ class TestExecutionCallTreeTest extends AbstractTest {
 
 		// then
 		jsonString.matches('''.*"enter" *: *"23859940990735".*''').assertTrue
+	}
+
+	@Test
+	def void testJsonNodeRetrievalReturnsTestRunNode() {
+		// given
+		testExecutionCallTreeUnderTest.readString(new TestExecutionKey('1', '2'), testRunCallTreeYaml)
+
+		// when
+		val jsonString = testExecutionCallTreeUnderTest.getNodeJson(new TestExecutionKey('1', '2', '5'))
+
+		// then
+		jsonString.assertEquals('{"source":"org.testeditor.Minimal","testRunId":"5","commitId":"","started":"2018-06-11T13:29:26.384Z"}')
+	}
+
+	@Test
+	def void testJsonNodeRetrievalReturnsSuiteRunNode() {
+		// given
+		val key = new TestExecutionKey('1', '2')
+		testExecutionCallTreeUnderTest.readString(key, testRunCallTreeYaml)
+
+		// when
+		val jsonString = testExecutionCallTreeUnderTest.getNodeJson(key)
+
+		// then
+		jsonString.assertEquals('{"started":"2018-06-11T13:29:26.384Z","testSuiteId":"1","testSuiteRunId":"2","resourcePaths":["some/resource","another/resource"],"status":"SUCCESS"}')
 	}
 
 	@Test
@@ -142,7 +172,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 			.map[rootCallTreeKey.deriveWithCallTreeId(it)]
 		)
 	}
-	
+
 	@Test
 	def void testGetChildKeysOfInnerNode() {
 		// given
@@ -159,7 +189,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 			.map[rootCallTreeKey.deriveWithCallTreeId(it)]
 		)
 	}
-	
+
 	@Test
 	def void testGetChildKeysOfLeafNode() {
 		// given
@@ -173,7 +203,7 @@ class TestExecutionCallTreeTest extends AbstractTest {
 		// then
 		assertThat(actualKeys).isEmpty
 	}
-	
+
 	@Test
 	def void testGetChildKeysOfNonExistingNode() {
 		// given

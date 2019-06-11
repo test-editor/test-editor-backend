@@ -46,21 +46,7 @@ class TestExecutionCallTreeIllegalTest {
 				- "testRunId": "0"
 				  "children": 
 				  - "id": "ID7"
-			'''.toString, '1-2-0-ID8'],
-			// node key incomplete (needs all four ids)
-			#['1-2', '''
-				testRuns:
-				- "testRunId": "0"
-				  "children":
-				  - "id": "ID7"
-			'''.toString, '1-2-0'],
-			// node key incomplete (needs all four ids)
-			#['1-2', '''
-				testRuns:
-				- "testRunId": "0"
-				  "children":
-				  - "id": "ID7"
-			'''.toString, '1-2']
+			'''.toString, '1-2-0-ID8']
 		]
 	}
 

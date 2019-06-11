@@ -42,6 +42,15 @@ import javax.ws.rs.DELETE
 class TestSuiteResource {
 
 	public static val LONG_POLLING_TIMEOUT_SECONDS = 5
+	
+	/**
+	 * If the client has no concept of test suites, i.e. there is always a
+	 * one-to-one relation between a test suite and a test case, this switch
+	 * will case the caseRunId to be ignored when test execution details are
+	 * requested. When details for a test case are requested, the details for
+	 * the test suite are returned instead.
+	 */
+	static val IDENTIFY_SUITE_AND_TEST_RUN = true //TODO make this properly configurable, or remove when not needed anymore
 	static val logger = LoggerFactory.getLogger(TestSuiteResource)
 
 	@Inject TestExecutorProvider executorProvider
@@ -53,15 +62,46 @@ class TestSuiteResource {
 	@Inject LogFinder logFinder
 
 	@GET
-	@Path("{suiteId}/{suiteRunId}/{caseRunId : ([^?/]+)?}/{callTreeId : ([^?/]+)?}")
+	@Path("details/{suiteId}/{suiteRunId}")
 	@Produces(MediaType.APPLICATION_JSON)
-	def Response testSuiteCalltreeNode(
+	def Response testSuiteRunDetails(
+		@PathParam("suiteId") String suiteId,
+		@PathParam("suiteRunId") String suiteRunId,
+		@QueryParam("logOnly") boolean logOnly,
+		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
+	) {
+		return getTestExecutionDetails(suiteId, suiteRunId, null, null, logOnly, logLevel)
+	}
+	
+	@GET
+	@Path("details/{suiteId}/{suiteRunId}/{caseRunId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	def Response testCaseRunDetails(
+		@PathParam("suiteId") String suiteId,
+		@PathParam("suiteRunId") String suiteRunId,
+		@PathParam("caseRunId") String caseRunId,
+		@QueryParam("logOnly") boolean logOnly,
+		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
+	) {
+		return getTestExecutionDetails(suiteId, suiteRunId, if (IDENTIFY_SUITE_AND_TEST_RUN) null else caseRunId, null, logOnly, logLevel)
+	}
+
+	@GET
+	@Path("details/{suiteId}/{suiteRunId}/{caseRunId}/{callTreeId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	def Response testCallTreeNodeDetails(
 		@PathParam("suiteId") String suiteId,
 		@PathParam("suiteRunId") String suiteRunId,
 		@PathParam("caseRunId") String caseRunId,
 		@PathParam("callTreeId") String callTreeId,
 		@QueryParam("logOnly") boolean logOnly,
 		@QueryParam("logLevel") @DefaultValue('TRACE') LogLevel logLevel
+	) {
+		return getTestExecutionDetails(suiteId, suiteRunId, caseRunId, callTreeId, logOnly, logLevel)
+	}
+
+	def Response getTestExecutionDetails(String suiteId, String suiteRunId, String caseRunId, String callTreeId,
+		boolean logOnly, LogLevel logLevel
 	) {
 		var response = Response.status(Status.NOT_FOUND).build
 		var executionKey = new TestExecutionKey(suiteId, suiteRunId)

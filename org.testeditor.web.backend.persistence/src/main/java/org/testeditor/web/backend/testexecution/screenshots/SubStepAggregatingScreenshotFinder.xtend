@@ -17,7 +17,7 @@ class SubStepAggregatingScreenshotFinder implements ScreenshotFinder {
 
 	override getScreenshotPathsForTestStep(TestExecutionKey key) {
 		var result = delegateFinder.getScreenshotPathsForTestStep(key)
-		if (result.nullOrEmpty) {
+		if (result.nullOrEmpty && !key.caseRunId.nullOrEmpty) {
 			val latestCallTree = executorProvider.getTestFiles(new TestExecutionKey(key.suiteId, key.suiteRunId)) //
 			.filter[name.endsWith('.yaml')].sortBy[name].last
 			callTree.readFile(key, latestCallTree)
