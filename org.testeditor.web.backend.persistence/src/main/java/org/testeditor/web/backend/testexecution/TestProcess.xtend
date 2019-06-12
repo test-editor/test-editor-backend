@@ -125,10 +125,12 @@ class TestProcess {
 		}
 	}
 
-	private def void markCompleted(int exitCode) {
-		this.process = null
-		this.status = exitCode.toTestStatus
-		this.onCompleted?.apply(this.status)
+	private synchronized def void markCompleted(int exitCode) {
+		if (this.process !== null) {
+			this.process = null
+			this.status = exitCode.toTestStatus
+			this.onCompleted?.apply(this.status)
+		}
 	}
 
 	private def TestStatus toTestStatus(int exitCode) {
