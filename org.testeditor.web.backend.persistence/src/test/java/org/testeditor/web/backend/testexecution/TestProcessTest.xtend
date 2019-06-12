@@ -7,7 +7,10 @@ import java.io.IOException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Collectors
+import java.util.stream.Stream
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.mutable.MutableBoolean
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
@@ -17,13 +20,13 @@ import org.junit.rules.TemporaryFolder
 
 import static java.nio.charset.StandardCharsets.UTF_8
 import static java.util.concurrent.TimeUnit.MILLISECONDS
+import static java.util.concurrent.TimeUnit.MINUTES
 import static java.util.concurrent.TimeUnit.SECONDS
 import static org.assertj.core.api.Assertions.assertThat
 import static org.assertj.core.api.Assertions.fail
 import static org.mockito.ArgumentMatchers.*
 import static org.mockito.Mockito.*
-import java.util.stream.Stream
-import java.util.concurrent.atomic.AtomicBoolean
+import org.assertj.core.api.SoftAssertions
 
 class TestProcessTest {
 
@@ -517,7 +520,10 @@ class TestProcessTest {
 		''', UTF_8)
 		FileUtils.write(processFile, '''
 			#!/bin/sh
-			«backgroundProcessFile.absolutePath» &
+			for i in {1..5}
+			do
+				«backgroundProcessFile.absolutePath» &
+			done
 			«childProcessFile.absolutePath»
 		''', UTF_8)
 		processFile.executable = true
@@ -525,9 +531,9 @@ class TestProcessTest {
 		backgroundProcessFile.executable = true
 		val runningProcess = new ProcessBuilder(#[processFile.absolutePath]).inheritIO.start
 		runningProcess.waitFor(250, MILLISECONDS)
-		assertThat(runningProcess.alive).isTrue
 		val processStatusMap = Stream.concat(Stream.of(runningProcess.toHandle), runningProcess.descendants).collect(Collectors.toMap([it], [alive]))
-		
+		assertThat(processStatusMap.values.forall[it]).isTrue
+
 		val onComplete = ([
 			onCompleteWasCalled.set(true)
 			processStatusMap.keySet.forEach[processStatusMap.put(it, alive)]
@@ -545,11 +551,82 @@ class TestProcessTest {
 		// when
 		executorService.schedule(waitForStatus, 1, SECONDS)
 		executorService.schedule([testProcessUnderTest.kill], 5, SECONDS)
-		executorService.awaitTermination(20, SECONDS)
+		executorService.awaitTermination(1, MINUTES)
 
 		// then
 		assertThat(onCompleteWasCalled.acquire).isTrue
 		assertThat(processStatusMap.values.forall[it]).isFalse
+	}
+
+	/**
+	 * main process spawns a child process that then spawns a background process
+	 */
+	@Test
+	def void doesNotCallOnCompleteBeforeAllNestedProcessesAreDead() {
+		// given
+		val onCompleteWasCalled = new AtomicInteger(0)
+		val processFile = testScripts.newFile('process.sh')
+		val childProcessFile = testScripts.newFile('childProcess.sh')
+		val backgroundProcessFile = testScripts.newFile('backgroundProcess.sh')
+
+		val infiniteLoop = '''
+		while true
+		do
+			sleep 1
+		done'''
+		FileUtils.write(backgroundProcessFile, '''
+			#!/bin/sh
+			trap '' 1 2 3 15 # ignore HUP, INT, QUIT, and TERM
+			
+			«infiniteLoop»
+		''', UTF_8)
+		FileUtils.write(childProcessFile, '''
+			#!/bin/sh
+			«backgroundProcessFile.absolutePath» &
+			«infiniteLoop»
+		''', UTF_8)
+		FileUtils.write(processFile, '''
+			#!/bin/sh
+			«childProcessFile.absolutePath»
+		''', UTF_8)
+		processFile.executable = true
+		childProcessFile.executable = true
+		backgroundProcessFile.executable = true
+		val runningProcess = new ProcessBuilder(#[processFile.absolutePath]).inheritIO.start
+		runningProcess.waitFor(250, MILLISECONDS)
+		val processStatusMap = Stream.concat(Stream.of(runningProcess.toHandle), runningProcess.descendants).collect(Collectors.toMap([it], [alive]))
+		assertThat(processStatusMap.values.forall[it]).isTrue
+
+		val onComplete = ([
+			if (onCompleteWasCalled.getAndIncrement < 1) {
+				processStatusMap.keySet.forEach[
+					val isAlive = alive
+					println('''Process «pid» is «IF isAlive»alive«ELSE»dead«ENDIF».''')
+					processStatusMap.put(it, isAlive)
+				]
+			}
+		] as Procedure1<? super TestStatus>)
+		val testProcessUnderTest = new TestProcess(runningProcess, onComplete)
+
+		val executorService = Executors.newScheduledThreadPool(2)
+		val Runnable waitForStatus = [
+			var status = TestStatus.RUNNING
+			do {
+				status = testProcessUnderTest.waitForStatus
+			} while (status == TestStatus.RUNNING)
+		]
+
+		// when
+		executorService.schedule(waitForStatus, 1, SECONDS)
+		executorService.schedule([testProcessUnderTest.kill], 5, SECONDS)
+		executorService.awaitTermination(20, SECONDS)
+
+		// then
+		new SoftAssertions => [
+			assertThat(onCompleteWasCalled.acquire).isEqualTo(1)
+			assertThat(processStatusMap.values.forall[!it]).isTrue // all processes are dead
+			assertAll
+		]
 	}
 
 	private def Process thatIsRunning(Process mockProcess) {
