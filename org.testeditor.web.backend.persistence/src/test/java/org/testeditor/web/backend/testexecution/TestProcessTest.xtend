@@ -6,6 +6,7 @@ import com.google.common.io.Files
 import java.io.IOException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -13,6 +14,7 @@ import java.util.stream.Collectors
 import java.util.stream.Stream
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.mutable.MutableBoolean
+import org.assertj.core.api.SoftAssertions
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1
 import org.junit.Rule
 import org.junit.Test
@@ -26,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat
 import static org.assertj.core.api.Assertions.fail
 import static org.mockito.ArgumentMatchers.*
 import static org.mockito.Mockito.*
-import org.assertj.core.api.SoftAssertions
 
 class TestProcessTest {
 
@@ -65,6 +66,7 @@ class TestProcessTest {
 	def void getStatusInitiallyReturnsRunning() {
 		// given
 		val aProcess = mock(Process).thatIsRunning
+		aProcess.mockHandle(true)
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
@@ -78,6 +80,7 @@ class TestProcessTest {
 	def void setCompletedAfterProcessTerminatedSuccessfullySetsStatusToSuccess() {
 		// given
 		val aProcess = mock(Process).thatTerminatedSuccessfully
+		aProcess.mockHandle(false)
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
@@ -91,6 +94,7 @@ class TestProcessTest {
 	def void setCompletedAfterProcessTerminatedUnsuccessfullySetsStatusToFailed() {
 		// given
 		val aProcess = mock(Process).thatTerminatedWithAnError
+		aProcess.mockHandle(false)
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
@@ -104,6 +108,7 @@ class TestProcessTest {
 	def void setCompletedWhileProcessIsStillRunningKeepsStatusOnRunning() {
 		// given
 		val aProcess = mock(Process).thatIsRunning
+		aProcess.mockHandle(true)
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
@@ -117,16 +122,23 @@ class TestProcessTest {
 	def void waitForStatusBlocksUntilProcessTerminates() {
 		// given
 		val aProcess = mock(Process)
+		val processFuture = mock(CompletableFuture)
+		when(processFuture.get(5, SECONDS)).thenReturn(true)
 		when(aProcess.alive).thenReturn(true).thenReturn(false)
 		when(aProcess.exitValue).thenReturn(0)
-		when(aProcess.waitFor(5, SECONDS)).thenReturn(true)
+		when(aProcess.descendants).thenAnswer[Stream.empty]
+		mock(ProcessHandle) => [ handle |
+			when(handle.alive).thenReturn(false)
+			when(handle.onExit).thenReturn(processFuture)
+			when(aProcess.toHandle).thenReturn(handle)
+		]
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
 		val actualStatus = testProcessUnderTest.waitForStatus
 
 		// then
-		verify(aProcess).waitFor(5, SECONDS)
+		verify(processFuture).get(5, SECONDS)
 
 		assertThat(actualStatus).isEqualTo(TestStatus.SUCCESS)
 	}
@@ -135,16 +147,24 @@ class TestProcessTest {
 	def void waitForStatusExecutesCallbackAfterProcessTerminatedSuccessfully() {
 		// given
 		val aProcess = mock(Process)
+		val processFuture = mock(CompletableFuture)
+		when(processFuture.get(5, SECONDS)).thenReturn(true)
 		when(aProcess.alive).thenReturn(true).thenReturn(false)
 		when(aProcess.exitValue).thenReturn(0)
 		when(aProcess.waitFor(5, SECONDS)).thenReturn(true)
+		when(aProcess.descendants).thenAnswer[Stream.empty]
+		mock(ProcessHandle) => [ handle |
+			when(handle.alive).thenReturn(false)
+			when(aProcess.toHandle).thenReturn(handle)
+			when(handle.onExit).thenReturn(processFuture)
+		]
 		val callbackExecuted = new MutableBoolean(false)
 		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
 
 		// when
 		testProcessUnderTest.waitForStatus
 
-		// then
+		// then		
 		assertThat(callbackExecuted.booleanValue).isTrue
 	}
 
@@ -152,9 +172,17 @@ class TestProcessTest {
 	def void waitForStatusExecutesCallbackAfterProcessTerminatedUnsuccessfully() {
 		// given
 		val aProcess = mock(Process)
+		val processFuture = mock(CompletableFuture)
+		when(processFuture.get(5, SECONDS)).thenReturn(true)
 		when(aProcess.alive).thenReturn(true).thenReturn(false)
 		when(aProcess.exitValue).thenReturn(1)
 		when(aProcess.waitFor(5, SECONDS)).thenReturn(true)
+		when(aProcess.descendants).thenAnswer[Stream.empty]
+		mock(ProcessHandle) => [ handle |
+			when(handle.alive).thenReturn(false)
+			when(handle.onExit).thenReturn(processFuture)
+			when(aProcess.toHandle).thenReturn(handle)
+		]
 		val callbackExecuted = new MutableBoolean(false)
 		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
 
@@ -169,9 +197,18 @@ class TestProcessTest {
 	def void getStatusCorrectAfterWaitForStatus() {
 		// given
 		val aProcess = mock(Process)
+		val processFuture = mock(CompletableFuture)
+		when(processFuture.get(5, SECONDS)).thenReturn(true)
 		when(aProcess.alive).thenReturn(true).thenReturn(false)
 		when(aProcess.exitValue).thenReturn(0)
-		when(aProcess.waitFor).thenReturn(0)
+		when(aProcess.waitFor(anyLong, any(TimeUnit))).thenReturn(true)
+
+		val processHandle = mock(ProcessHandle)
+		when(processHandle.alive).thenReturn(false)
+		when(processHandle.onExit).thenReturn(processFuture)
+		when(aProcess.toHandle).thenReturn(processHandle)
+		when(aProcess.descendants).thenAnswer[Stream.empty]
+
 		val testProcessUnderTest = new TestProcess(aProcess)
 		val waitForStatus = testProcessUnderTest.waitForStatus
 
@@ -186,9 +223,12 @@ class TestProcessTest {
 	def void waitForStatusDoesNotInteractWithTerminatedProcessAfterItWasMarkedCompleted() {
 		// given
 		val aProcess = mock(Process).thatTerminatedSuccessfully
+		val aProcessHandle = aProcess.mockHandle(false)
 		val testProcessUnderTest = new TestProcess(aProcess)
 		testProcessUnderTest.setCompleted
-		verify(aProcess).alive
+		verify(aProcess).toHandle
+		verify(aProcess).descendants
+		verify(aProcessHandle).alive
 		verify(aProcess).exitValue
 
 		// when
@@ -203,6 +243,7 @@ class TestProcessTest {
 		// given
 		val callbackExecuted = new MutableBoolean(false)
 		val aProcess = mock(Process).thatTerminatedSuccessfully
+		aProcess.mockHandle(false)
 		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
 
 		// when
@@ -217,6 +258,7 @@ class TestProcessTest {
 		// given
 		val callbackExecuted = new MutableBoolean(false)
 		val aProcess = mock(Process).thatTerminatedWithAnError
+		aProcess.mockHandle(false)
 		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
 
 		// when
@@ -260,6 +302,7 @@ class TestProcessTest {
 	def void killDoesNothingOnCompletedTestProcess() {
 		// given
 		val terminatedProcess = mock(Process).thatTerminatedSuccessfully
+		terminatedProcess.mockHandle(false)
 		val testProcessUnderTest = new TestProcess(terminatedProcess)
 		testProcessUnderTest.setCompleted
 
@@ -273,7 +316,17 @@ class TestProcessTest {
 	@Test
 	def void killLeavesTestProcessInFailedStatus() {
 		// given
-		val runningProcess = new ProcessBuilder(#['/bin/sh', '-c', '"while true; do sleep 1; done"']).start
+		val processFile = testScripts.newFile('process.sh')
+		FileUtils.write(processFile, '''
+			#!/bin/sh
+			while true
+			do
+				echo "alive!"
+				sleep 1
+			done
+		''', UTF_8)
+		processFile.executable = true
+		val runningProcess = new ProcessBuilder(#[processFile.absolutePath]).inheritIO.start
 		assertThat(runningProcess.alive).isTrue
 		val testProcessUnderTest = new TestProcess(runningProcess)
 
@@ -595,13 +648,13 @@ class TestProcessTest {
 		val runningProcess = new ProcessBuilder(#[processFile.absolutePath]).inheritIO.start
 		runningProcess.waitFor(250, MILLISECONDS)
 		val processStatusMap = Stream.concat(Stream.of(runningProcess.toHandle), runningProcess.descendants).collect(Collectors.toMap([it], [alive]))
-		assertThat(processStatusMap.values.forall[it]).isTrue
+		assertThat(processStatusMap.values.forall[it]).^as('all processes are alive').isTrue
 
 		val onComplete = ([
 			if (onCompleteWasCalled.getAndIncrement < 1) {
-				processStatusMap.keySet.forEach[
+				processStatusMap.keySet.forEach [
 					val isAlive = alive
-					println('''Process «pid» is «IF isAlive»alive«ELSE»dead«ENDIF».''')
+					println('''«Thread.currentThread.name» / onComplete: Process «pid» is «IF isAlive»alive«ELSE»dead«ENDIF».''')
 					processStatusMap.put(it, isAlive)
 				]
 			}
@@ -623,8 +676,8 @@ class TestProcessTest {
 
 		// then
 		new SoftAssertions => [
-			assertThat(onCompleteWasCalled.acquire).isEqualTo(1)
-			assertThat(processStatusMap.values.forall[!it]).isTrue // all processes are dead
+			assertThat(onCompleteWasCalled.acquire).^as('times onComplete was called').isEqualTo(1)
+			assertThat(processStatusMap.values.forall[!it]).^as('all processes were dead when onComplete was called').isTrue
 			assertAll
 		]
 	}
@@ -674,6 +727,14 @@ class TestProcessTest {
 		when(mockProcess.alive).thenReturn(false)
 		when(mockProcess.exitValue).thenReturn(1)
 		return mockProcess
+	}
+
+	private def ProcessHandle mockHandle(Process mockProcess, boolean alive) {
+		return mock(ProcessHandle) => [ handle |
+			when(handle.alive).thenReturn(alive)
+			when(mockProcess.toHandle).thenReturn(handle)
+			when(mockProcess.descendants).thenAnswer[Stream.empty]
+		]
 	}
 
 }

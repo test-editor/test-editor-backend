@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
+import java.util.LinkedList
 import java.util.List
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -26,9 +27,10 @@ class TestProcess {
 
 	static val logger = LoggerFactory.getLogger(TestProcess)
 
-	public static val DEFAULT_IDLE_TEST_PROCESS = new TestProcess()
-	public static val WAIT_TIMEOUT_SECONDS = 5
+	public static val TestProcess DEFAULT_IDLE_TEST_PROCESS = new TestProcess()
+	public static val int WAIT_TIMEOUT_SECONDS = TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS
 
+	val descendantsBeforeKill = <ProcessHandle>newLinkedList
 	var Process process
 	var TestStatus status
 	val (TestStatus)=>void onCompleted
@@ -53,37 +55,55 @@ class TestProcess {
 	}
 
 	def TestStatus getStatus() {
-		val processRef = this.process
-		if (processRef !== null && !processRef.alive) {
-			markCompleted(processRef.exitValue)
-		}
+		setCompleted
 		return status
 	}
 
 	def TestStatus waitForStatus() {
 		val processRef = this.process
-		if (processRef !== null && processRef.alive) {
-			if (processRef.waitFor(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-				processRef.exitValue.markCompleted
-			}
+		if (processRef !== null && testIsAlive) {
+			waitForAll(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 		}
 		return this.getStatus
 	}
 
-	def void setCompleted() {
-		val processRef = this.process
-		if (processRef !== null && !processRef.alive) {
-			markCompleted(processRef.exitValue)
+	// get all descendants and wait for them to terminate (onExit.get(...))
+	// or timeout. Returns true if all descendants terminate, and false as soon
+	// as a timeout occurs. In the worst case, this method waits the specified
+	// timeout times the number of descendant processes.
+	private def boolean waitForAll(long timeout, TimeUnit unit) {
+		return allProcesses[map[onExit]].dropWhile [
+			try {
+				get(timeout, unit)
+				true
+			} catch (TimeoutException ex) {
+				false
+			}
+		].empty
+	}
+
+	def synchronized void setCompleted() {
+		if (allProcesses[forall[!alive]]) {
+			if (process !== null) {
+				status = process.exitValue.toTestStatus
+				process = null
+				onCompleted?.apply(status)
+			}
 		}
 	}
 
 	def void kill() {
 		val processRef = this.process
 		if (processRef !== null) {
-			val subProcesses = processRef.descendants.collect(Collectors.toList)
-			subProcesses.kill
+			val descendants = synchronized (descendantsBeforeKill) {
+					if (descendantsBeforeKill.empty) {
+						descendantsBeforeKill.addAll(processRef.descendants.collect(Collectors.toList))
+					}
+					new LinkedList => [addAll(descendantsBeforeKill)]
+				}
+			descendants.kill
 			processRef.toHandle.kill
-			processRef.exitValue.markCompleted
+			setCompleted
 		}
 	}
 
@@ -108,7 +128,7 @@ class TestProcess {
 
 	private def void killForciblyIfNotDeadAfterTimeout(ProcessHandle handle) {
 		try {
-			handle.onExit.get(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+			handle.onExit.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 		} catch (TimeoutException timeout) {
 			logger.info('''timeout reached while waiting for process with PID «handle.pid» to die. Killing forcibly...''')
 			handle.killForcibly
@@ -125,11 +145,31 @@ class TestProcess {
 		}
 	}
 
-	private synchronized def void markCompleted(int exitCode) {
-		if (this.process !== null) {
-			this.process = null
-			this.status = exitCode.toTestStatus
-			this.onCompleted?.apply(this.status)
+	private def <T> T descendants((Iterable<ProcessHandle>)=>T action) {
+		return actOnProcesses(false, action)
+	}
+
+	private def <T> T allProcesses((Iterable<ProcessHandle>)=>T action) {
+		return actOnProcesses(true, action)
+	}
+
+	private def <T> T actOnProcesses(boolean withParent, (Iterable<ProcessHandle>)=>T action) {
+		val processRef = this.process
+
+		return synchronized (descendantsBeforeKill) {
+			val descendants = if (descendantsBeforeKill.empty) {
+					processRef?.descendants?.collect(Collectors.toList) ?: #[]
+				} else {
+					descendantsBeforeKill
+				}
+
+			val processes = if (withParent && processRef !== null) {
+					descendants + #[processRef.toHandle]
+				} else {
+					descendants
+				}
+
+			action.apply(processes)
 		}
 	}
 
@@ -139,6 +179,11 @@ class TestProcess {
 		} else {
 			return FAILED
 		}
+	}
+
+	private def boolean testIsAlive() {
+		val processRef = this.process
+		return processRef !== null && (processRef.alive || descendants[exists[alive]])
 	}
 
 }
