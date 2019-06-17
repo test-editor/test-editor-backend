@@ -190,7 +190,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	@Test
-	def void testThatSuccesssReturned() {
+	def void testThatSuccessIsReturned() {
 		// given
 		val testFile = 'test.tcl'
 		workspaceRoot.newFolder(userId)
@@ -851,7 +851,7 @@ class TestSuiteExecutorIntegrationTest extends AbstractPersistenceIntegrationTes
 	}
 
 	@Test
-	def void testThatequestIsReturnedEventuallyForLongRunningTests() {
+	def void testThatRequestIsReturnedEventuallyForLongRunningTests() {
 		// given
 		val testFile = 'test.tcl'
 		workspaceRoot.newFolder(userId)
