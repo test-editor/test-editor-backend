@@ -7,7 +7,6 @@ import java.io.IOException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.stream.Collectors
@@ -33,6 +32,8 @@ class TestProcessTest {
 
 	@Rule
 	public val TemporaryFolder testScripts = new TemporaryFolder
+	
+	extension TestProcessMocking = new TestProcessMocking
 
 	@Test
 	def void canCreateNewTestProcess() {
@@ -681,60 +682,4 @@ class TestProcessTest {
 			assertAll
 		]
 	}
-
-	private def Process thatIsRunning(Process mockProcess) {
-		when(mockProcess.alive).thenReturn(true)
-		when(mockProcess.exitValue).thenThrow(new IllegalThreadStateException())
-		return mockProcess
-	}
-
-	private def Process thatIsRunningAndThenForciblyDestroyed(Process mockProcess) {
-		val processHandle = mock(ProcessHandle)
-		val processFuture = mock(CompletableFuture)
-		when(processFuture.get(anyLong, eq(SECONDS))).thenReturn(processHandle)
-		when(processHandle.onExit).thenReturn(processFuture)
-		when(mockProcess.toHandle).thenReturn(processHandle)
-
-		when(mockProcess.alive).thenReturn(true, false)
-		when(mockProcess.destroyForcibly).thenReturn(mockProcess)
-		when(mockProcess.exitValue).thenReturn(129)
-		when(mockProcess.waitFor(1, SECONDS)).thenReturn(true)
-
-		return mockProcess
-	}
-
-	private def Process thatIsRunningAndWontDie(Process mockProcess) {
-		val processHandle = mock(ProcessHandle)
-		val processFuture = mock(CompletableFuture)
-		when(processFuture.get(anyLong, eq(SECONDS))).thenThrow(TimeoutException)
-		when(processHandle.onExit).thenReturn(processFuture)
-		when(mockProcess.toHandle).thenReturn(processHandle)
-
-		when(mockProcess.alive).thenReturn(true)
-		when(mockProcess.destroyForcibly).thenReturn(mockProcess)
-		when(mockProcess.exitValue).thenThrow(new IllegalThreadStateException())
-		when(mockProcess.waitFor(1, SECONDS)).thenReturn(false)
-		return mockProcess
-	}
-
-	private def Process thatTerminatedSuccessfully(Process mockProcess) {
-		when(mockProcess.alive).thenReturn(false)
-		when(mockProcess.exitValue).thenReturn(0)
-		return mockProcess
-	}
-
-	private def Process thatTerminatedWithAnError(Process mockProcess) {
-		when(mockProcess.alive).thenReturn(false)
-		when(mockProcess.exitValue).thenReturn(1)
-		return mockProcess
-	}
-
-	private def ProcessHandle mockHandle(Process mockProcess, boolean alive) {
-		return mock(ProcessHandle) => [ handle |
-			when(handle.alive).thenReturn(alive)
-			when(mockProcess.toHandle).thenReturn(handle)
-			when(mockProcess.descendants).thenAnswer[Stream.empty]
-		]
-	}
-
 }
