@@ -64,8 +64,8 @@ class ConsecutiveTestExecutionsWithChangesTest {
 
 		// then
 		val outputLines = IOUtils.readLines(secondProcess.inputStream, UTF_8)
-		val secondToLastLine = outputLines.get(outputLines.length-2)
-		assertThat(secondToLastLine).startsWith('BUILD SUCCESSFUL')
+		val lastLines = outputLines.drop(outputLines.length-10)
+		assertThat(lastLines).anyMatch[startsWith('BUILD SUCCESSFUL')]
 	}
 	
 	private def introduceChange(File workspace) {
