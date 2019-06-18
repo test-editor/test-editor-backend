@@ -71,7 +71,7 @@ class TestProcessTest {
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
-		val actualStatus = testProcessUnderTest.status
+		val actualStatus = testProcessUnderTest.checkStatus
 
 		// then
 		assertThat(actualStatus).isEqualTo(TestStatus.RUNNING)
@@ -85,10 +85,10 @@ class TestProcessTest {
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
-		testProcessUnderTest.setCompleted
+		val actualStatus = testProcessUnderTest.checkStatus
 
 		// then
-		assertThat(testProcessUnderTest.status).isEqualTo(TestStatus.SUCCESS)
+		assertThat(actualStatus).isEqualTo(TestStatus.SUCCESS)
 	}
 
 	@Test
@@ -99,10 +99,10 @@ class TestProcessTest {
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
-		testProcessUnderTest.setCompleted
+		val actualStatus = testProcessUnderTest.checkStatus
 
 		// then
-		assertThat(testProcessUnderTest.status).isEqualTo(TestStatus.FAILED)
+		assertThat(actualStatus).isEqualTo(TestStatus.FAILED)
 	}
 
 	@Test
@@ -113,10 +113,10 @@ class TestProcessTest {
 		val testProcessUnderTest = new TestProcess(aProcess)
 
 		// when
-		testProcessUnderTest.setCompleted
+		val actualStatus = testProcessUnderTest.checkStatus
 
 		// then
-		assertThat(testProcessUnderTest.status).isEqualTo(TestStatus.RUNNING)
+		assertThat(actualStatus).isEqualTo(TestStatus.RUNNING)
 	}
 
 	@Test
@@ -129,7 +129,7 @@ class TestProcessTest {
 		when(aProcess.exitValue).thenReturn(0)
 		when(aProcess.descendants).thenAnswer[Stream.empty]
 		mock(ProcessHandle) => [ handle |
-			when(handle.alive).thenReturn(false)
+			when(handle.alive).thenReturn(true).thenReturn(false)
 			when(handle.onExit).thenReturn(processFuture)
 			when(aProcess.toHandle).thenReturn(handle)
 		]
@@ -214,7 +214,7 @@ class TestProcessTest {
 		val waitForStatus = testProcessUnderTest.waitForStatus
 
 		// when
-		val actualStatus = testProcessUnderTest.status
+		val actualStatus = testProcessUnderTest.checkStatus
 
 		// then
 		assertThat(actualStatus).isEqualTo(waitForStatus).isEqualTo(TestStatus.SUCCESS)
@@ -226,7 +226,7 @@ class TestProcessTest {
 		val aProcess = mock(Process).thatTerminatedSuccessfully
 		val aProcessHandle = aProcess.mockHandle(false)
 		val testProcessUnderTest = new TestProcess(aProcess)
-		testProcessUnderTest.setCompleted
+		testProcessUnderTest.checkStatus
 		verify(aProcess).toHandle
 		verify(aProcess).descendants
 		verify(aProcessHandle).alive
@@ -248,7 +248,7 @@ class TestProcessTest {
 		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
 
 		// when
-		testProcessUnderTest.setCompleted
+		testProcessUnderTest.checkStatus
 
 		// then
 		assertThat(callbackExecuted.booleanValue).isTrue
@@ -263,7 +263,7 @@ class TestProcessTest {
 		val testProcessUnderTest = new TestProcess(aProcess)[callbackExecuted.setTrue]
 
 		// when
-		testProcessUnderTest.setCompleted
+		testProcessUnderTest.checkStatus
 
 		// then
 		assertThat(callbackExecuted.booleanValue).isTrue
@@ -305,7 +305,7 @@ class TestProcessTest {
 		val terminatedProcess = mock(Process).thatTerminatedSuccessfully
 		terminatedProcess.mockHandle(false)
 		val testProcessUnderTest = new TestProcess(terminatedProcess)
-		testProcessUnderTest.setCompleted
+		testProcessUnderTest.checkStatus
 
 		// when
 		testProcessUnderTest.kill
@@ -335,7 +335,7 @@ class TestProcessTest {
 		testProcessUnderTest.kill
 
 		// then
-		assertThat(testProcessUnderTest.status).isEqualTo(TestStatus.FAILED)
+		assertThat(testProcessUnderTest.checkStatus).isEqualTo(TestStatus.FAILED)
 	}
 
 	@Test

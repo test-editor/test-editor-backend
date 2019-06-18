@@ -54,17 +54,63 @@ class TestProcess {
 		this.onCompleted = []
 	}
 
-	def TestStatus getStatus() {
-		setCompleted
+	/**
+	 * Checks the current execution status of this test process and returns it
+	 * immediately.
+	 * This method checks if the corresponding operating system process and its
+	 * subprocesses have all terminated, and if so, updates the status
+	 * accordingly, before returning it.
+	 */
+	def TestStatus checkStatus() {
+		updateStatusIfAllProcessesTerminated
 		return status
 	}
-
+	
+	/**
+	 * If this test process is still running, waits for its termination no
+	 * longer than {@link #WAIT_TIMEOUT_SECONDS}. Returns {@link #checkStatus()}
+	 * as soon as the test process terminates, or after the timeout.
+	 */
 	def TestStatus waitForStatus() {
-		val processRef = this.process
-		if (processRef !== null && testIsAlive) {
+		if (process !== null && testIsAlive) {
 			waitForAll(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 		}
-		return this.getStatus
+		return this.checkStatus
+	}
+
+	/** Terminates this test process.
+	 * Sends kill signals to all operating system processes belonging to this
+	 * test process, waiting for each to either terminate on its own, or killing
+	 * them forcefully after a timeout.
+	 * 
+	 * Note: this is obviously not an atomic operation. In particular, the
+	 * {@link #process parent process} may already be dead, and show as having
+	 * no descendants, even though some sub-processes that were sent into the
+	 * background are still running.
+	 */
+	def void kill() {
+		val processRef = this.process
+		if (processRef !== null) {
+			val descendants = synchronized (descendantsBeforeKill) {
+					if (descendantsBeforeKill.empty) {
+						descendantsBeforeKill.addAll(processRef.descendants.collect(Collectors.toList))
+					}
+					new LinkedList => [addAll(descendantsBeforeKill)]
+				}
+			descendants.kill
+			processRef.toHandle.kill
+			updateStatusIfAllProcessesTerminated
+		}
+	}
+
+	private def synchronized void updateStatusIfAllProcessesTerminated() {
+		if (!testIsAlive) {
+			if (process !== null) {
+				status = process.exitValue.toTestStatus
+				process = null
+				onCompleted?.apply(status)
+			}
+		}
 	}
 
 	// get all descendants and wait for them to terminate (onExit.get(...))
@@ -80,31 +126,6 @@ class TestProcess {
 				false
 			}
 		].empty
-	}
-
-	def synchronized void setCompleted() {
-		if (allProcesses[forall[!alive]]) {
-			if (process !== null) {
-				status = process.exitValue.toTestStatus
-				process = null
-				onCompleted?.apply(status)
-			}
-		}
-	}
-
-	def void kill() {
-		val processRef = this.process
-		if (processRef !== null) {
-			val descendants = synchronized (descendantsBeforeKill) {
-					if (descendantsBeforeKill.empty) {
-						descendantsBeforeKill.addAll(processRef.descendants.collect(Collectors.toList))
-					}
-					new LinkedList => [addAll(descendantsBeforeKill)]
-				}
-			descendants.kill
-			processRef.toHandle.kill
-			setCompleted
-		}
 	}
 
 	private def void kill(ProcessHandle handle) {
@@ -145,14 +166,23 @@ class TestProcess {
 		}
 	}
 
-	private def <T> T descendants((Iterable<ProcessHandle>)=>T action) {
-		return actOnProcesses(false, action)
+	private def boolean testIsAlive() {
+		return allProcesses[exists[alive]]
 	}
 
 	private def <T> T allProcesses((Iterable<ProcessHandle>)=>T action) {
 		return actOnProcesses(true, action)
 	}
 
+	// gets a list of all descendant processes, and optionally the parent process,
+	// and performs the provided action on it.
+	// Any action that requires access to the descendant processes must go through
+	// this method.
+	//
+	// It synchronizes on descendantsBeforeKill, retrieving that list if it is
+	// not empty, i.e. a kill request has been received. As soon as killing the
+	// operating system processes corresponding to this test process has commenced,
+	// retrieving the descendant processes from the parent is not reliable anymore.
 	private def <T> T actOnProcesses(boolean withParent, (Iterable<ProcessHandle>)=>T action) {
 		val processRef = this.process
 
@@ -180,12 +210,6 @@ class TestProcess {
 			return FAILED
 		}
 	}
-
-	private def boolean testIsAlive() {
-		val processRef = this.process
-		return processRef !== null && (processRef.alive || descendants[exists[alive]])
-	}
-
 }
 
 class UnresponsiveTestProcessException extends RuntimeException {
