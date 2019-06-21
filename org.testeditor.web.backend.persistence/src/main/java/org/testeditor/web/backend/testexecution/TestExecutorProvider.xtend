@@ -1,17 +1,17 @@
 package org.testeditor.web.backend.testexecution
 
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.HashMap
 import javax.inject.Inject
 import org.apache.commons.text.StringEscapeUtils
 import org.slf4j.LoggerFactory
+import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static extension org.apache.commons.io.FileUtils.deleteDirectory
@@ -30,45 +30,40 @@ class TestExecutorProvider {
 	public static val CALL_TREE_YAML_COMMIT_ID = 'TE_CALL_TREE_YAML_COMMIT_ID'
 	public static val LOG_FOLDER = 'logs' // log files will be created here
 	public static val TESTRUN_COMMITID = 'TE_TESTRUNCOMMITID'
-	
+
 	static val TEST_SUITE_INIT_FILE_NAME = 'testsuite.init.gradle'
 	static val JAVA_TEST_SOURCE_PREFIX = 'src/test/java'
 	static val TEST_CASE_FILE_SUFFIX = 'tcl'
 
-	val String whichNice
-	val String whichSh
-	val String whichXvfbrun
+	val commandPaths = new HashMap<String, String>();
+
+    extension ShellUtil shell = new ShellUtil
 
 	@Inject WorkspaceProvider workspaceProvider
+	@Inject PersistenceConfiguration configuration
 
-	new() {
-		whichNice = runShellCommand('which', 'nice')
-		whichSh = runShellCommand('which', 'sh')
-		whichXvfbrun = runShellCommand('which', 'xvfb-run')
+	private def String getWhichNice() {
+		return commandPaths.computeIfAbsent('nice')[configuration.nicePath.getIfPresentOrElse[runShellCommand('which', 'nice')]]
 	}
 
-	private def String runShellCommand(String ... commands) {
-		val processBuilder = new ProcessBuilder => [
-			command(commands)
-			redirectOutput
-		]
-		val process = processBuilder.start
-		val processOutput = new StringBuilder
-		var BufferedReader processOutputReader = null
-		try {
-			processOutputReader = new BufferedReader(new InputStreamReader(process.inputStream))
-			var String readLine
-			while ((readLine = processOutputReader.readLine) !== null) {
-				processOutput.append(readLine + System.lineSeparator)
-			}
-			process.waitFor
-		} finally {
-			if (processOutputReader !== null) {
-				processOutputReader.close
-			}
-		}
+	private def String getWhichSh() {
+		return commandPaths.computeIfAbsent('sh')[configuration.nicePath.getIfPresentOrElse[runShellCommand('which', 'sh')]]
+	}
 
-		return processOutput.toString.trim
+	private def String getWhichXvfbrun() {
+		return commandPaths.computeIfAbsent('xvfbrun')[configuration.nicePath.getIfPresentOrElse[runShellCommand('which', 'xvfb-run')]]
+	}
+
+	private def <T> T getOrDefault(T value, (T)=>Boolean condition, ()=>T defaultValue) {
+		return if (condition.apply(value)) {
+			value
+		} else {
+			defaultValue.apply
+		}
+	}
+
+	private def String getIfPresentOrElse(String value, ()=>String defaultValue) {
+		return value.getOrDefault([!nullOrEmpty], defaultValue)
 	}
 
 	def ProcessBuilder testExecutionBuilder(String testCase) {
@@ -89,7 +84,7 @@ class TestExecutorProvider {
 
 		return processBuilder
 	}
-	
+
 	private def cleanBuildDir(File workingDir) {
 		return new File(workingDir, 'build') => [
 			if (exists) {
@@ -101,7 +96,7 @@ class TestExecutorProvider {
 
 	private def ensureBuildingToolsInPlace(File workingDir) {
 		val buildFolder = workingDir.cleanBuildDir
-		
+
 		val testSuiteGradleInit = new File(buildFolder, TEST_SUITE_INIT_FILE_NAME)
 		Files.write(testSuiteGradleInit.toPath, '''
 			allprojects {
@@ -112,19 +107,19 @@ class TestExecutorProvider {
 			    for (def testcase:System.props.get("tests").split(';')) {
 			        task "testTask${taskNum+1}" (type: Test) {
 			        	if (System.props.get("skipUnchanged") == null) {
-			            	outputs.upToDateWhen { false }
-			            }
-			            environment "TE_TESTCASENAME", "${testcase}"
-			            environment "TE_SUITERUNID", "${System.props.get('TE_SUITERUNID')}"
-			            environment "TE_SUITEID", "${System.props.get('TE_SUITEID')}"
-			            environment "TE_TESTRUNID", "${taskNum}"
-			            environment "TE_TESTRUNCOMMITID", "${System.props.get('TE_TESTRUNCOMMITID')}"
-
+			        	   	outputs.upToDateWhen { false }
+			        	   }
+			        	   environment "TE_TESTCASENAME", "${testcase}"
+			        	   environment "TE_SUITERUNID", "${System.props.get('TE_SUITERUNID')}"
+			        	   environment "TE_SUITEID", "${System.props.get('TE_SUITEID')}"
+			        	   environment "TE_TESTRUNID", "${taskNum}"
+			        	   environment "TE_TESTRUNCOMMITID", "${System.props.get('TE_TESTRUNCOMMITID')}"
+			
 			            taskNum++
 			            if (taskNum != 1) {
-			                dependsOn "testTask${taskNum-1}"
+			    dependsOn "testTask${taskNum-1}"
 			            }
-
+			
 			            include "${testcase}.class"
 			            testLogging.showStandardStreams = true
 			            testLogging.exceptionFormat = 'full'
@@ -148,8 +143,7 @@ class TestExecutorProvider {
 		'''.toString.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
 	}
 
-	def ProcessBuilder testExecutionBuilder(TestExecutionKey executionKey, Iterable<String> testCases,
-		String commitId) {
+	def ProcessBuilder testExecutionBuilder(TestExecutionKey executionKey, Iterable<String> testCases, String commitId) {
 		val workingDir = workspaceProvider.workspace.absoluteFile
 		workingDir.ensureBuildingToolsInPlace
 		val testRunDateString = createTestRunDateString
@@ -214,13 +208,13 @@ class TestExecutorProvider {
 	}
 
 	private def String toTestClassName(String fileName) {
-		return fileName.replaceAll('''«JAVA_TEST_SOURCE_PREFIX»/''', '').replaceAll('''.«TEST_CASE_FILE_SUFFIX»$''',
-			'').replaceAll('/', '.')
+		return fileName.replaceAll('''«JAVA_TEST_SOURCE_PREFIX»/''', '').replaceAll('''.«TEST_CASE_FILE_SUFFIX»$''', '').replaceAll('/', '.')
 	}
 
 	private def String[] constructCommandLine(String testClass) {
 		if (System.getenv('TRAVIS').isNullOrEmpty) {
-			return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', testClass.gradleTestCommandLine]
+			return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c',
+				testClass.gradleTestCommandLine]
 		} else {
 			return #[whichSh, '-c', testClass.gradleTestCommandLine]
 		}
@@ -228,7 +222,8 @@ class TestExecutorProvider {
 
 	private def String[] constructCommandLine(TestExecutionKey key, Iterable<String> testCases) {
 		if (System.getenv('TRAVIS').isNullOrEmpty) {
-			return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c', key.gradleTestCommandLine(testCases)]
+			return #[whichNice, '-n', '10', whichXvfbrun, '-e', 'xvfb.error.log', '--server-args=-screen 0 1920x1080x16', whichSh, '-c',
+				key.gradleTestCommandLine(testCases)]
 		} else {
 			return #[whichSh, '-c', key.gradleTestCommandLine(testCases)]
 		}

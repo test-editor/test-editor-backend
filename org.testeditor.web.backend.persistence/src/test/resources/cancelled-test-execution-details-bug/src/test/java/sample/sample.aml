@@ -1,0 +1,15 @@
+package sample
+
+import org.testeditor.fixture.web.*
+import static org.testeditor.fixture.web.LocatorStrategy.ID
+
+interaction type sleep {
+	template = "sleep"
+	method = SampleFixture.sleep()
+}
+
+component type Lazy {
+	interactions = sleep
+}
+
+component Sloth is Lazy {}

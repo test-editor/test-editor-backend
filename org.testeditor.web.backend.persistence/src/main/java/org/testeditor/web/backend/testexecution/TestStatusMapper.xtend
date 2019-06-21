@@ -46,7 +46,7 @@ class TestStatusMapper {
 
 	def TestStatus getStatus(TestExecutionKey executionKey) {
 		if (suiteStatusMap.containsKey(executionKey)) {
-			return suiteStatusMap.get(executionKey).status
+			return suiteStatusMap.get(executionKey).checkStatus
 		} else {
 			return IDLE
 		}
@@ -79,7 +79,7 @@ class TestStatusMapper {
 		return this.suiteStatusMap.entrySet.map [ entry |
 			new TestSuiteStatusInfo => [
 				key = entry.key
-				status = entry.value.status.name
+				status = entry.value.checkStatus.name
 			]
 		]
 	}
@@ -96,7 +96,7 @@ class TestStatusMapper {
 
 	private def boolean isRunning(TestExecutionKey executionKey) {
 		val process = suiteStatusMap.getOrDefault(executionKey, TestProcess.DEFAULT_IDLE_TEST_PROCESS)
-		return process.status == RUNNING
+		return process.checkStatus == RUNNING
 	}
 
 }

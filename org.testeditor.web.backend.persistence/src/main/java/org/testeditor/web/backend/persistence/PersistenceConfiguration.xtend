@@ -36,6 +36,15 @@ class PersistenceConfiguration extends DropwizardApplicationConfiguration {
 	@Accessors
 	Boolean useDiffMarkersInBackups = false
 	
+	@Accessors
+	String xvfbrunPath
+	
+	@Accessors
+	String nicePath
+	
+	@Accessors
+	String shPath
+	
 	
 	/**
 	 * Whether to skip over log entries produced by subordinate test steps.

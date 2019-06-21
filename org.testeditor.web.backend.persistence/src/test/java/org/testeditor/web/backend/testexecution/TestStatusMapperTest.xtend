@@ -18,12 +18,14 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	static val EXIT_FAILURE = 1;
 
 	@Inject TestStatusMapper statusMapperUnderTest
+	
+	extension TestProcessMocking = new TestProcessMocking
 
 	@Test
 	def void addTestRunAddsTestInRunningStatus() {
 		// given
-		val testProcess = mock(Process)
-		when(testProcess.alive).thenReturn(true)
+		val testProcess = mock(Process).thatIsRunning
+		testProcess.mockHandle(true)
 		val testKey = new TestExecutionKey('a')
 
 		// when
@@ -36,9 +38,10 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void addTestRunThrowsExceptionWhenAddingRunningTestTwice() {
 		// given
-		val testProcess = mock(Process)
-		when(testProcess.alive).thenReturn(true)
-		val secondProcess = mock(Process)
+		val testProcess = mock(Process).thatIsRunning
+		val secondProcess = mock(Process).thatIsRunning
+		testProcess.mockHandle(true)
+		secondProcess.mockHandle(true)
 		val testKey = new TestExecutionKey('a')
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
@@ -56,14 +59,10 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void addTestRunSetsRunningStatusIfPreviousExecutionTerminated() {
 		// given
-		val testProcess = mock(Process)
-		val secondProcess = mock(Process)
+		val testProcess = mock(Process).thatTerminatedSuccessfully => [ mockHandle(false) ]
+		val secondProcess = mock(Process).thatIsRunning => [ mockHandle(true) ]
 		val testKey = new TestExecutionKey('a')
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
-		when(testProcess.waitFor).thenReturn(EXIT_SUCCESS)
-		when(testProcess.exitValue).thenReturn(EXIT_SUCCESS)
-		when(testProcess.alive).thenReturn(false)
-		when(secondProcess.alive).thenReturn(true)
 		assertThat(statusMapperUnderTest.getStatus(testKey)).isNotEqualTo(RUNNING)
 
 		// when
@@ -88,10 +87,8 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void getStatusReturnsRunningAsLongAsTestProcessIsAlive() {
 		// given
-		val testProcess = mock(Process)
+		val testProcess = mock(Process).thatIsRunning => [ mockHandle(true) ]
 		val testKey = new TestExecutionKey('a')
-		when(testProcess.alive).thenReturn(true)
-		when(testProcess.exitValue).thenThrow(new IllegalStateException("Process is still running"))
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
@@ -104,10 +101,8 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void getStatusReturnsSuccessAfterTestFinishedSuccessfully() {
 		// given
-		val testProcess = mock(Process)
+		val testProcess = mock(Process).thatTerminatedSuccessfully => [ mockHandle(false) ]
 		val testKey = new TestExecutionKey('a')
-		when(testProcess.exitValue).thenReturn(EXIT_SUCCESS)
-		when(testProcess.waitFor).thenReturn(EXIT_SUCCESS)
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
@@ -120,10 +115,8 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void getStatusReturnsFailureAfterTestFailed() {
 		// given
-		val testProcess = mock(Process)
+		val testProcess = mock(Process).thatTerminatedWithAnError => [ mockHandle(false) ]
 		val testKey = new TestExecutionKey('a')
-		when(testProcess.exitValue).thenReturn(EXIT_FAILURE)
-		when(testProcess.waitFor).thenReturn(EXIT_FAILURE)
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
@@ -163,11 +156,9 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void waitForStatusCallsBlockingWaitForMethodOfProcess() {
 		// given
-		val testProcess = mock(Process)
+		val testProcess = mock(Process).thatIsRunning
+		val future = testProcess.mockHandle(true).mockFuture(false)
 		val testKey = new TestExecutionKey('a')
-		when(testProcess.exitValue).thenReturn(0)
-		when(testProcess.waitFor(5, TimeUnit.SECONDS)).thenReturn(false)
-		when(testProcess.alive).thenReturn(true)
 
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
@@ -175,17 +166,14 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 		statusMapperUnderTest.waitForStatus(testKey)
 
 		// then
-		verify(testProcess).waitFor(5, TimeUnit.SECONDS)
+		verify(future).get(5, TimeUnit.SECONDS)
 	}
 
 	@Test
 	def void waitForStatusReturnsSuccessAfterTestFinishedSuccessfully() {
 		// given
-		val testProcess = mock(Process)
+		val testProcess = mock(Process).thatTerminatedWithExitCode(EXIT_SUCCESS) => [ mockHandle(false) ]
 		val testKey = new TestExecutionKey('a')
-		when(testProcess.exitValue).thenReturn(EXIT_SUCCESS)
-		when(testProcess.waitFor).thenReturn(EXIT_SUCCESS)
-		when(testProcess.alive).thenReturn(false)
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
@@ -198,10 +186,8 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	@Test
 	def void waitForStatusReturnsFailureAfterTestFailed() {
 		// given
-		val testProcess = mock(Process)
+		val testProcess = mock(Process).thatTerminatedWithExitCode(EXIT_FAILURE) => [ mockHandle(false) ]
 		val testKey = new TestExecutionKey('a')
-		when(testProcess.exitValue).thenReturn(EXIT_FAILURE)
-		when(testProcess.waitFor).thenReturn(EXIT_FAILURE)
 		statusMapperUnderTest.addTestSuiteRun(testKey, testProcess)
 
 		// when
@@ -238,13 +224,13 @@ class TestStatusMapperTest extends AbstractPersistenceTest {
 	def void getAllReturnsStatusOfAllTestsWithKnownStatus() {
 		// given
 		val failedTestKey = new TestExecutionKey('f')
-		val failedProcess = mockedTerminatedProcess(EXIT_FAILURE)
+		val failedProcess = mock(Process).thatTerminatedWithExitCode(EXIT_FAILURE) => [ mockHandle(false) ]
 
 		val successfulTestKey = new TestExecutionKey('s')
-		val successfulProcess = mockedTerminatedProcess(EXIT_SUCCESS)
+		val successfulProcess = mock(Process).thatTerminatedWithExitCode(EXIT_SUCCESS) => [ mockHandle(false) ]
 
 		val runningTestKey = new TestExecutionKey('r')
-		val runningProcess = mockedRunningProcess()
+		val runningProcess = mock(Process).thatIsRunning => [ mockHandle(true) ]
 
 		statusMapperUnderTest.addTestSuiteRun(failedTestKey, failedProcess)
 		statusMapperUnderTest.addTestSuiteRun(successfulTestKey, successfulProcess)

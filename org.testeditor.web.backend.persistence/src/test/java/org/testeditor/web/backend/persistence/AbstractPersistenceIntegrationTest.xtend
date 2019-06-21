@@ -18,6 +18,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
+import org.testeditor.web.backend.testexecution.TestExecutionKey
 
 import static io.dropwizard.testing.ConfigOverride.config
 
@@ -116,6 +117,31 @@ abstract class AbstractPersistenceIntegrationTest {
 		val builder = dropwizardAppRule.client.target(uri).request
 		builder.header('Authorization', '''Bearer «customToken»''')
 		return builder
+	}
+
+
+	protected def Builder createCallTreeRequest(TestExecutionKey key) {
+		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»''')
+	}
+
+	protected def Builder createLaunchNewRequest() {
+		return createRequest('''test-suite/launch-new''')
+	}
+
+	protected def Builder createTestRequest(TestExecutionKey key) {
+		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»?status&wait''')
+	}
+
+	protected def Builder createAsyncTestRequest(TestExecutionKey key) {
+		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»?status''')
+	}
+
+	protected def Builder createNodeRequest(TestExecutionKey key) {
+		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»''')
+	}
+
+	protected def Builder createNodeRequest(TestExecutionKey key, String queryParams) {
+		return createRequest('''test-suite/«key.suiteId»/«key.suiteRunId»/«key.caseRunId»/«key.callTreeId»?«queryParams»''')
 	}
 
 }

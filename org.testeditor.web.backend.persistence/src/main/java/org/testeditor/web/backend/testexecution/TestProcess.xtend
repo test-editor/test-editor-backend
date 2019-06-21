@@ -1,5 +1,6 @@
 package org.testeditor.web.backend.testexecution
 
+import java.util.LinkedList
 import java.util.List
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -26,9 +27,10 @@ class TestProcess {
 
 	static val logger = LoggerFactory.getLogger(TestProcess)
 
-	public static val DEFAULT_IDLE_TEST_PROCESS = new TestProcess()
-	public static val WAIT_TIMEOUT_SECONDS = 5
+	public static val TestProcess DEFAULT_IDLE_TEST_PROCESS = new TestProcess()
+	public static val int WAIT_TIMEOUT_SECONDS = TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS
 
+	val descendantsBeforeKill = <ProcessHandle>newLinkedList
 	var Process process
 	var TestStatus status
 	val (TestStatus)=>void onCompleted
@@ -52,39 +54,78 @@ class TestProcess {
 		this.onCompleted = []
 	}
 
-	def TestStatus getStatus() {
-		val processRef = this.process
-		if (processRef !== null && !processRef.alive) {
-			markCompleted(processRef.exitValue)
-		}
+	/**
+	 * Checks the current execution status of this test process and returns it
+	 * immediately.
+	 * This method checks if the corresponding operating system process and its
+	 * subprocesses have all terminated, and if so, updates the status
+	 * accordingly, before returning it.
+	 */
+	def TestStatus checkStatus() {
+		updateStatusIfAllProcessesTerminated
 		return status
 	}
-
+	
+	/**
+	 * If this test process is still running, waits for its termination no
+	 * longer than {@link #WAIT_TIMEOUT_SECONDS}. Returns {@link #checkStatus()}
+	 * as soon as the test process terminates, or after the timeout.
+	 */
 	def TestStatus waitForStatus() {
-		val processRef = this.process
-		if (processRef !== null && processRef.alive) {
-			if (processRef.waitFor(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-				processRef.exitValue.markCompleted
-			}
+		if (process !== null && testIsAlive) {
+			waitForAll(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 		}
-		return this.getStatus
+		return this.checkStatus
 	}
 
-	def void setCompleted() {
-		val processRef = this.process
-		if (processRef !== null && !processRef.alive) {
-			markCompleted(processRef.exitValue)
-		}
-	}
-
+	/** Terminates this test process.
+	 * Sends kill signals to all operating system processes belonging to this
+	 * test process, waiting for each to either terminate on its own, or killing
+	 * them forcefully after a timeout.
+	 * 
+	 * Note: this is obviously not an atomic operation. In particular, the
+	 * {@link #process parent process} may already be dead, and show as having
+	 * no descendants, even though some sub-processes that were sent into the
+	 * background are still running.
+	 */
 	def void kill() {
 		val processRef = this.process
 		if (processRef !== null) {
-			val subProcesses = processRef.descendants.collect(Collectors.toList)
-			subProcesses.kill
+			val descendants = synchronized (descendantsBeforeKill) {
+					if (descendantsBeforeKill.empty) {
+						descendantsBeforeKill.addAll(processRef.descendants.collect(Collectors.toList))
+					}
+					new LinkedList => [addAll(descendantsBeforeKill)]
+				}
+			descendants.kill
 			processRef.toHandle.kill
-			processRef.exitValue.markCompleted
+			updateStatusIfAllProcessesTerminated
 		}
+	}
+
+	private def synchronized void updateStatusIfAllProcessesTerminated() {
+		if (!testIsAlive) {
+			if (process !== null) {
+				status = process.exitValue.toTestStatus
+				process = null
+				onCompleted?.apply(status)
+			}
+		}
+	}
+
+	// get all descendants and wait for them to terminate (onExit.get(...))
+	// or timeout. Returns true if all descendants terminate, and false as soon
+	// as a timeout occurs. In the worst case, this method waits the specified
+	// timeout times the number of descendant processes.
+	private def boolean waitForAll(long timeout, TimeUnit unit) {
+		return allProcesses[map[onExit]].dropWhile [
+			try {
+				get(timeout, unit)
+				true
+			} catch (TimeoutException ex) {
+				false
+			}
+		].empty
 	}
 
 	private def void kill(ProcessHandle handle) {
@@ -108,7 +149,7 @@ class TestProcess {
 
 	private def void killForciblyIfNotDeadAfterTimeout(ProcessHandle handle) {
 		try {
-			handle.onExit.get(TestSuiteResource.LONG_POLLING_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+			handle.onExit.get(WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 		} catch (TimeoutException timeout) {
 			logger.info('''timeout reached while waiting for process with PID «handle.pid» to die. Killing forcibly...''')
 			handle.killForcibly
@@ -125,10 +166,41 @@ class TestProcess {
 		}
 	}
 
-	private def void markCompleted(int exitCode) {
-		this.process = null
-		this.status = exitCode.toTestStatus
-		this.onCompleted?.apply(this.status)
+	private def boolean testIsAlive() {
+		return allProcesses[exists[alive]]
+	}
+
+	private def <T> T allProcesses((Iterable<ProcessHandle>)=>T action) {
+		return actOnProcesses(true, action)
+	}
+
+	// gets a list of all descendant processes, and optionally the parent process,
+	// and performs the provided action on it.
+	// Any action that requires access to the descendant processes must go through
+	// this method.
+	//
+	// It synchronizes on descendantsBeforeKill, retrieving that list if it is
+	// not empty, i.e. a kill request has been received. As soon as killing the
+	// operating system processes corresponding to this test process has commenced,
+	// retrieving the descendant processes from the parent is not reliable anymore.
+	private def <T> T actOnProcesses(boolean withParent, (Iterable<ProcessHandle>)=>T action) {
+		val processRef = this.process
+
+		return synchronized (descendantsBeforeKill) {
+			val descendants = if (descendantsBeforeKill.empty) {
+					processRef?.descendants?.collect(Collectors.toList) ?: #[]
+				} else {
+					descendantsBeforeKill
+				}
+
+			val processes = if (withParent && processRef !== null) {
+					descendants + #[processRef.toHandle]
+				} else {
+					descendants
+				}
+
+			action.apply(processes)
+		}
 	}
 
 	private def TestStatus toTestStatus(int exitCode) {
@@ -138,7 +210,6 @@ class TestProcess {
 			return FAILED
 		}
 	}
-
 }
 
 class UnresponsiveTestProcessException extends RuntimeException {
