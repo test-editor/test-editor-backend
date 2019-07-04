@@ -1,11 +1,13 @@
 package org.testeditor.web.backend.testexecution.screenshots
 
+import java.io.File
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.regex.Pattern
 import javax.inject.Inject
+import javax.inject.Named
+import javax.inject.Provider
 import org.slf4j.LoggerFactory
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 
 import static java.nio.charset.StandardCharsets.UTF_8
@@ -14,7 +16,7 @@ import static extension java.nio.file.Files.*
 
 class TestArtifactRegistryScreenshotFinder implements ScreenshotFinder {
 
-	@Inject extension WorkspaceProvider
+	@Inject @Named("workspace") Provider<File> workspace
 
 	static val logger = LoggerFactory.getLogger(TestArtifactRegistryScreenshotFinder)
 
@@ -34,7 +36,7 @@ class TestArtifactRegistryScreenshotFinder implements ScreenshotFinder {
 	}
 
 	private def Path getArtifactRegistryPath() {
-		return workspace.absoluteFile.toPath.resolve(Paths.get(BASE_PATH))
+		return workspace.get.absoluteFile.toPath.resolve(Paths.get(BASE_PATH))
 	}
 
 	private def toPath(TestExecutionKey key) {

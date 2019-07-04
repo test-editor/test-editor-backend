@@ -5,7 +5,9 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.Appender
+import java.io.File
 import java.util.regex.Pattern
+import javax.inject.Provider
 import org.assertj.core.api.Condition
 import org.junit.Assert
 import org.junit.Before
@@ -20,7 +22,6 @@ import org.mockito.Mockito
 import org.slf4j.LoggerFactory
 import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static org.assertj.core.api.Assertions.*
 import static org.mockito.Mockito.*
@@ -31,14 +32,14 @@ class TestExecutorTest extends AbstractPersistenceTest {
 
 	@InjectMocks TestExecutorProvider testExecutorProviderUnderTest
 
-	@Mock WorkspaceProvider workspaceProviderMock
+	@Mock Provider<File> workspaceProviderMock
 	@Mock PersistenceConfiguration config
 	@Mock Appender<ILoggingEvent> logAppender
 	@Captor ArgumentCaptor<LoggingEvent> logCaptor
 
 	@Before
 	def void setupWorkspaceProviderMock() {
-		Mockito.when(workspaceProviderMock.workspace).thenReturn(temporaryFolder.root)
+		Mockito.when(workspaceProviderMock.get).thenReturn(temporaryFolder.root)
 	}
 
 	@Before
