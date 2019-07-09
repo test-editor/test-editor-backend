@@ -6,9 +6,9 @@ import javax.inject.Inject
 import javax.inject.Named
 import javax.inject.Provider
 import org.apache.commons.lang3.Validate
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
+import org.testeditor.web.backend.testexecution.TestExecutionConfiguration
 import org.testeditor.web.backend.testexecution.TestExecutionKey
+import org.testeditor.web.backend.testexecution.util.HierarchicalLineSkipper
 
 /**
  * Locates log files corresponding to test execution keys relying on file naming
@@ -22,7 +22,7 @@ class ScanningLogFinder implements LogFinder {
 	static val ILLEGAL_TEST_EXECUTION_KEY_MESSAGE = "Provided test execution key must contain a test suite id and a test suite run id. (Key was: '%s'.)"
 
 	@Inject @Named("workspace") Provider<File> workspaceProvider
-	@Inject extension PersistenceConfiguration
+	@Inject extension TestExecutionConfiguration
 	@Inject extension HierarchicalLineSkipper
 	@Inject extension LogFilter
 

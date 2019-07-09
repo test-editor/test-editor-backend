@@ -1,9 +1,9 @@
-package org.testeditor.web.backend.persistence.util
+package org.testeditor.web.backend.testexecution.util
 
 import java.util.function.Function
 import java.util.regex.Pattern
 import org.junit.Test
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper.EndMarkerRequest
+import org.testeditor.web.backend.testexecution.util.HierarchicalLineSkipper.EndMarkerRequest
 
 import static org.assertj.core.api.Assertions.*
 

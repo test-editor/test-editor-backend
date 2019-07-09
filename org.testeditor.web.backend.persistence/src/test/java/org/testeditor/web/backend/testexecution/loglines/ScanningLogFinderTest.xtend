@@ -13,9 +13,9 @@ import org.mockito.Mock
 import org.mockito.Spy
 import org.mockito.junit.MockitoJUnitRunner
 import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
-import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkipper
 import org.testeditor.web.backend.testexecution.TestExecutionKey
+import org.testeditor.web.backend.testexecution.util.HierarchicalLineSkipper
+import org.testeditor.web.backend.testexecution.util.RecursiveHierarchicalLineSkipper
 
 import static java.nio.charset.StandardCharsets.UTF_8
 import static org.assertj.core.api.Assertions.assertThat

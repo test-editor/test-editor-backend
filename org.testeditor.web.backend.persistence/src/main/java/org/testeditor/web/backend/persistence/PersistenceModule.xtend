@@ -5,8 +5,6 @@ import com.google.inject.Provides
 import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
-import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkipper
 import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionConfiguration
 import org.testeditor.web.backend.testexecution.loglines.Log4JDefaultFilter
@@ -15,6 +13,8 @@ import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.loglines.ScanningLogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 import org.testeditor.web.backend.testexecution.screenshots.SubStepAggregatingScreenshotFinder
+import org.testeditor.web.backend.testexecution.util.HierarchicalLineSkipper
+import org.testeditor.web.backend.testexecution.util.RecursiveHierarchicalLineSkipper
 
 import static com.google.inject.name.Names.named
 
