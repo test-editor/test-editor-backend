@@ -3,21 +3,19 @@ package org.testeditor.web.backend.testexecution
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import javax.inject.Inject
 import org.junit.Test
-import org.testeditor.web.backend.persistence.AbstractPersistenceTest
 
 import static org.assertj.core.api.Assertions.*
 import static org.mockito.ArgumentMatchers.*
 import static org.mockito.Mockito.*
 import static org.testeditor.web.backend.testexecution.TestStatus.*
 
-class TestStatusMapperTest extends AbstractPersistenceTest {
+class TestStatusMapperTest {
 
 	static val EXIT_SUCCESS = 0;
 	static val EXIT_FAILURE = 1;
 
-	@Inject TestStatusMapper statusMapperUnderTest
+	TestStatusMapper statusMapperUnderTest = new TestStatusMapper
 	
 	extension TestProcessMocking = new TestProcessMocking
 

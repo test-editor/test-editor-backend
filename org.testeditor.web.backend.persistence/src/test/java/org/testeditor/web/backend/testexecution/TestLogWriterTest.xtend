@@ -11,15 +11,17 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Spy
-import org.testeditor.web.backend.persistence.AbstractPersistenceTest
+import org.mockito.junit.MockitoJUnitRunner
 
 import static java.nio.charset.StandardCharsets.UTF_8
 import static org.mockito.Mockito.when
 
-class TestLogWriterTest extends AbstractPersistenceTest {
+@RunWith(MockitoJUnitRunner)
+class TestLogWriterTest {
 
 	@InjectMocks TestLogWriter writerUnderTest
 	@Spy MockExecutor executor

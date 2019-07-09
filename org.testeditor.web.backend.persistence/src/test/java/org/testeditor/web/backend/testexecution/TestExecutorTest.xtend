@@ -14,26 +14,27 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
+import org.mockito.junit.MockitoJUnitRunner
 import org.slf4j.LoggerFactory
-import org.testeditor.web.backend.persistence.AbstractPersistenceTest
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
 
 import static org.assertj.core.api.Assertions.*
 import static org.mockito.Mockito.*
 
-class TestExecutorTest extends AbstractPersistenceTest {
+@RunWith(MockitoJUnitRunner)
+class TestExecutorTest {
 
 	@Rule public val temporaryFolder = new TemporaryFolder
 
 	@InjectMocks TestExecutorProvider testExecutorProviderUnderTest
 
 	@Mock Provider<File> workspaceProviderMock
-	@Mock PersistenceConfiguration config
+	@Mock TestExecutionConfiguration config
 	@Mock Appender<ILoggingEvent> logAppender
 	@Captor ArgumentCaptor<LoggingEvent> logCaptor
 
