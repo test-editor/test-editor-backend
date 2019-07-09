@@ -12,7 +12,6 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Spy
 import org.mockito.junit.MockitoJUnitRunner
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 import org.testeditor.web.backend.testexecution.util.HierarchicalLineSkipper
 import org.testeditor.web.backend.testexecution.util.RecursiveHierarchicalLineSkipper
@@ -26,6 +25,7 @@ import static org.mockito.ArgumentMatchers.matches
 import static org.mockito.Mockito.when
 
 import static extension java.nio.file.Files.readAllLines
+import org.testeditor.web.backend.testexecution.TestExecutionConfiguration
 
 @RunWith(MockitoJUnitRunner)
 class ScanningLogFinderTest {
@@ -101,7 +101,7 @@ class ScanningLogFinderTest {
 	@Rule public val TemporaryFolder testRoot = new TemporaryFolder
 
 	@Mock Provider<File> mockWorkspace
-	@Mock PersistenceConfiguration mockConfig
+	@Mock TestExecutionConfiguration mockConfig
 	@Spy HierarchicalLineSkipper lineSkipper = new RecursiveHierarchicalLineSkipper
 	@Mock LogFilter mockLogFilter
 
