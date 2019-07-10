@@ -24,7 +24,7 @@ import static javax.ws.rs.core.Response.Status.*
 import static extension java.nio.file.Files.lines
 import static extension java.nio.file.Files.list
 
-class CancelledTestExecutionDetailsTest extends AbstractPersistenceIntegrationTest {
+class CancelledTestExecutionDetailsIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	static val WORKSPACE_DIR = 'src/test/resources/cancelled-test-execution-details-bug'
 
