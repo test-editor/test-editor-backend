@@ -1,7 +1,9 @@
 package org.testeditor.web.backend.testexecution.loglines
 
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
+import javax.inject.Provider
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -10,11 +12,9 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Spy
 import org.mockito.junit.MockitoJUnitRunner
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
-import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkipper
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
+import org.testeditor.web.backend.testexecution.util.HierarchicalLineSkipper
+import org.testeditor.web.backend.testexecution.util.RecursiveHierarchicalLineSkipper
 
 import static java.nio.charset.StandardCharsets.UTF_8
 import static org.assertj.core.api.Assertions.assertThat
@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.matches
 import static org.mockito.Mockito.when
 
 import static extension java.nio.file.Files.readAllLines
+import org.testeditor.web.backend.testexecution.TestExecutionConfiguration
 
 @RunWith(MockitoJUnitRunner)
 class ScanningLogFinderTest {
@@ -99,8 +100,8 @@ class ScanningLogFinderTest {
 
 	@Rule public val TemporaryFolder testRoot = new TemporaryFolder
 
-	@Mock WorkspaceProvider mockWorkspace
-	@Mock PersistenceConfiguration mockConfig
+	@Mock Provider<File> mockWorkspace
+	@Mock TestExecutionConfiguration mockConfig
 	@Spy HierarchicalLineSkipper lineSkipper = new RecursiveHierarchicalLineSkipper
 	@Mock LogFilter mockLogFilter
 
@@ -119,7 +120,7 @@ class ScanningLogFinderTest {
 		val arbitraryDateAndTime = '20180716111612603'
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
@@ -159,7 +160,7 @@ class ScanningLogFinderTest {
 		val arbitraryDateAndTime = '20180716111612603'
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
@@ -186,7 +187,7 @@ class ScanningLogFinderTest {
 		val arbitraryDateAndTime = '20180716111612603'
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
@@ -210,7 +211,7 @@ class ScanningLogFinderTest {
 		val arbitraryDateAndTime = '20180716111612603'
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(false)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
@@ -232,7 +233,7 @@ class ScanningLogFinderTest {
 		val arbitraryDateAndTime = '20180716111612603'
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
@@ -251,7 +252,7 @@ class ScanningLogFinderTest {
 		val arbitraryDateAndTime = '20180716111612603'
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
@@ -316,7 +317,7 @@ class ScanningLogFinderTest {
 		val arbitraryDateAndTime = '20180716111612603'
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(false)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
@@ -337,7 +338,7 @@ class ScanningLogFinderTest {
 		val arbitraryDateAndTime = '20180716111612603'
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(false)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)
@@ -359,7 +360,7 @@ class ScanningLogFinderTest {
 
 		when(mockConfig.filterTestSubStepsFromLogs).thenReturn(true)
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val logPath = testRoot.newFolder('logs').toPath
 		val logFile = logPath.resolve('''testrun.0-0--.«arbitraryDateAndTime».log''')
 		Files.copy(SAMPLE_LOG_FILE_PATH, logFile)

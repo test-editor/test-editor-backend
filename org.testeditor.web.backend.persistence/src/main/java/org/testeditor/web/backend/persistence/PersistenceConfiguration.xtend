@@ -4,9 +4,10 @@ import javax.inject.Singleton
 import org.eclipse.xtend.lib.annotations.Accessors
 import org.hibernate.validator.constraints.NotEmpty
 import org.testeditor.web.dropwizard.DropwizardApplicationConfiguration
+import org.testeditor.web.backend.testexecution.TestExecutionConfiguration
 
 @Singleton
-class PersistenceConfiguration extends DropwizardApplicationConfiguration {
+class PersistenceConfiguration extends DropwizardApplicationConfiguration implements TestExecutionConfiguration {
 	enum RepositoryConnectionMode { pullPush, pullOnly }
 
 	@NotEmpty

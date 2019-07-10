@@ -2,16 +2,21 @@ package org.testeditor.web.backend.persistence
 
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
+import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.ForkJoinPool
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
-import org.testeditor.web.backend.persistence.util.RecursiveHierarchicalLineSkipper
+import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
+import org.testeditor.web.backend.testexecution.TestExecutionConfiguration
 import org.testeditor.web.backend.testexecution.loglines.Log4JDefaultFilter
 import org.testeditor.web.backend.testexecution.loglines.LogFilter
 import org.testeditor.web.backend.testexecution.loglines.LogFinder
 import org.testeditor.web.backend.testexecution.loglines.ScanningLogFinder
 import org.testeditor.web.backend.testexecution.screenshots.ScreenshotFinder
 import org.testeditor.web.backend.testexecution.screenshots.SubStepAggregatingScreenshotFinder
+import org.testeditor.web.backend.testexecution.util.HierarchicalLineSkipper
+import org.testeditor.web.backend.testexecution.util.RecursiveHierarchicalLineSkipper
+
+import static com.google.inject.name.Names.named
 
 class PersistenceModule extends AbstractModule {
 
@@ -22,6 +27,8 @@ class PersistenceModule extends AbstractModule {
 			bind(LogFinder).to(ScanningLogFinder)
 			bind(HierarchicalLineSkipper).to(RecursiveHierarchicalLineSkipper)
 			bind(LogFilter).to(Log4JDefaultFilter)
+			bind(File).annotatedWith(named("workspace")).toProvider(WorkspaceProvider)
+			bind(TestExecutionConfiguration).to(PersistenceConfiguration)
 		]
 	}
 

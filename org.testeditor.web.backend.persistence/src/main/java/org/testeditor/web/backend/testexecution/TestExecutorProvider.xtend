@@ -9,10 +9,10 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.HashMap
 import javax.inject.Inject
+import javax.inject.Named
+import javax.inject.Provider
 import org.apache.commons.text.StringEscapeUtils
 import org.slf4j.LoggerFactory
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static extension org.apache.commons.io.FileUtils.deleteDirectory
 
@@ -39,8 +39,8 @@ class TestExecutorProvider {
 
     extension ShellUtil shell = new ShellUtil
 
-	@Inject WorkspaceProvider workspaceProvider
-	@Inject PersistenceConfiguration configuration
+	@Inject @Named("workspace") Provider<File> workspaceProvider
+	@Inject TestExecutionConfiguration configuration
 
 	private def String getWhichNice() {
 		return commandPaths.computeIfAbsent('nice')[configuration.nicePath.getIfPresentOrElse[runShellCommand('which', 'nice')]]
@@ -71,7 +71,7 @@ class TestExecutorProvider {
 		val testRunDateString = createTestRunDateString
 		val logFile = testClass.createNewLogFileName(testRunDateString)
 		val callTreeYamlFile = testClass.createNewCallTreeYamlFileName(testRunDateString)
-		val workingDir = workspaceProvider.workspace.absoluteFile
+		val workingDir = workspaceProvider.get.absoluteFile
 		val processBuilder = new ProcessBuilder => [
 			command(constructCommandLine(testClass))
 			directory(workingDir)
@@ -144,7 +144,7 @@ class TestExecutorProvider {
 	}
 
 	def ProcessBuilder testExecutionBuilder(TestExecutionKey executionKey, Iterable<String> testCases, String commitId) {
-		val workingDir = workspaceProvider.workspace.absoluteFile
+		val workingDir = workspaceProvider.get.absoluteFile
 		workingDir.ensureBuildingToolsInPlace
 		val testRunDateString = createTestRunDateString
 		val logFile = executionKey.createNewLogFileName(testRunDateString)
@@ -165,14 +165,14 @@ class TestExecutorProvider {
 
 	def Iterable<File> getTestFiles(String testCase) {
 		val testClass = testCase.testClass
-		val testPath = workspaceProvider.workspace.toPath.resolve(LOG_FOLDER)
+		val testPath = workspaceProvider.get.toPath.resolve(LOG_FOLDER)
 		val unfilteredtestFiles = testPath.toFile.listFiles
 		val testFiles = unfilteredtestFiles.filter[name.startsWith('''testrun-«testClass»-''')]
 		return testFiles
 	}
 
 	def Iterable<File> getTestFiles(TestExecutionKey executionKey) {
-		val testPath = workspaceProvider.workspace.toPath.resolve(LOG_FOLDER)
+		val testPath = workspaceProvider.get.toPath.resolve(LOG_FOLDER)
 		val unfilteredtestFiles = testPath.toFile.listFiles
 		val testFiles = unfilteredtestFiles.filter[name.startsWith('''testrun.«executionKey.toString».''')]
 		return testFiles
@@ -194,7 +194,7 @@ class TestExecutorProvider {
 			logger.error(errorMsg)
 			throw new IllegalArgumentException(errorMsg)
 		}
-		val testFile = workspaceProvider.workspace.toPath.resolve(testCase)
+		val testFile = workspaceProvider.get.toPath.resolve(testCase)
 		if (!testFile.toFile.exists) {
 			val errorMsg = '''File '«testCase»' does not exist'''
 			logger.error(errorMsg)

@@ -13,7 +13,7 @@ import org.testeditor.web.dropwizard.auth.User
 
 import static java.nio.charset.StandardCharsets.UTF_8
 
-class WorkspaceProvider {
+class WorkspaceProvider implements Provider<File> {
 
 	static val logger = LoggerFactory.getLogger(WorkspaceProvider)
 
@@ -37,6 +37,10 @@ class WorkspaceProvider {
 		} else {
 			return new File(config.localRepoFileRoot)
 		}
+	}
+
+	override get() {
+		return this.workspace 
 	}
 
 	def File getWorkspaceFile(String resourcePath) {
@@ -112,5 +116,4 @@ class WorkspaceProvider {
 			throw new MaliciousPathException(workspacePath, filePath, userProvider.get.name)
 		}
 	}
-
 }

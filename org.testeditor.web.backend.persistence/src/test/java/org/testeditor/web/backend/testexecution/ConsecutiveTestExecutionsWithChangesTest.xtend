@@ -1,6 +1,7 @@
 package org.testeditor.web.backend.testexecution
 
 import java.io.File
+import javax.inject.Provider
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.junit.After
@@ -10,8 +11,6 @@ import org.junit.runner.RunWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.MockitoJUnitRunner
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static java.nio.charset.StandardCharsets.UTF_8
 import static java.util.concurrent.TimeUnit.SECONDS
@@ -24,8 +23,8 @@ class ConsecutiveTestExecutionsWithChangesTest {
 	static val TESTFILE_PATH = 'src/test/java/sample/SampleTest.tcl'
 	static val BACKUP_FILE = new File('SampleTest.tcl.bak') 
 	
-	@Mock WorkspaceProvider mockWorkspaceProvider
-	@Mock PersistenceConfiguration mockConfig
+	@Mock Provider<File> mockWorkspaceProvider
+	@Mock TestExecutionConfiguration mockConfig
 	@InjectMocks TestExecutorProvider executorUnderTest
 	
 	@Before
@@ -48,7 +47,7 @@ class ConsecutiveTestExecutionsWithChangesTest {
 	def void consecutiveTestExecutionAfterChangeTest() {
 		// given
 		val workspace = new File(WORKSPACE_DIR)
-		when(mockWorkspaceProvider.workspace).thenReturn(workspace)
+		when(mockWorkspaceProvider.get).thenReturn(workspace)
 		val testClass = 'sample.SampleTest'
 		val firstTestKey = new TestExecutionKey('0', '0')
 		val secondTestKey = new TestExecutionKey('0', '1')	

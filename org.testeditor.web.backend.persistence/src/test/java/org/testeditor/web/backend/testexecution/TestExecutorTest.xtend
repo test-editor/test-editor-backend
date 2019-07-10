@@ -5,40 +5,42 @@ import ch.qos.logback.classic.Logger
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.LoggingEvent
 import ch.qos.logback.core.Appender
+import java.io.File
 import java.util.regex.Pattern
+import javax.inject.Provider
 import org.assertj.core.api.Condition
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
 import org.mockito.ArgumentCaptor
 import org.mockito.Captor
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
+import org.mockito.junit.MockitoJUnitRunner
 import org.slf4j.LoggerFactory
-import org.testeditor.web.backend.persistence.AbstractPersistenceTest
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 
 import static org.assertj.core.api.Assertions.*
 import static org.mockito.Mockito.*
 
-class TestExecutorTest extends AbstractPersistenceTest {
+@RunWith(MockitoJUnitRunner)
+class TestExecutorTest {
 
 	@Rule public val temporaryFolder = new TemporaryFolder
 
 	@InjectMocks TestExecutorProvider testExecutorProviderUnderTest
 
-	@Mock WorkspaceProvider workspaceProviderMock
-	@Mock PersistenceConfiguration config
+	@Mock Provider<File> workspaceProviderMock
+	@Mock TestExecutionConfiguration config
 	@Mock Appender<ILoggingEvent> logAppender
 	@Captor ArgumentCaptor<LoggingEvent> logCaptor
 
 	@Before
 	def void setupWorkspaceProviderMock() {
-		Mockito.when(workspaceProviderMock.workspace).thenReturn(temporaryFolder.root)
+		Mockito.when(workspaceProviderMock.get).thenReturn(temporaryFolder.root)
 	}
 
 	@Before

@@ -1,5 +1,7 @@
 package org.testeditor.web.backend.testexecution.screenshots
 
+import java.io.File
+import javax.inject.Provider
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -7,7 +9,6 @@ import org.junit.runner.RunWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.MockitoJUnitRunner
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 
 import static java.nio.charset.StandardCharsets.UTF_8
@@ -21,7 +22,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 
 	@Rule public val TemporaryFolder testRoot = new TemporaryFolder
 
-	@Mock WorkspaceProvider mockWorkspace
+	@Mock Provider<File> mockWorkspace
 
 	@InjectMocks
 	TestArtifactRegistryScreenshotFinder screenshotFinder
@@ -32,7 +33,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 		val key = new TestExecutionKey('0', '1', '2', '3')
 		val expectedScreenshotPath = 'screenshots/test4711/weird_name_for_a_screenshot.png'
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val testCasePath = testRoot.newFolder('.testexecution', 'artifacts', '0', '1', '2').toPath
 		val artifactRegistryFile = testCasePath.resolve('3.yaml')
 		artifactRegistryFile.write(#['''"screenshot": "«expectedScreenshotPath»"'''], UTF_8)
@@ -54,7 +55,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 			'screenshots/and/even/a-3rd-one.png'
 		]
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val testCasePath = testRoot.newFolder('.testexecution', 'artifacts', '0', '1', '2').toPath
 		val artifactRegistryFile = testCasePath.resolve('3.yaml')
 		artifactRegistryFile.write(expectedScreenshotPaths.map['''"screenshot": "«it»"'''], UTF_8)
@@ -75,7 +76,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 			'screenshots/and/even/a-3rd-one.png'
 		]
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 		val testCasePath = testRoot.newFolder('.testexecution', 'artifacts', '0', '1', '2').toPath
 		val artifactRegistryFile = testCasePath.resolve('3.yaml')
 		artifactRegistryFile.write(#[
@@ -94,7 +95,7 @@ class TestArtifactRegistryScreenshotFinderTest {
 		// given
 		val key = new TestExecutionKey('0', '1', '2', '3')
 
-		when(mockWorkspace.workspace).thenReturn(testRoot.root)
+		when(mockWorkspace.get).thenReturn(testRoot.root)
 
 		// when
 		val actualScreenshotPaths = screenshotFinder.getScreenshotPathsForTestStep(key)

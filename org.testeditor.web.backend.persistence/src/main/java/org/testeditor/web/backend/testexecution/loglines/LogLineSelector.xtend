@@ -1,10 +1,10 @@
 package org.testeditor.web.backend.testexecution.loglines
 
+import java.io.File
 import java.util.regex.Pattern
 import java.util.stream.Collectors
 import java.util.stream.Stream
 import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
 import org.testeditor.web.backend.testexecution.TestExecutionKey
 
 import static java.nio.charset.StandardCharsets.UTF_8
@@ -15,7 +15,7 @@ import static extension java.nio.file.Files.lines
 abstract class LogLineSelector {
 
 	protected val TestExecutionKey key
-	protected val extension WorkspaceProvider
+	protected val File workspace
 
 	final def String[] getRelevantLines() {
 		return key.getLogFile(workspace).lines(UTF_8).findStart.findEnd.collect(Collectors.toList)
@@ -44,12 +44,12 @@ class PatternBasedLogLineSelector extends LogLineSelector {
 	val Pattern compiledLeavePattern
 	val LogLineSelector preSelector
 
-	new(TestExecutionKey key, WorkspaceProvider workspaceProvider, String enterPattern, String leavePattern) {
-		this(key, workspaceProvider, enterPattern, leavePattern, new FullLogLineSelector(key, workspaceProvider))
+	new(TestExecutionKey key, File workspace, String enterPattern, String leavePattern) {
+		this(key, workspace, enterPattern, leavePattern, new FullLogLineSelector(key, workspace))
 	}
 
-	new(TestExecutionKey key, WorkspaceProvider workspaceProvider, String enterPattern, String leavePattern, LogLineSelector preSelector) {
-		super(key, workspaceProvider)
+	new(TestExecutionKey key, File workspace, String enterPattern, String leavePattern, LogLineSelector preSelector) {
+		super(key, workspace)
 		this.compiledEnterPattern = Pattern.compile(enterPattern)
 		this.compiledLeavePattern = Pattern.compile(leavePattern)
 		this.preSelector = preSelector

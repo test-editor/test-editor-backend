@@ -1,4 +1,4 @@
-package org.testeditor.web.backend.testexecution
+package org.testeditor.web.backend.persistence
 
 import java.io.File
 import java.io.IOException
@@ -14,7 +14,7 @@ import javax.ws.rs.core.MediaType
 import org.eclipse.jgit.api.Git
 import org.eclipse.xtend.lib.annotations.FinalFieldsConstructor
 import org.junit.Test
-import org.testeditor.web.backend.persistence.AbstractPersistenceIntegrationTest
+import org.testeditor.web.backend.testexecution.TestExecutionKey
 
 import static java.nio.charset.StandardCharsets.UTF_8
 import static java.util.concurrent.TimeUnit.MINUTES
@@ -24,7 +24,7 @@ import static javax.ws.rs.core.Response.Status.*
 import static extension java.nio.file.Files.lines
 import static extension java.nio.file.Files.list
 
-class CancelledTestExecutionDetailsTest extends AbstractPersistenceIntegrationTest {
+class CancelledTestExecutionDetailsIntegrationTest extends AbstractPersistenceIntegrationTest {
 
 	static val WORKSPACE_DIR = 'src/test/resources/cancelled-test-execution-details-bug'
 

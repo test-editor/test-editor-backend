@@ -1,12 +1,14 @@
 package org.testeditor.web.backend.testexecution.loglines
 
+import java.io.File
 import java.util.regex.Pattern
 import javax.inject.Inject
+import javax.inject.Named
+import javax.inject.Provider
 import org.apache.commons.lang3.Validate
-import org.testeditor.web.backend.persistence.PersistenceConfiguration
-import org.testeditor.web.backend.persistence.util.HierarchicalLineSkipper
-import org.testeditor.web.backend.persistence.workspace.WorkspaceProvider
+import org.testeditor.web.backend.testexecution.TestExecutionConfiguration
 import org.testeditor.web.backend.testexecution.TestExecutionKey
+import org.testeditor.web.backend.testexecution.util.HierarchicalLineSkipper
 
 /**
  * Locates log files corresponding to test execution keys relying on file naming
@@ -19,23 +21,23 @@ class ScanningLogFinder implements LogFinder {
 	static val ENTER_REGEX = Pattern.compile('''@[A-Z_]+:ENTER:([0-9a-f]+:)?(.+)''')
 	static val ILLEGAL_TEST_EXECUTION_KEY_MESSAGE = "Provided test execution key must contain a test suite id and a test suite run id. (Key was: '%s'.)"
 
-	@Inject extension WorkspaceProvider workspaceProvider
-	@Inject extension PersistenceConfiguration
+	@Inject @Named("workspace") Provider<File> workspaceProvider
+	@Inject extension TestExecutionConfiguration
 	@Inject extension HierarchicalLineSkipper
 	@Inject extension LogFilter
 
 	private def getLogLineSelector(TestExecutionKey key) {
 		return if (key.caseRunId.nullOrEmpty) {
-			new FullLogLineSelector(key, workspaceProvider)
+			new FullLogLineSelector(key, workspaceProvider.get)
 		} else {
-			val testCaseSelector = new PatternBasedLogLineSelector(key, workspaceProvider, //
+			val testCaseSelector = new PatternBasedLogLineSelector(key, workspaceProvider.get, //
 			'''@TESTRUN:ENTER:«key.suiteId».«key.suiteRunId».«key.caseRunId»''', //
 			'''@TESTRUN:LEAVE:«key.suiteId».«key.suiteRunId».«key.caseRunId»''')
 
 			if (key.callTreeId.nullOrEmpty) {
 				testCaseSelector
 			} else {
-				new PatternBasedLogLineSelector(key, workspaceProvider, //
+				new PatternBasedLogLineSelector(key, workspaceProvider.get, //
 				'''@[A-Z_]+:ENTER:[0-9a-f]+:«key.callTreeId»''', //
 				'''@[A-Z_]+:LEAVE:[0-9a-f]+:«key.callTreeId»''', //
 				testCaseSelector)

@@ -3,9 +3,11 @@ package org.testeditor.web.backend.testexecution
 import java.time.Instant
 import org.junit.Test
 import org.mockito.InjectMocks
-import org.testeditor.web.backend.persistence.AbstractPersistenceTest
+import org.junit.runner.RunWith
+import org.mockito.junit.MockitoJUnitRunner
 
-class TestExecutorProviderTest extends AbstractPersistenceTest {
+@RunWith(MockitoJUnitRunner)
+class TestExecutorProviderTest {
 
 	@InjectMocks TestExecutorProvider testExecutorProviderUnderTest
 
