@@ -1,8 +1,0 @@
-package sample
-
-import org.testeditor.fixture.web.*
-import static org.testeditor.fixture.web.LocatorStrategy.ID
-
-component SamplePage is Page {
-    element SampleButton is button locate by ID "sampleButton"
-}
