@@ -1,5 +1,6 @@
 dependencies {
     compile 'org.eclipse.jgit:org.eclipse.jgit:5.1.2.201810061102-r'
+    compile 'org.testeditor.web:test-editor-testexecution:0.1.2'
     testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:5.1.2.201810061102-r'
     testCompile 'com.google.guava:guava-testlib:27.0.1-jre'
 }
