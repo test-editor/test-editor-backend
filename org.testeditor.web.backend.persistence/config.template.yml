@@ -1,3 +1,4 @@
+localRepoFileRoot: %REPO_ROOT%
 remoteRepoUrl: %TARGET_REPO%
 branchName: %BRANCH_NAME%
 privateKeyLocation: %KEY_LOCATION%
