@@ -1,6 +1,6 @@
 FROM openjdk:10-jdk
 
-# This image needs five environment variables upon execution:
+# This image needs six environment variables upon execution:
 # * TARGET_REPO
 #   Defines the git repository used
 # * BRANCH_NAME
@@ -10,14 +10,16 @@ FROM openjdk:10-jdk
 # * KNOWN_HOSTS
 #   file location of the known hosts file to be used for network access
 # * REPO_MODE
-#   mode in which the repositorys to be used, valid values are: 'pullOnly', 'pullPush'
+#   mode in which the repositories are to be used, valid values are: 'pullOnly', 'pullPush'
 #   pull only will never push back changes to the remote repo (local changes are possible)
+# * WORK_DIR
+#   Working directory of the Java server process. User workspaces will be relative to this directory.
+#   It will also contain the Gradle cache, and other files written after startup. 
 
 LABEL license="EPL 1.0" \
       name="testeditor/persistence"
 
 ENV PROG_DIR=/opt/testeditor \
-    GRADLE_USER_HOME=/opt/testeditor/.gradle \
     REPO_ROOT=/repo \
     JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes=" \
     FIREFOX_VERSION="latest" \
@@ -52,8 +54,6 @@ RUN \
     mkdir -p ${PROG_DIR} && \
     mkdir -p ${REPO_ROOT} && \
     mkdir -p /tmp/.X11-unix && \
-    \
-    mv ${PROG_DIR}/config.template.yml ${PROG_DIR}/config.yml &&\
     \
     chmod --recursive ug+rwX,o-rwX ${PROG_DIR} && \
     chown --recursive testeditor:root ${PROG_DIR} && \
