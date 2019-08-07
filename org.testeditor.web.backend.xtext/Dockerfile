@@ -36,8 +36,6 @@ RUN \
     mkdir -p ${PROG_DIR} && \
     mkdir -p ${WORK_DIR} && \
     \
-    mv ${PROG_DIR}/config.template.yml ${PROG_DIR}/config.yml &&\
-    \
     chmod --recursive ug+rwX,o-rwX ${PROG_DIR} && \
     chown --recursive testeditor:root ${PROG_DIR} && \
     chmod --recursive ug+rw,o-rwX ${WORK_DIR} && \
