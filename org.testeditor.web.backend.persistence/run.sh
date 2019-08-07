@@ -2,6 +2,8 @@
 
 cd $WORK_DIR
 
+export REPO_ROOT="$WORK_DIR/repo"
+
 if [ "$BRANCH_NAME" == "" ]; then
   export BRANCH_NAME="master"
 fi

@@ -1,6 +1,6 @@
 FROM openjdk:10-jdk
 
-# This image needs six environment variables upon execution:
+# This image needs five environment variables upon execution:
 # * TARGET_REPO
 #   Defines the git repository used
 # * BRANCH_NAME
@@ -12,15 +12,12 @@ FROM openjdk:10-jdk
 # * REPO_MODE
 #   mode in which the repositories are to be used, valid values are: 'pullOnly', 'pullPush'
 #   pull only will never push back changes to the remote repo (local changes are possible)
-# * WORK_DIR
-#   Working directory of the Java server process. User workspaces will be relative to this directory.
-#   It will also contain the Gradle cache, and other files written after startup. 
 
 LABEL license="EPL 1.0" \
       name="testeditor/persistence"
 
 ENV PROG_DIR=/opt/testeditor \
-    REPO_ROOT=/repo \
+    WORK_DIR=/workdir \
     JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes=" \
     FIREFOX_VERSION="latest" \
     FIREFOX_SOURCE_URL="https://download.mozilla.org/?product=firefox-latest&lang=en-US&os=linux64" \
@@ -52,13 +49,13 @@ RUN \
     useradd -u 5555 -r -g testeditor -G root -d ${PROG_DIR} -s /sbin/nologin -c "service user" testeditor && \
     \
     mkdir -p ${PROG_DIR} && \
-    mkdir -p ${REPO_ROOT} && \
+    mkdir -p ${WORK_DIR} && \
     mkdir -p /tmp/.X11-unix && \
     \
     chmod --recursive ug+rwX,o-rwX ${PROG_DIR} && \
     chown --recursive testeditor:root ${PROG_DIR} && \
-    chmod --recursive ug+rw,o-rwX ${REPO_ROOT} && \
-    chown --recursive testeditor:root ${REPO_ROOT} && \
+    chmod --recursive ug+rw,o-rwX ${WORK_DIR} && \
+    chown --recursive testeditor:root ${WORK_DIR} && \
     chmod --recursive 1777 /tmp/.X11-unix
 
 # group testeditor:
