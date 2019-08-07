@@ -1,19 +1,22 @@
 #!/bin/bash
 
+cd $WORK_DIR
+
 if [ "$BRANCH_NAME" == "" ]; then
   export BRANCH_NAME="master"
 fi
 
 # Additional options to be passed to the JVM can be provided via the
 # TE_JAVA_OPTIONS environment variable
-export JAVA_TOOL_OPTIONS="${TE_JAVA_OPTIONS} -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStore=${PROG_DIR}/testeditor.certs"
-keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts -destkeystore ${PROG_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
+export JAVA_TOOL_OPTIONS="${TE_JAVA_OPTIONS} -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStore=${WORK_DIR}/testeditor.certs"
+keytool -importkeystore -srckeystore $JAVA_HOME/lib/security/cacerts -destkeystore ${WORK_DIR}/testeditor.certs -srcstorepass changeit -deststorepass changeit -noprompt
 if [ "$PROXY_CERT" != "" ]; then
   echo "importing certificate into java certificate store"
-  keytool -importcert -file $PROXY_CERT -keystore ${PROG_DIR}/testeditor.certs -storepass changeit -noprompt -trustcacerts
+  keytool -importcert -file $PROXY_CERT -keystore ${WORK_DIR}/testeditor.certs -storepass changeit -noprompt -trustcacerts
 fi
 
-GRADLE_PROPS_TARGET_FILE=${PROG_DIR}/.gradle/gradle.properties
+export GRADLE_USER_HOME=$WORK_DIR/.gradle
+GRADLE_PROPS_TARGET_FILE=$GRADLE_USER_HOME/gradle.properties
 if [ "$GRADLE_PROPS_CONTENT" != "" ]; then
   echo "using gradle properties with content passed through env"
   mkdir -p `dirname $GRADLE_PROPS_TARGET_FILE`
@@ -37,15 +40,15 @@ fi
 
 if [ "$GIT_PRIVATE_KEY" != "" ]; then
   echo "configuring private key for repo access"
-  KEY_LOCATION=${PROG_DIR}/ssh-keys/ssh-privatekey
+  KEY_LOCATION=${WORK_DIR}/ssh-keys/ssh-privatekey
   mkdir -p `dirname $KEY_LOCATION`
   echo "$GIT_PRIVATE_KEY" > $KEY_LOCATION
   chmod 600 $KEY_LOCATION
   sha1sum $KEY_LOCATION
 fi
 
-KNOWN_HOSTS_FILE=${PROG_DIR}/ssh-keys/known_hosts
-mkdir -p ${PROG_DIR}/ssh-keys
+KNOWN_HOSTS_FILE=${WORK_DIR}/ssh-keys/known_hosts
+mkdir -p ${WORK_DIR}/ssh-keys
 if [ "$KNOWN_HOSTS" != "" ]; then
   echo "copying passed known_hosts file from $KNOWN_HOSTS"
   cp $KNOWN_HOSTS $KNOWN_HOSTS_FILE
@@ -71,13 +74,15 @@ mv TEMP $KNOWN_HOSTS_FILE
 echo "using known hosts:"
 cat $KNOWN_HOSTS_FILE
 
-sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" config.yml
-sed -i "s|%REPO_ROOT%|$REPO_ROOT|g" config.yml
-sed -i "s|%BRANCH_NAME%|$BRANCH_NAME|g" config.yml
-sed -i "s|%API_TOKEN_SECRET%|$API_TOKEN_SECRET|g" config.yml
-sed -i "s|%KEY_LOCATION%|$KEY_LOCATION|g" config.yml
-sed -i "s|%KNOWN_HOSTS%|$KNOWN_HOSTS_FILE|g" config.yml
+cp $PROG_DIR/config.template.yml $WORK_DIR/config.yml
+sed -i "s|%TARGET_REPO%|$TARGET_REPO|g" $WORK_DIR/config.yml
+sed -i "s|%REPO_ROOT%|$REPO_ROOT|g" $WORK_DIR/config.yml
+sed -i "s|%BRANCH_NAME%|$BRANCH_NAME|g" $WORK_DIR/config.yml
+sed -i "s|%API_TOKEN_SECRET%|$API_TOKEN_SECRET|g" $WORK_DIR/config.yml
+sed -i "s|%KEY_LOCATION%|$KEY_LOCATION|g" $WORK_DIR/config.yml
+sed -i "s|%KNOWN_HOSTS%|$KNOWN_HOSTS_FILE|g" $WORK_DIR/config.yml
 
 export HOME=/opt/testeditor
 
-exec bin/org.testeditor.web.backend.xtext server config.yml
+cd $WORK_DIR
+exec $PROG_DIR/bin/org.testeditor.web.backend.xtext server $WORK_DIR/config.yml
