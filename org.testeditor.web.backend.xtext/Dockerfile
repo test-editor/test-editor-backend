@@ -1,6 +1,6 @@
 FROM openjdk:10-jdk
 
-# This image needs five environment variables upon execution:
+# This image needs four environment variables upon execution:
 # * TARGET_REPO
 #   Defines the git repository used (read only)
 # * BRANCH_NAME
@@ -9,16 +9,13 @@ FROM openjdk:10-jdk
 #   file location of the private key to use for ssh git access
 # * KNOWN_HOSTS
 #   file location of the known hosts file to be used for network access
-# * WORK_DIR
-#   Working directory of the Java server process. User workspaces will be relative to this directory.
-#   It will also contain the Gradle cache, and other files written after startup.
 
 LABEL license="EPL 1.0" \
       name="testeditor/xtext"
 
 ENV PROG_DIR=/opt/testeditor \
     GRADLE_USER_HOME=/opt/testeditor/.gradle \
-    REPO_ROOT=/repo \
+    WORK_DIR=/workdir \
     JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes="
 
 COPY testeditor/ \
@@ -37,14 +34,14 @@ RUN \
     useradd -u 5555 -r -g testeditor -G root -d ${PROG_DIR} -s /sbin/nologin -c "service user" testeditor && \
     \
     mkdir -p ${PROG_DIR} && \
-    mkdir -p ${REPO_ROOT} && \
+    mkdir -p ${WORK_DIR} && \
     \
     mv ${PROG_DIR}/config.template.yml ${PROG_DIR}/config.yml &&\
     \
     chmod --recursive ug+rwX,o-rwX ${PROG_DIR} && \
     chown --recursive testeditor:root ${PROG_DIR} && \
-    chmod --recursive ug+rw,o-rwX ${REPO_ROOT} && \
-    chown --recursive testeditor:root ${REPO_ROOT}
+    chmod --recursive ug+rw,o-rwX ${WORK_DIR} && \
+    chown --recursive testeditor:root ${WORK_DIR}
 
 # group testeditor:
 #   -r : group of a system account
