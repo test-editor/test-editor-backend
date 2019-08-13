@@ -10,15 +10,14 @@ FROM openjdk:10-jdk
 # * KNOWN_HOSTS
 #   file location of the known hosts file to be used for network access
 # * REPO_MODE
-#   mode in which the repositorys to be used, valid values are: 'pullOnly', 'pullPush'
+#   mode in which the repositories are to be used, valid values are: 'pullOnly', 'pullPush'
 #   pull only will never push back changes to the remote repo (local changes are possible)
 
 LABEL license="EPL 1.0" \
       name="testeditor/persistence"
 
 ENV PROG_DIR=/opt/testeditor \
-    GRADLE_USER_HOME=/opt/testeditor/.gradle \
-    REPO_ROOT=/repo \
+    WORK_DIR=/workdir \
     JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes=" \
     FIREFOX_VERSION="latest" \
     FIREFOX_SOURCE_URL="https://download.mozilla.org/?product=firefox-latest&lang=en-US&os=linux64" \
@@ -50,15 +49,13 @@ RUN \
     useradd -u 5555 -r -g testeditor -G root -d ${PROG_DIR} -s /sbin/nologin -c "service user" testeditor && \
     \
     mkdir -p ${PROG_DIR} && \
-    mkdir -p ${REPO_ROOT} && \
+    mkdir -p ${WORK_DIR} && \
     mkdir -p /tmp/.X11-unix && \
-    \
-    mv ${PROG_DIR}/config.template.yml ${PROG_DIR}/config.yml &&\
     \
     chmod --recursive ug+rwX,o-rwX ${PROG_DIR} && \
     chown --recursive testeditor:root ${PROG_DIR} && \
-    chmod --recursive ug+rw,o-rwX ${REPO_ROOT} && \
-    chown --recursive testeditor:root ${REPO_ROOT} && \
+    chmod --recursive ug+rw,o-rwX ${WORK_DIR} && \
+    chown --recursive testeditor:root ${WORK_DIR} && \
     chmod --recursive 1777 /tmp/.X11-unix
 
 # group testeditor:
