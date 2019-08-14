@@ -15,7 +15,7 @@ LABEL license="EPL 1.0" \
 
 ENV PROG_DIR=/opt/testeditor \
     GRADLE_USER_HOME=/opt/testeditor/.gradle \
-    REPO_ROOT=/repo \
+    WORK_DIR=/workdir \
     JAVA_TOOL_OPTIONS="-Djdk.http.auth.tunneling.disabledSchemes="
 
 COPY testeditor/ \
@@ -34,14 +34,12 @@ RUN \
     useradd -u 5555 -r -g testeditor -G root -d ${PROG_DIR} -s /sbin/nologin -c "service user" testeditor && \
     \
     mkdir -p ${PROG_DIR} && \
-    mkdir -p ${REPO_ROOT} && \
-    \
-    mv ${PROG_DIR}/config.template.yml ${PROG_DIR}/config.yml &&\
+    mkdir -p ${WORK_DIR} && \
     \
     chmod --recursive ug+rwX,o-rwX ${PROG_DIR} && \
     chown --recursive testeditor:root ${PROG_DIR} && \
-    chmod --recursive ug+rw,o-rwX ${REPO_ROOT} && \
-    chown --recursive testeditor:root ${REPO_ROOT}
+    chmod --recursive ug+rw,o-rwX ${WORK_DIR} && \
+    chown --recursive testeditor:root ${WORK_DIR}
 
 # group testeditor:
 #   -r : group of a system account
